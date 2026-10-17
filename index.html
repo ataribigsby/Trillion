@@ -2051,7 +2051,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         earnedMax=score;save();rebuild();return gifts;
       }
       const fresh=new Set();
-      const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items}))}));}catch(e){}};
+      const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items}))}));localStorage.setItem(KEY+'-at',String(Date.now()));}catch(e){}if(window.TrillionCloud)TrillionCloud.changed();};
       let running=false,time=0,last=0,frame=0;
       let angle=0,kick=0,pitch=.38,pitchPlanet=.38,pitchZoom=1.0;
       let orient=[1,0,0,0,1,0,0,0,1],tip=null;
@@ -2348,6 +2348,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const loadBtn=document.createElement('button');loadBtn.className='aloha-file-btn';loadBtn.textContent='LOAD';loadBtn.title='Load Aloha progress from a file';
       const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='.json,application/json';fileInput.hidden=true;
       top.append(coinBox,saveBtn,loadBtn,fileInput);
+      if(window.TrillionCloud)TrillionCloud.addOpener(top).className='aloha-file-btn';
       let bumpTimer=0;
       function updateCoins(bump) {
         coinCount.textContent='×'+coins;
@@ -2763,6 +2764,151 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
   })();
   </script>
 <script>
+// Player accounts: a name plus a recovery code, saved through three locked-down database functions (no passwords, no email).
+window.TrillionCloud=(()=>{
+  'use strict';
+  const API='https://hmtrwwbaellwuuqmdeyn.supabase.co',
+    KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtdHJ3d2JhZWxsd3V1cW1kZXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDc5MTQsImV4cCI6MjA5MDMyMzkxNH0.SGYmVagkcx2Eddx9nDQI8fpGXd7ViVxCapbCYW8wmVk',
+    LS='trillion-account-v1';
+  let acct=null,hooks=null,timer=0,lastSent='',status='',dlg=null,busy=false;
+  const subs=new Set();
+  try{acct=JSON.parse(localStorage.getItem(LS)||'null');if(!acct||!acct.u||!acct.c)acct=null;}catch(e){acct=null;}
+  const label=()=>acct?'☁ '+acct.u:'☁ PLAYER ACCOUNT';
+  function notify(){subs.forEach(f=>{try{f(label(),status);}catch(e){}});if(dlg)render();}
+  async function rpc(fn,args,keepalive){
+    const body=JSON.stringify(args);
+    const r=await fetch(API+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body,keepalive:!!keepalive&&body.length<60000});
+    if(!r.ok)throw new Error('http '+r.status);
+    return r.json();
+  }
+  const sig=p=>{const a=p&&p.aloha?{...p.aloha}:null;if(a)delete a.savedAt;return JSON.stringify({a,b:p&&p.best});};
+  async function push(keepalive){
+    clearTimeout(timer);timer=0;
+    if(!acct||!hooks)return;
+    const p=hooks.get(),s=sig(p);
+    if(s===lastSent)return;
+    status='Saving…';notify();
+    try{
+      const r=await rpc('write_save',{p_username:acct.u,p_code:acct.c,p_save:p},keepalive);
+      if(r&&r.ok){lastSent=s;status='Saved to the cloud';}else status=(r&&r.error)||'Could not save';
+    }catch(e){status='Offline — saved on this device only';}
+    notify();
+  }
+  function changed(){if(!acct||!hooks)return;clearTimeout(timer);timer=setTimeout(()=>push(false),3000);}
+  async function pull(force){
+    if(!acct||!hooks)return false;
+    status='Checking cloud save…';notify();
+    try{
+      const r=await rpc('load_save',{p_username:acct.u,p_code:acct.c});
+      if(!r||!r.ok){status=(r&&r.error)||'Could not load';notify();return false;}
+      const cloud=r.save;
+      if(cloud&&(force||(Number(cloud.savedAt)||0)>hooks.localTime())){hooks.apply(cloud);lastSent=sig(hooks.get());status='Loaded your cloud save';}
+      else{status='Saved to the cloud';lastSent='';await push(false);}
+    }catch(e){status='Offline — saved on this device only';}
+    notify();return true;
+  }
+  function remember(u,c){acct={u,c};try{localStorage.setItem(LS,JSON.stringify(acct));}catch(e){}}
+  async function createPlayer(name){
+    const r=await rpc('create_player',{p_username:name});
+    if(!r||!r.ok)return r||{ok:false,error:'Could not reach the server.'};
+    remember(r.username,r.code);lastSent='';await push(false);notify();return r;
+  }
+  async function signIn(name,code){
+    const r=await rpc('load_save',{p_username:name,p_code:code.trim().toUpperCase()});
+    if(!r||!r.ok)return r||{ok:false,error:'Could not reach the server.'};
+    remember(name.trim(),code.trim().toUpperCase());
+    if(r.save){hooks.apply(r.save);lastSent=sig(hooks.get());status='Loaded your cloud save';}else{lastSent='';await push(false);}
+    notify();return r;
+  }
+  function signOut(){acct=null;lastSent='';status='';try{localStorage.removeItem(LS);}catch(e){}notify();}
+  function attach(h){hooks=h;if(acct)pull(false);notify();}
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&timer)push(true);});
+  window.addEventListener('pagehide',()=>{if(timer)push(true);});
+
+  // ---- dialog ----
+  let mode='',msg='',justMade='',vName='',vCode='';
+  const css=document.createElement('style');
+  css.textContent=`#acct-overlay{position:fixed;inset:0;z-index:1000;background:#050d16d9;display:flex;align-items:center;justify-content:center;padding:16px;font-family:'Courier New',monospace;}
+#acct-overlay[hidden]{display:none;}
+#acct-box{width:min(420px,100%);max-height:92vh;overflow:auto;background:#0b1a2b;border:2px solid #3b6c96;box-shadow:0 6px 0 #1a3550;color:#cfe8fa;padding:20px;}
+#acct-box h2{margin:0 0 10px;font-size:16px;letter-spacing:3px;color:#8fd0ff;}
+#acct-box p{font-size:12px;line-height:1.55;margin:8px 0;}
+#acct-box label{display:block;font-size:11px;letter-spacing:2px;margin:12px 0 4px;color:#8fb4d0;}
+#acct-box input{width:100%;box-sizing:border-box;background:#06101b;border:2px solid #3b6c96;color:#fff;padding:9px;font:bold 14px 'Courier New',monospace;letter-spacing:1px;}
+#acct-box .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+#acct-box button,.acct-open{border:2px solid #3b6c96;background:#0b1a2b;color:#cfe8fa;padding:9px 12px;font:bold 11px 'Courier New',monospace;letter-spacing:2px;box-shadow:0 3px 0 #1a3550;cursor:pointer;border-radius:0;}
+#acct-box button:hover,.acct-open:hover{border-color:#8fd0ff;}
+#acct-box button.main{background:#1c5a8a;}
+#acct-box button:disabled{opacity:.45;cursor:wait;}
+#acct-box .code{font-size:20px;letter-spacing:3px;text-align:center;background:#06101b;border:2px dashed #e8b858;color:#ffe9a8;padding:14px 6px;margin:12px 0;user-select:all;word-break:break-all;}
+#acct-box .err{color:#ff9d8a;}#acct-box .ok{color:#9be8a8;}#acct-box .dim{color:#8fb4d0;}
+.acct-open{display:block;margin:10px auto 0;}`;
+  document.head.append(css);
+  const el=(t,a,...k)=>{const e=document.createElement(t);for(const x in a||{})x==='class'?e.className=a[x]:x==='text'?e.textContent=a[x]:e.setAttribute(x,a[x]);k.flat().forEach(c=>e.append(c));return e;};
+  function render(){
+    const b=dlg.firstChild;b.replaceChildren();
+    const close=()=>{dlg.hidden=true;mode='';msg='';justMade='';};
+    const say=(t,c)=>t?el('p',{class:c||'dim',text:t}):'';
+    const btn=(t,f,cls)=>{const x=el('button',{type:'button',class:cls||'',text:t});x.addEventListener('click',f);return x;};
+    const run=async(f)=>{if(busy)return;busy=true;b.querySelectorAll('button').forEach(x=>x.disabled=true);try{await f();}catch(e){msg='Could not reach the server. Check your connection.';}busy=false;render();};
+    if(justMade){
+      b.append(el('h2',{text:'WELCOME, '+acct.u.toUpperCase()}),
+        el('p',{text:'Your progress now saves to the cloud automatically. This is your recovery code:'}),
+        el('div',{class:'code',text:justMade}),
+        el('p',{class:'err',text:'Write it down or screenshot it now. It is the only way to get your progress back on a new device or after clearing this browser. Anyone with it can load your game, so don’t share it.'}));
+      const copy=btn('COPY CODE',async()=>{try{await navigator.clipboard.writeText(justMade);copy.textContent='COPIED';}catch(e){copy.textContent='SELECT & COPY IT';}});
+      b.append(el('div',{class:'row'},copy,btn('I SAVED IT',close,'main')));return;
+    }
+    if(acct){
+      b.append(el('h2',{text:'☁ '+acct.u.toUpperCase()}),say(status||'Signed in. Progress saves automatically.',/offline|wrong|could not/i.test(status)?'err':'ok'),say(msg,'err'));
+      if(mode==='code'){
+        b.append(el('p',{text:'Your recovery code:'}),el('div',{class:'code',text:acct.c}),el('p',{class:'dim',text:'Use it with your name to sign in on another device.'}));
+      }
+      const row=el('div',{class:'row'});
+      row.append(btn('SAVE NOW',()=>run(async()=>{lastSent='';await push(false);msg='';})),
+        btn(mode==='code'?'HIDE CODE':'SHOW RECOVERY CODE',()=>{mode=mode==='code'?'':'code';render();}),
+        btn('SIGN OUT',()=>{if(mode!=='out'){mode='out';render();}else{signOut();close();}}),
+        btn('CLOSE',close));
+      if(mode==='out')b.append(el('p',{class:'err',text:'Sign out of this device? Your cloud save stays safe; you will need your name and recovery code to sign back in. Press SIGN OUT again to confirm.'}));
+      b.append(row);return;
+    }
+    const name=el('input',{type:'text',maxlength:'20',autocomplete:'off',spellcheck:'false',placeholder:'3-20 letters or numbers'});
+    const code=el('input',{type:'text',autocomplete:'off',spellcheck:'false',placeholder:'XXXXXX-XXXXXX-XXXXXX'});
+    name.value=vName;code.value=vCode;name.addEventListener('input',()=>{vName=name.value;});code.addEventListener('input',()=>{vCode=code.value;});
+    if(mode==='in'){
+      b.append(el('h2',{text:'SIGN IN'}),el('p',{text:'Enter your name and recovery code. This replaces the progress on this device with your cloud save.'}),say(msg,'err'),
+        el('label',{text:'PLAYER NAME'}),name,el('label',{text:'RECOVERY CODE'}),code,
+        el('div',{class:'row'},btn('SIGN IN',()=>run(async()=>{
+          if(name.value.trim().length<3||code.value.trim().length<10){msg='Enter both your name and your recovery code.';return;}
+          const r=await signIn(name.value,code.value);msg=r.ok?'':r.error;if(r.ok){mode='';}
+        }),'main'),btn('BACK',()=>{mode='';msg='';render();})));
+    }else{
+      b.append(el('h2',{text:'PLAYER ACCOUNT'}),el('p',{text:'Pick a name and your progress is saved in the cloud, so you can play from any device. No password and no email. You get a recovery code instead.'}),
+        say(msg,'err'),el('label',{text:'CHOOSE A PLAYER NAME'}),name,
+        el('div',{class:'row'},btn('CREATE PLAYER',()=>run(async()=>{
+          const r=await createPlayer(name.value);msg=r.ok?'':r.error;if(r.ok)justMade=r.code;
+        }),'main'),btn('I HAVE A CODE',()=>{mode='in';msg='';render();}),btn('CLOSE',close)));
+    }
+    setTimeout(()=>{const f=b.querySelector('input');if(f&&document.activeElement!==f)f.focus();},0);
+  }
+  function open(){
+    if(!dlg){
+      dlg=el('div',{id:'acct-overlay',hidden:''},el('div',{id:'acct-box',role:'dialog','aria-modal':'true'}));
+      // Typing a name must never reach the game's keyboard controls.
+      ['keydown','keyup','keypress'].forEach(t=>dlg.addEventListener(t,e=>{e.stopPropagation();if(t==='keydown'&&e.key==='Escape'){dlg.hidden=true;}}));
+      document.body.append(dlg);
+    }
+    dlg.hidden=false;render();
+  }
+  function addOpener(parent,before){
+    const b=el('button',{type:'button',class:'acct-open'});
+    const upd=()=>{b.textContent=label();};upd();subs.add(upd);
+    b.addEventListener('click',open);parent.insertBefore(b,before||null);return b;
+  }
+  return {attach,changed,open,addOpener,subscribe:f=>subs.add(f),get user(){return acct&&acct.u;},_test:{rpc}};
+})();
+</script>
+<script>
 (() => {
   'use strict';
   const {Game,POWER_UPS,GROW_DURATION,LEVELS,MAX_LAYERS,POWER_DURATION,FACES,COLORS,SETTLE_DURATION,TWIST_DURATION,identity,transform,multiply,axisRotation,facePoint,twistRotation} = CubeGame;
@@ -2792,6 +2938,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     document.querySelector('#title-high-score').textContent=String(highScore.best).padStart(6,'0');
     document.querySelector('#game-high-score').textContent=highScore.best;
     document.querySelector('#score-storage').textContent=highScore.saved?'PERSONAL BEST · SAVED ON THIS BROWSER':'PERSONAL BEST · THIS OPEN SESSION ONLY';
+    if(window.TrillionCloud)TrillionCloud.changed();
   }
   updateHighScore();
   const tileColors=[[.27,.39,.54],[.40,.30,.48],[.25,.43,.42],[.48,.31,.36],[.31,.34,.52],[.44,.39,.28]];
@@ -2932,6 +3079,15 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
   // ALOHA: press 7 to fade out of the game into a calm ocean planet, and 7 again to come back.
   const alohaRoot=document.querySelector('#aloha'),alohaFade=document.querySelector('#aloha-fade');
   const aloha=TrillionAloha.create(alohaRoot);
+  if(window.TrillionCloud){
+    TrillionCloud.attach({
+      get:()=>({aloha:aloha.exportData(),best:highScore.best,savedAt:Date.now()}),
+      apply:d=>{if(d.aloha)aloha.importData(d.aloha);if(Number(d.best)>0)highScore.record(Number(d.best));updateHighScore();},
+      localTime:()=>{try{return Number(localStorage.getItem('trillion-aloha-v1-at'))||0;}catch(e){return 0;}}
+    });
+    const panel=document.querySelector('#title-screen .start-panel');
+    if(panel)TrillionCloud.addOpener(panel,panel.querySelector('.keyboard-hint'));
+  }
   let alohaOpen=false,alohaBusy=false,alohaWasPaused=false,alohaCoin=0,lastAlohaScore=0;
   let alohaGiftTimer,lastAlohaDispensed=game.totalDispensed||0;
   const alohaWait=ms=>new Promise(r=>setTimeout(r,ms));
