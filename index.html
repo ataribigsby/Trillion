@@ -364,6 +364,7 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
       <div class="console-bottom"><span class="stereo-vents" aria-hidden="true"></span><span><i class="power-led"></i> POWER</span><span>TRILLION™</span></div>
     </div>
     <p class="title-footnote">MADE FOR SLOW EVENINGS &amp; HIGH SCORES.</p>
+    <p class="title-footnote" style="margin-top:6px;opacity:.8">ANONYMOUS PLAY STATS HELP IMPROVE THE GAME · NO NAMES, NO EMAIL</p>
   </section>
   <div class="music-player" aria-label="Music controls">
     <button id="music-toggle" aria-pressed="true" title="Toggle background music">♫ Music on</button>
@@ -2050,6 +2051,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         for(let k=Math.floor(from/40)+1;k*40<=score;k++)give(COLLECTIBLES[(k-1)%COLLECTIBLES.length].id,true);
         earnedMax=score;save();rebuild();return gifts;
       }
+      const T=(n,p)=>{try{window.TrillionStats&&TrillionStats.track(n,p);}catch(e){}};
       const fresh=new Set();
       const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items}))}));localStorage.setItem(KEY+'-at',String(Date.now()));}catch(e){}if(window.TrillionCloud)TrillionCloud.changed();};
       let running=false,time=0,last=0,frame=0;
@@ -2140,7 +2142,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         else if(m.from==='rider')m.raft.rider=m.rider;
       }
       function cancelHold() {if(hold){restoreMoving();hold=null;fallHeld=false;rebuild();}}
-      function zoomIn(k) {zoomIsland=k;zoomTarget=1;cancelHoldQuiet();rebuild();}
+      function zoomIn(k) {T('aloha_zoom',{island:k});zoomIsland=k;zoomTarget=1;cancelHoldQuiet();rebuild();}
       function zoomOut() {zoomTarget=0;cancelHoldQuiet();rebuild();}
       function cancelHoldQuiet() {restoreMoving();hold=null;fallHeld=false;}
       // Melt a group of touching islands into one blob that is 70% of their combined area.
@@ -2208,12 +2210,13 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
           islands[zoomIsland].items.push({id:h.id,x:h.x,z:h.z,r:h.r,...careState({id:h.id},day())});inv[h.id]--;
           say(inv[h.id]>0?'Placed. Pick another item below.':'Placed.',3);
         }
-        save();rebuild();
+        T('aloha_place',{id:h.id,moved:!!h.moving});save();rebuild();
       }
       // Lift a movable item so it can be set down somewhere else (Esc puts it back).
       function pickUp(t){
         if(hold||tip||!t)return;
         if(!movable(t)){say(`${BY_ID[t.id].name} is planted and can't be moved.`,4);return;}
+        T('aloha_pickup',{id:t.id});
         const isl=islands.findIndex(s=>s.items.includes(t));
         if(isl>=0){
           if(zoomTarget===0||zoomIsland!==isl)return;
@@ -2348,7 +2351,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const loadBtn=document.createElement('button');loadBtn.className='aloha-file-btn';loadBtn.textContent='LOAD';loadBtn.title='Load Aloha progress from a file';
       const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='.json,application/json';fileInput.hidden=true;
       top.append(coinBox,saveBtn,loadBtn,fileInput);
-      if(window.TrillionCloud)TrillionCloud.addOpener(top).className='aloha-file-btn';
+      if(window.TrillionCloud)TrillionCloud.addOpener(top,null,'short');
       let bumpTimer=0;
       function updateCoins(bump) {
         coinCount.textContent='×'+coins;
@@ -2393,7 +2396,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       carePanel.append(careTitle,careClock,careFood,buyButton,careInfo,careButton,moveButton);
       function buyFood(){
         if(coins<FOOD_PRICE){say(`Animal food costs ${FOOD_PRICE} coins. Earn a coin for every 10 points.`,4);return;}
-        coins-=FOOD_PRICE;food++;save();updateCoins(false);updateCare();say('Bought 1 animal food.',3);
+        coins-=FOOD_PRICE;food++;T('aloha_buy_food');save();updateCoins(false);updateCare();say('Bought 1 animal food.',3);
       }
       function updateCare(){
         careClock.textContent=`DAY ${day()+1} · ${5-totalShapes%5} shapes until tomorrow`;
@@ -2410,7 +2413,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       }
       function interactCare(t){
         selectedCare=t;
-        const result=careFor(t,'care',day(),food);food=result.food;
+        const result=careFor(t,'care',day(),food);food=result.food;T('aloha_care',{id:t.id});
         say(result.message,6);save();updateCare();rebuild();
       }
       ui.append(top,carePanel,hint,bar,back);root.append(ui);
@@ -2764,6 +2767,47 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
   })();
   </script>
 <script>
+// Anonymous play stats: a random id per browser (no name, no email), sent in small batches so the game can be improved. Skipped if the browser says Do Not Track.
+window.TrillionStats=(()=>{
+  'use strict';
+  const API='https://hmtrwwbaellwuuqmdeyn.supabase.co',
+    KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtdHJ3d2JhZWxsd3V1cW1kZXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDc5MTQsImV4cCI6MjA5MDMyMzkxNH0.SGYmVagkcx2Eddx9nDQI8fpGXd7ViVxCapbCYW8wmVk';
+  let off=false;
+  try{off=navigator.doNotTrack==='1'||window.doNotTrack==='1';}catch(e){}
+  const uid=()=>{try{return crypto.randomUUID();}catch(e){return (Math.random().toString(36).slice(2)+Date.now().toString(36)+Math.random().toString(36).slice(2)).slice(0,32);}};
+  let anon='',visits=1,returning=false;
+  try{
+    anon=localStorage.getItem('trillion-anon-v1')||'';
+    if(anon){returning=true;}else{anon=uid();localStorage.setItem('trillion-anon-v1',anon);}
+    visits=(Number(localStorage.getItem('trillion-visits-v1'))||0)+1;localStorage.setItem('trillion-visits-v1',String(visits));
+  }catch(e){if(!anon)anon=uid();}
+  const sid=uid(),t0=Date.now();
+  let q=[],sent=0;
+  function track(name,props){
+    if(off||sent+q.length>=400)return;
+    q.push({name,a:anon,s:sid,t:Date.now(),p:props||{}});
+    if(q.length>=25)flush(false);
+  }
+  async function flush(keep){
+    if(off||!q.length)return;
+    const now=Date.now(),batch=q.splice(0,50).map(e=>({name:e.name,a:e.a,s:e.s,ago:(now-e.t)/1000,p:e.p}));
+    sent+=batch.length;
+    try{await fetch(API+'/rest/v1/rpc/log_events',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify({p_events:batch}),keepalive:!!keep});}catch(e){}
+    if(q.length&&!keep)flush(false);
+  }
+  setInterval(()=>flush(false),15000);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)flush(true);});
+  window.addEventListener('pagehide',()=>flush(true));
+  let errN=0;
+  const err=(m,f,l)=>{if(errN++<5)track('js_error',{m:String(m||'').slice(0,160),f:String(f||'').split('/').pop().slice(0,40),l:l||0});};
+  window.addEventListener('error',e=>err(e.message,e.filename,e.lineno));
+  window.addEventListener('unhandledrejection',e=>err(e.reason&&e.reason.message||e.reason,'promise',0));
+  let host='';try{host=document.referrer?new URL(document.referrer).hostname.slice(0,60):'';}catch(e){}
+  track('session_start',{vw:innerWidth,vh:innerHeight,dpr:+(devicePixelRatio||1).toFixed(2),touch:('ontouchstart' in window)||navigator.maxTouchPoints>0,lang:(navigator.language||'').slice(0,10),ref:host,returning,visit:visits});
+  return {track,flush,t0,get anon(){return anon;},get off(){return off;}};
+})();
+</script>
+<script>
 // Player accounts: a name plus a recovery code, saved through three locked-down database functions (no passwords, no email).
 window.TrillionCloud=(()=>{
   'use strict';
@@ -2772,6 +2816,7 @@ window.TrillionCloud=(()=>{
     LS='trillion-account-v1';
   let acct=null,hooks=null,timer=0,lastSent='',status='',dlg=null,busy=false;
   const subs=new Set();
+  const ev=(n,p)=>{try{window.TrillionStats&&TrillionStats.track(n,p);}catch(e){}};
   try{acct=JSON.parse(localStorage.getItem(LS)||'null');if(!acct||!acct.u||!acct.c)acct=null;}catch(e){acct=null;}
   const label=()=>acct?'☁ '+acct.u:'☁ PLAYER ACCOUNT';
   function notify(){subs.forEach(f=>{try{f(label(),status);}catch(e){}});if(dlg)render();}
@@ -2811,16 +2856,16 @@ window.TrillionCloud=(()=>{
   async function createPlayer(name){
     const r=await rpc('create_player',{p_username:name});
     if(!r||!r.ok)return r||{ok:false,error:'Could not reach the server.'};
-    remember(r.username,r.code);lastSent='';await push(false);notify();return r;
+    remember(r.username,r.code);lastSent='';await push(false);notify();ev('account_created');return r;
   }
   async function signIn(name,code){
     const r=await rpc('load_save',{p_username:name,p_code:code.trim().toUpperCase()});
     if(!r||!r.ok)return r||{ok:false,error:'Could not reach the server.'};
     remember(name.trim(),code.trim().toUpperCase());
     if(r.save){hooks.apply(r.save);lastSent=sig(hooks.get());status='Loaded your cloud save';}else{lastSent='';await push(false);}
-    notify();return r;
+    notify();ev('account_signin',{had_save:!!r.save});return r;
   }
-  function signOut(){acct=null;lastSent='';status='';try{localStorage.removeItem(LS);}catch(e){}notify();}
+  function signOut(){ev('account_signout');acct=null;lastSent='';status='';try{localStorage.removeItem(LS);}catch(e){}notify();}
   function attach(h){hooks=h;if(acct)pull(false);notify();}
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&timer)push(true);});
   window.addEventListener('pagehide',()=>{if(timer)push(true);});
@@ -2828,7 +2873,14 @@ window.TrillionCloud=(()=>{
   // ---- dialog ----
   let mode='',msg='',justMade='',vName='',vCode='';
   const css=document.createElement('style');
-  css.textContent=`#acct-overlay{position:fixed;inset:0;z-index:1000;background:#050d16d9;display:flex;align-items:center;justify-content:center;padding:16px;font-family:'Courier New',monospace;}
+  css.textContent=`@keyframes acct-pulse{0%,100%{box-shadow:0 4px 0 #8a5a14,0 0 0 0 #ffd36a88;}50%{box-shadow:0 4px 0 #8a5a14,0 0 0 9px #ffd36a00;}}
+.acct-open.cta{display:block;width:100%;box-sizing:border-box;margin:12px 0 0;padding:14px 10px;border:3px solid #6b4310;background:linear-gradient(#ffd36a,#f0a93a);color:#3a2204;font:bold 14px 'Courier New',monospace;letter-spacing:1.5px;line-height:1.25;box-shadow:0 4px 0 #8a5a14;animation:acct-pulse 1.8s ease-in-out infinite;cursor:pointer;border-radius:0;white-space:pre-line;}
+.acct-open.cta:hover{background:linear-gradient(#ffe08c,#f7b64a);border-color:#3a2204;}
+.acct-open.cta.on{background:#d9f0d2;border-color:#3d6b3a;color:#173a16;box-shadow:0 4px 0 #2a4f28;animation:none;font-size:11px;}
+.acct-open.short{background:linear-gradient(#ffd36a,#f0a93a);color:#3a2204;border-color:#6b4310;box-shadow:0 3px 0 #8a5a14;}
+.acct-open.short.on{background:#0b1a2b;color:#9be8a8;border-color:#3d6b3a;box-shadow:0 3px 0 #1a3550;}
+@media (prefers-reduced-motion:reduce){.acct-open.cta{animation:none;}}
+#acct-overlay{position:fixed;inset:0;z-index:1000;background:#050d16d9;display:flex;align-items:center;justify-content:center;padding:16px;font-family:'Courier New',monospace;}
 #acct-overlay[hidden]{display:none;}
 #acct-box{width:min(420px,100%);max-height:92vh;overflow:auto;background:#0b1a2b;border:2px solid #3b6c96;box-shadow:0 6px 0 #1a3550;color:#cfe8fa;padding:20px;}
 #acct-box h2{margin:0 0 10px;font-size:16px;letter-spacing:3px;color:#8fd0ff;}
@@ -2836,13 +2888,13 @@ window.TrillionCloud=(()=>{
 #acct-box label{display:block;font-size:11px;letter-spacing:2px;margin:12px 0 4px;color:#8fb4d0;}
 #acct-box input{width:100%;box-sizing:border-box;background:#06101b;border:2px solid #3b6c96;color:#fff;padding:9px;font:bold 14px 'Courier New',monospace;letter-spacing:1px;}
 #acct-box .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
-#acct-box button,.acct-open{border:2px solid #3b6c96;background:#0b1a2b;color:#cfe8fa;padding:9px 12px;font:bold 11px 'Courier New',monospace;letter-spacing:2px;box-shadow:0 3px 0 #1a3550;cursor:pointer;border-radius:0;}
-#acct-box button:hover,.acct-open:hover{border-color:#8fd0ff;}
+#acct-box button{border:2px solid #3b6c96;background:#0b1a2b;color:#cfe8fa;padding:9px 12px;font:bold 11px 'Courier New',monospace;letter-spacing:2px;box-shadow:0 3px 0 #1a3550;cursor:pointer;border-radius:0;}
+#acct-box button:hover{border-color:#8fd0ff;}
 #acct-box button.main{background:#1c5a8a;}
 #acct-box button:disabled{opacity:.45;cursor:wait;}
 #acct-box .code{font-size:20px;letter-spacing:3px;text-align:center;background:#06101b;border:2px dashed #e8b858;color:#ffe9a8;padding:14px 6px;margin:12px 0;user-select:all;word-break:break-all;}
 #acct-box .err{color:#ff9d8a;}#acct-box .ok{color:#9be8a8;}#acct-box .dim{color:#8fb4d0;}
-.acct-open{display:block;margin:10px auto 0;}`;
+.acct-open{cursor:pointer;}`;
   document.head.append(css);
   const el=(t,a,...k)=>{const e=document.createElement(t);for(const x in a||{})x==='class'?e.className=a[x]:x==='text'?e.textContent=a[x]:e.setAttribute(x,a[x]);k.flat().forEach(c=>e.append(c));return e;};
   function render(){
@@ -2898,11 +2950,17 @@ window.TrillionCloud=(()=>{
       ['keydown','keyup','keypress'].forEach(t=>dlg.addEventListener(t,e=>{e.stopPropagation();if(t==='keydown'&&e.key==='Escape'){dlg.hidden=true;}}));
       document.body.append(dlg);
     }
-    dlg.hidden=false;render();
+    dlg.hidden=false;render();ev('account_open',{signed_in:!!acct});
   }
-  function addOpener(parent,before){
-    const b=el('button',{type:'button',class:'acct-open'});
-    const upd=()=>{b.textContent=label();};upd();subs.add(upd);
+  // kind 'cta' = the big call-to-action on the title screen; 'short' = compact version in the Aloha bar.
+  function addOpener(parent,before,kind){
+    const b=el('button',{type:'button'});
+    const upd=()=>{
+      const on=!!acct;
+      b.className=(kind==='short'?'aloha-file-btn acct-open short':'acct-open cta')+(on?' on':'');
+      b.textContent=kind==='short'?(on?'\u2601 '+acct.u:'\u2601 SAVE YOUR GAME'):(on?'\u2601 PLAYING AS '+acct.u.toUpperCase()+'\nPROGRESS SAVES AUTOMATICALLY':'\u2601 PICK A NAME!\nSAVE YOUR GAME!');
+      b.title=on?'Your account \u2014 click for details':'Pick a name and your progress is saved in the cloud';
+    };upd();subs.add(upd);
     b.addEventListener('click',open);parent.insertBefore(b,before||null);return b;
   }
   return {attach,changed,open,addOpener,subscribe:f=>subs.add(f),get user(){return acct&&acct.u;},_test:{rpc}};
@@ -3086,7 +3144,7 @@ window.TrillionCloud=(()=>{
       localTime:()=>{try{return Number(localStorage.getItem('trillion-aloha-v1-at'))||0;}catch(e){return 0;}}
     });
     const panel=document.querySelector('#title-screen .start-panel');
-    if(panel)TrillionCloud.addOpener(panel,panel.querySelector('.keyboard-hint'));
+    if(panel)TrillionCloud.addOpener(panel,panel.querySelector('#continue-game')||panel.querySelector('.keyboard-hint'),'cta');
   }
   let alohaOpen=false,alohaBusy=false,alohaWasPaused=false,alohaCoin=0,lastAlohaScore=0;
   let alohaGiftTimer,lastAlohaDispensed=game.totalDispensed||0;
@@ -3108,9 +3166,58 @@ window.TrillionCloud=(()=>{
     alohaFade.classList.remove('black');await alohaWait(900);
     alohaBusy=false;
   }
+  // ---- anonymous play stats: watches game state and sends a handful of events (see TrillionStats) ----
+  const statSecs={title:0,playing:0,paused:0,aloha:0,gameover:0},statKeys={};
+  let statState='title',statGames=0,statBest=0,statGameSecs=0,statLevel=1,statOver=false,statTut=null,statAlohaAt=0,statAlohaN=0,statFrames=0,statFpsT=0,statSlow=0,statLastT=0,statBeat=0;
+  const statGameStart=fresh=>{
+    if(!window.TrillionStats)return;
+    if(fresh){statGames++;statGameSecs=0;statLevel=1;statOver=false;}
+    TrillionStats.track('game_start',{n:statGames,fresh,players:game.playerCount,since_load:Math.round((Date.now()-TrillionStats.t0)/1000),best:highScore.best});
+  };
+  if(window.TrillionStats){
+    const KEYN={w:'move',a:'move',s:'move',d:'move',q:'rot_piece',e:'rot_piece',f:'posture',r:'roll',b:'bomb',g:'bloom',p:'pause','/':'rot_cube_y',ArrowUp:'rot_cube',ArrowDown:'rot_cube',ArrowLeft:'rot_cube',ArrowRight:'rot_cube',' ':'drop'};
+    window.addEventListener('keydown',e=>{
+      if(e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target.closest?.('input,textarea'))return;
+      const k=e.key.length===1?e.key.toLowerCase():e.key;
+      if(statState==='playing'){const n=KEYN[k];if(n)statKeys[n]=(statKeys[n]||0)+1;}
+      else if(statState==='aloha')statKeys.aloha_keys=(statKeys.aloha_keys||0)+1;
+    },true);
+    (function frameLoop(t){
+      requestAnimationFrame(frameLoop);
+      if(statLastT&&statState==='playing'&&!document.hidden){const dt=t-statLastT;if(dt<1000){statFpsT+=dt;statFrames++;if(dt>50)statSlow++;}}
+      statLastT=t;
+    })(0);
+    const beat=final=>{
+      const tot=Object.values(statSecs).reduce((x,y)=>x+y,0);
+      if(tot<1)return;
+      TrillionStats.track(final?'session_end':'heartbeat',{state:statState,secs:Object.fromEntries(Object.entries(statSecs).map(([k,v])=>[k,Math.round(v)])),games:statGames,best:Math.max(statBest,game.score),level:game.level,keys:statKeys,fps:statFrames?Math.round(1000/(statFpsT/statFrames)):0,slow_pct:statFrames?Math.round(100*statSlow/statFrames):0});
+      if(final)TrillionStats.flush(true);
+    };
+    setInterval(()=>{
+      if(document.hidden)return;
+      const st=onTitle?'title':alohaOpen?'aloha':game.gameOver?'gameover':game.paused?'paused':'playing';
+      if(st!==statState){
+        if(statState==='aloha')TrillionStats.track('aloha_close',{secs:Math.round((Date.now()-statAlohaAt)/1000)});
+        if(st==='aloha'){statAlohaAt=Date.now();statAlohaN++;TrillionStats.track('aloha_open',{n:statAlohaN,score:game.score,coins:aloha?aloha.coins:0});}
+        statState=st;
+      }
+      statSecs[st]+=.5;if(st==='playing')statGameSecs+=.5;
+      statBest=Math.max(statBest,game.score);
+      if(!onTitle){
+        if(game.level!==statLevel){if(game.level>statLevel)TrillionStats.track('level_up',{level:game.level,score:game.score,secs:Math.round(statGameSecs)});statLevel=game.level;}
+        if(game.gameOver&&!statOver){statOver=true;TrillionStats.track('game_over',{score:game.score,level:game.level,lines:game.lines,placed:game.placed,secs:Math.round(statGameSecs),face:game.lossFace,players:game.playerCount});}
+        if(!game.gameOver)statOver=false;
+        const tut=game.tutorial||null;if(tut&&tut!==statTut)TrillionStats.track('tutorial',{kind:String(tut)});statTut=tut;
+      }
+      if(++statBeat>=60){statBeat=0;beat(false);}
+    },500);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)beat(true);});
+    window.addEventListener('pagehide',()=>beat(true));
+  }
   // Runs before the game's own key handler: 7 toggles Aloha, and nothing else reaches the game while there.
   window.addEventListener('keydown',event=>{
     if(event.ctrlKey||event.metaKey||event.altKey)return;
+    if(event.target.closest?.('#acct-overlay'))return;
     if(event.key==='7'){
       if(!event.repeat&&!event.target.closest?.('input,textarea'))toggleAloha();
       if(alohaOpen||alohaBusy||!onTitle){event.preventDefault();event.stopImmediatePropagation();}
@@ -3118,7 +3225,7 @@ window.TrillionCloud=(()=>{
     }
     if(alohaOpen||alohaBusy){event.preventDefault();event.stopImmediatePropagation();if(alohaOpen&&!alohaBusy)aloha.key(event);}
   },true);
-  window.addEventListener('keyup',event=>{if(alohaOpen||alohaBusy){event.stopImmediatePropagation();if(alohaOpen)aloha.keyup(event);}},true);
+  window.addEventListener('keyup',event=>{if(event.target.closest?.('#acct-overlay'))return;if(alohaOpen||alohaBusy){event.stopImmediatePropagation();if(alohaOpen)aloha.keyup(event);}},true);
 
   document.querySelector('#restart').addEventListener('click',()=>{updateHighScore();game.reset();setPaused(false);canvas.focus();});
   function startGame(fresh=true) {
@@ -3126,7 +3233,7 @@ window.TrillionCloud=(()=>{
     music.start();
     updateHighScore();
     if(fresh){game.playerCount=Number(document.querySelector('input[name=players]:checked').value);game.reset();}
-    onTitle=false;started=true;
+    onTitle=false;started=true;statGameStart(fresh);
     titleScreen.hidden=true;gameScreen.inert=false;gameScreen.removeAttribute('aria-hidden');
     document.body.classList.remove('at-title');
     setPaused(false);canvas.focus();
