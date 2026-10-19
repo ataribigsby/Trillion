@@ -3457,9 +3457,11 @@ window.TrillionCloud=(()=>{
       }
     }
     // Soft glow between the falling piece and the surface: eases in as they near, snuffed out at contact.
+    // During a `/` turn the piece swings round with the cube, so the glow under it swings too.
+    const glowMatrix=game.pieceSpin()||unit;
     function glowPatch(x,z,half,y,color) {
       const u=-1+(x+.5)*CELL,v=-1+(z+.5)*CELL,a=Math.max(-1,u-half),b=Math.min(1,u+half),c=Math.max(-1,v-half),d=Math.min(1,v+half);
-      quad([[a,y,c],[b,y,c],[b,y,d],[a,y,d]],[0,1,0],color,unit);
+      quad([[a,y,c],[b,y,c],[b,y,d],[a,y,d]],[0,1,0],color,glowMatrix);
     }
     const mix=(p,q,t)=>p.map((c,i)=>c+(q[i]-c)*t);
     function columnTop(x,z) {
@@ -3471,7 +3473,7 @@ window.TrillionCloud=(()=>{
       const base=col.layer?COLORS[col.type].map(c=>c*.9):tileColors[game.tiles[top][z*SIZE+x]];
       return base;
     }
-    if(game.active&&!game.growth&&!game.celebration&&!game.turn&&!game.awaitingStart) {
+    if(game.active&&!game.growth&&!game.celebration&&(!game.turn||game.turn.spinPiece)&&!game.awaitingStart) {
       const cols=new Map();
       for(const [x,y,z] of game.worldCells()) {
         const k=x+','+z,c=cols.get(k);
