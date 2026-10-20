@@ -139,6 +139,11 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
 .score-details { display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;font:11px 'Courier New',monospace; }
 .score-details .game-best { margin:0; }
 .score-details #award { margin:0; }
+#gift-progress{display:flex;align-items:center;gap:8px;margin:4px auto 0;max-width:160px;opacity:.55;transition:opacity .3s;}
+#gift-progress:hover{opacity:.85;}
+#gift-bar{flex:1;height:3px;background:#ffffff18;border-radius:2px;overflow:hidden;position:relative;}
+#gift-bar::after{content:'';position:absolute;left:0;top:0;height:100%;width:var(--pct,0%);background:linear-gradient(90deg,#8cd8c4,#dfffee);border-radius:2px;transition:width .4s ease-out;}
+#gift-hint{font:10px/1 'Courier New',monospace;white-space:nowrap;}
 .control-panel { position:fixed;top:50%;transform:translateY(-50%);z-index:1;width:230px;padding:22px 20px 10px;background:linear-gradient(145deg,#172330ef,#101923e8);border:1px solid #35434e;border-top:3px solid var(--panel-accent);border-radius:9px;box-shadow:0 10px 32px #0002;color:#d3dbe5;pointer-events:none; }
 .piece-controls { left:28px;--panel-accent:#e6b55d; }
 .cube-controls { right:28px;--panel-accent:#70c4ba; }
@@ -329,12 +334,15 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
 #aloha .aloha-slot .item-name { display:block;font:600 11px/1.2 system-ui,sans-serif;color:#e3f2ff;padding:2px 4px; }
 #aloha .aloha-slot .count { top:3px;bottom:auto; }
 #aloha .aloha-bar-label { display:none; }#aloha .aloha-hint { bottom:140px; }
-#aloha-gift {position:fixed;bottom:65px;left:50%;transform:translateX(-50%);z-index:15;max-width:85vw;padding:12px 20px;border:1px solid #8cd8c4;border-radius:8px;background:#102a32ee;color:#dfffee;font:600 13px/1.5 system-ui,sans-serif;text-align:center;pointer-events:none;}
+#aloha-gift {position:fixed;bottom:65px;left:50%;transform:translateX(-50%);z-index:15;max-width:85vw;padding:14px 24px;border:1px solid #8cd8c4;border-radius:10px;background:#102a32ee;color:#dfffee;font:600 14px/1.6 system-ui,sans-serif;text-align:center;pointer-events:none;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:giftIn .4s ease-out;}
+@keyframes giftIn{from{opacity:0;transform:translateX(-50%) translateY(12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
 #aloha .aloha-care { position:absolute;left:20px;top:100px;width:225px;padding:18px;box-sizing:border-box;background:rgba(7,23,37,.92);border:1px solid #54898f;border-radius:12px;color:#e2f5e9;font:14px/1.5 Arial,sans-serif;pointer-events:auto;box-shadow:0 8px 24px #0006; }
 #aloha .aloha-care strong { display:block;color:#91edc1;letter-spacing:2px;font-size:12px;margin-bottom:12px; }
 #aloha .aloha-care p { color:#a9c8d4;font-size:13px;margin:12px 0 0; }
 #aloha .aloha-care button { margin-top:12px;font:600 12px Arial,sans-serif;letter-spacing:.5px; }
 #aloha .aloha-care button[hidden] { display:none; }
+.aloha-shop-list { display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:280px;overflow-y:auto; }
+.aloha-shop-list button { font-size:11px;padding:6px 10px; }
 @media(max-width:760px){#aloha .aloha-care{top:85px;left:10px;width:175px;padding:10px;font-size:12px;}#aloha .aloha-care p{font-size:11px;}#aloha .aloha-top{right:10px;gap:4px;}}
 </style>
 </head>
@@ -383,6 +391,7 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
       <span class="eyebrow" id="score-label">SCORE</span><strong id="score">0</strong>
       <div id="duo-scores" hidden><span id="player-one"></span><span id="player-two"></span><small id="turn-status"></small></div>
       <div class="score-details"><span class="game-best">BEST <b id="game-high-score">0</b></span><span id="award"></span></div>
+      <div id="gift-progress" hidden><div id="gift-bar"></div><span id="gift-hint"></span></div>
     </section>
     <aside class="control-panel piece-controls" aria-label="Tetromino controls">
       <div class="panel-heading"><div><span class="panel-number">01 / THE PIECE</span><h2>Tetromino</h2></div><div class="piece-label"><strong id="piece">T</strong><span id="posture">FLAT</span></div></div>
@@ -1411,21 +1420,97 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     const CELLS=8,CELL=2/CELLS,GRID=48,FINE=4,PX=CELLS*FINE,PIX=2/PX,VOX=CELL/10,MERGE_KEEP=.7,MERGE_GAP=2;
     const RIPPLE_SMALL=.02,RIPPLE_LARGE=.034,RIPPLE_LIFE=20,RIPPLE_SPEED=.55/3;
     const TIP_TIME=.5,MERGE_TIME=1.7;
+    // ---- Unified gift ladder (v2, research-backed) ----
+    // Gaps widen as boards grow: 10,15,20,25,30,35,40,45 then 50 each.
+    // One gift per threshold, queued if multiple crossed at once.
+    const GIFT_LADDER=[10,25,45,70,100,135,175,220,270,320,370,420,470,520,570,620,670,720,770,820];
     const ITEMS=[
-      {id:'island',name:'Island',at:10,w:4,d:4},
-      {id:'palm',name:'Palm Tree',at:30,w:1,d:1},
-      {id:'fire',name:'Campfire',at:60,w:1,d:1},
-      {id:'parrot',name:'Pet Parrot',at:100,w:1,d:1},
-      {id:'raft',name:'Raft',at:150,w:2,d:1}];
-    const COLLECTIBLES=[{"id": "conch", "name": "Sunrise Conch", "w": 1, "d": 1, "at": 40}, {"id": "crab", "name": "Coral Crab", "w": 1, "d": 1, "at": 80}, {"id": "turtle", "name": "Sea Turtle", "w": 1, "d": 1, "at": 120}, {"id": "flowers", "name": "Hibiscus Garden", "w": 1, "d": 1, "at": 160}, {"id": "lantern", "name": "Moon Lantern", "w": 1, "d": 1, "at": 200}, {"id": "coconuts", "name": "Coconut Basket", "w": 1, "d": 1, "at": 240}, {"id": "hammock", "name": "Lagoon Hammock", "w": 2, "d": 1, "at": 280}, {"id": "hut", "name": "Surf Shack", "w": 2, "d": 2, "at": 320}, {"id": "lighthouse", "name": "Candy Lighthouse", "w": 1, "d": 1, "at": 360}, {"id": "tiki", "name": "Tiki Totem", "w": 1, "d": 1, "at": 400}, {"id": "drum", "name": "Island Drum", "w": 1, "d": 1, "at": 440}, {"id": "telescope", "name": "Stargazer", "w": 1, "d": 1, "at": 480}, {"id": "picnic", "name": "Sunset Picnic", "w": 2, "d": 1, "at": 520}, {"id": "windmill", "name": "Breeze Mill", "w": 1, "d": 1, "at": 560}, {"id": "crystal", "name": "Aurora Crystals", "w": 1, "d": 1, "at": 600}];
+      {id:'island',name:'Island',at:GIFT_LADDER[0],w:4,d:4,milestone:true},
+      {id:'palm',name:'Palm Tree',at:GIFT_LADDER[1],w:1,d:1,milestone:true},
+      {id:'fire',name:'Campfire',at:GIFT_LADDER[2],w:1,d:1,milestone:true},
+      {id:'parrot',name:'Pet Parrot',at:GIFT_LADDER[3],w:1,d:1,milestone:true},
+      {id:'raft',name:'Raft',at:GIFT_LADDER[4],w:2,d:1,milestone:true}];
+    const COLLECTIBLES=[
+      {id:'conch',name:'Sunrise Conch',w:1,d:1,at:GIFT_LADDER[5]},
+      {id:'crab',name:'Coral Crab',w:1,d:1,at:GIFT_LADDER[6]},
+      {id:'turtle',name:'Sea Turtle',w:1,d:1,at:GIFT_LADDER[7]},
+      {id:'flowers',name:'Hibiscus Garden',w:1,d:1,at:GIFT_LADDER[8]},
+      {id:'lantern',name:'Moon Lantern',w:1,d:1,at:GIFT_LADDER[9]},
+      {id:'coconuts',name:'Coconut Basket',w:1,d:1,at:GIFT_LADDER[10]},
+      {id:'hammock',name:'Lagoon Hammock',w:2,d:1,at:GIFT_LADDER[11]},
+      {id:'hut',name:'Surf Shack',w:2,d:2,at:GIFT_LADDER[12]},
+      {id:'lighthouse',name:'Candy Lighthouse',w:1,d:1,at:GIFT_LADDER[13]},
+      {id:'tiki',name:'Tiki Totem',w:1,d:1,at:GIFT_LADDER[14]},
+      {id:'drum',name:'Island Drum',w:1,d:1,at:GIFT_LADDER[15]},
+      {id:'telescope',name:'Stargazer',w:1,d:1,at:GIFT_LADDER[16]},
+      {id:'picnic',name:'Sunset Picnic',w:2,d:1,at:GIFT_LADDER[17]},
+      {id:'windmill',name:'Breeze Mill',w:1,d:1,at:GIFT_LADDER[18]},
+      {id:'crystal',name:'Aurora Crystals',w:1,d:1,at:GIFT_LADDER[19]}];
     ITEMS.push(...COLLECTIBLES);
+    // Presence invitations: the island notices you, not "you earned this"
+    const PRESENCE={
+      island:"Your own little world. What will you build?",
+      palm:"Shade for the long afternoon ahead.",
+      fire:"Warmth. The flames dance their own game.",
+      parrot:"A friend who stays. What will you name them?",
+      raft:"Somewhere to go. Or somewhere to stay and watch the waves.",
+      conch:"Hold it to your ear. What do you hear?",
+      crab:"Sideways is a perfectly valid direction.",
+      turtle:"No hurry. The island isn’t going anywhere.",
+      flowers:"Something to tend. Growth is its own reward.",
+      lantern:"A light for the quiet hours.",
+      coconuts:"Abundance. Take what you need.",
+      hammock:"Permission to do nothing for a moment.",
+      hut:"A place that’s yours. Four walls and a view.",
+      lighthouse:"A signal. You are here.",
+      tiki:"An old guardian. It was here before you.",
+      drum:"Rhythm. Your heartbeat has one too.",
+      telescope:"Look up. There’s always more to see.",
+      picnic:"Share a meal with the moment.",
+      windmill:"Let the breeze do the work.",
+      crystal:"Light, refracted. Every angle reveals something new.",
+      // Woodland
+      fox:"Curious. Quiet. Watching you as much as you watch it.",
+      owl:"Wisdom is just patience with better eyesight.",
+      mossy_log:"Sit a while. The forest will come to you.",
+      mushroom_ring:"A fairy circle. Step inside if you dare.",
+      cabin:"Smoke from the chimney. Someone left the kettle on.",
+      stream_stones:"Each step a decision. Each crossing an arrival.",
+      woodland_lantern:"A warm glow between the trees.",
+      berry_bush:"Something sweet for the journey.",
+      deer:"Grace in motion. Stillness in pause.",
+      rabbit:"Quick ears, soft heart.",
+      pine:"The forest breathes. Listen.",
+      bridge:"Two sides, one path.",
+      well:"Drop a wish. The water keeps it safe.",
+      fireflies:"Living light. No two blink in time.",
+      acorn:"Everything big was once this small."
+    };
+    // ---- Woodland theme items (purchasable in shop, or future gift ladder) ----
+    const WOODLAND=[
+      {id:'fox',name:'Fox',w:1,d:1,theme:'woodland'},
+      {id:'owl',name:'Owl',w:1,d:1,theme:'woodland'},
+      {id:'mossy_log',name:'Mossy Log',w:2,d:1,theme:'woodland'},
+      {id:'mushroom_ring',name:'Mushroom Ring',w:1,d:1,theme:'woodland'},
+      {id:'cabin',name:'Cabin',w:2,d:2,theme:'woodland'},
+      {id:'stream_stones',name:'Stream Stones',w:2,d:1,theme:'woodland'},
+      {id:'woodland_lantern',name:'Woodland Lantern',w:1,d:1,theme:'woodland'},
+      {id:'berry_bush',name:'Berry Bush',w:1,d:1,theme:'woodland',garden:true},
+      {id:'deer',name:'Deer',w:1,d:1,theme:'woodland'},
+      {id:'rabbit',name:'Rabbit',w:1,d:1,theme:'woodland'},
+      {id:'pine',name:'Pine Tree',w:1,d:1,theme:'woodland'},
+      {id:'bridge',name:'Bridge',w:2,d:1,theme:'woodland'},
+      {id:'well',name:'Wishing Well',w:1,d:1,theme:'woodland'},
+      {id:'fireflies',name:'Firefly Jar',w:1,d:1,theme:'woodland'},
+      {id:'acorn',name:'Acorn',w:1,d:1,theme:'woodland'}];
+    ITEMS.push(...WOODLAND);
     const BY_ID=Object.fromEntries(ITEMS.map(i=>[i.id,i]));
-    const MILESTONES=ITEMS.slice(0,5).map(i=>i.at);
-    const ANIMALS=new Set(['parrot','crab','turtle']);
+    const MILESTONES=ITEMS.filter(i=>i.milestone).map(i=>i.at);
+    const ANIMALS=new Set(['parrot','crab','turtle','fox','owl','deer','rabbit']);
     const AQUATIC=new Set(['turtle','raft']); // things that live on the planet's surface itself, not on an island
-    const isGarden=t=>t.id==='flowers';
+    const isGarden=t=>t.id==='flowers'||t.id==='berry_bush';
     // Planted things stay where they were put; everything else can be picked up and moved.
-    const PLANTED=new Set(['palm','flowers','hut','lighthouse','tiki','windmill','crystal']);
+    const PLANTED=new Set(['palm','flowers','hut','lighthouse','tiki','windmill','crystal','pine','cabin','well','berry_bush']);
     const movable=t=>!PLANTED.has(t.id);
     const FOOD_PRICE=5; // coins per portion of animal food
     const dayOf=shapes=>Math.floor(shapes/5);
@@ -1511,6 +1596,22 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       if(id==='picnic'){for(let x=0;x<10;x++)for(let z=0;z<5;z++)add(x,z,0,(x+z)%2?'R':'X');box(1,1,1,3,3,2,'T');box(6,2,1,2,2,1,'X');add(7,2,2,'P');add(5,0,1,'Y');}
       if(id==='windmill'){box(1,1,0,3,3,6,'X');box(0,0,6,5,5,1,'R');add(2,0,5,'Y');for(let k=0;k<5;k++){add(k,0,5,'T');add(2,0,3+k,'T');}add(2,0,5,'B');}
       if(id==='crystal'){box(0,0,0,5,5,1,'h');for(const [x,z,h,c] of [[1,1,4,'V'],[3,2,6,'C'],[1,3,3,'P']]){box(x,z,1,1,1,h,c);add(x,z,h+1,'X');}}
+      // ---- Woodland theme models ----
+      if(id==='fox'){box(1,1,0,3,3,2,'O');add(2,2,2,'O');add(2,1,2,'O');add(1,1,2,'X');add(3,1,2,'X');add(2,0,1,'X');box(0,2,0,1,1,1,'O');add(0,2,1,'O');add(4,2,0,'X');add(1,0,3,'O');add(3,0,3,'O');}
+      if(id==='owl'){box(1,1,0,3,3,3,'B');add(2,2,3,'B');add(1,1,3,'Y');add(3,1,3,'Y');add(2,1,3,'b');for(const x of [0,4])add(x,2,2,'B');add(2,2,4,'b');add(1,0,4,'B');add(3,0,4,'B');}
+      if(id==='mossy_log'){for(let x=0;x<10;x++)box(x,1,0,1,3,2,'B');for(let x=0;x<10;x++)if(x%3===0)add(x,1,2,'G');if(t)for(let x=1;x<9;x+=2)add(x,0,2,'g');}
+      if(id==='mushroom_ring'){box(0,0,0,5,5,1,'g');for(const [x,z,c] of [[0,2,'R'],[2,0,'X'],[4,2,'R'],[2,4,'X'],[1,1,'R'],[3,3,'R'],[1,3,'X'],[3,1,'X']]){add(x,z,1,'X');add(x,z,2,c);for(const [a,b] of [[-1,0],[1,0],[0,-1],[0,1]])if(x+a>=0&&x+a<5&&z+b>=0&&z+b<5)add(x+a,z+b,3,c);}}
+      if(id==='cabin'){box(0,0,0,10,10,1,'B');box(0,0,1,10,1,5,'B');box(0,9,1,10,1,5,'B');for(const x of [0,9])box(x,0,1,1,10,5,'b');for(let x=0;x<10;x++)box(x,0,6+Math.min(x,9-x),1,10,1,x%2?'B':'b');box(4,0,1,3,1,3,'T');box(8,5,4,1,1,3,'h');add(8,5,7,'O');}
+      if(id==='stream_stones'){for(const [x,z] of [[1,2],[3,1],[5,3],[7,2],[9,1]]){add(x,z,0,'H');add(x,z,1,'h');}for(let x=0;x<10;x++)for(let z=0;z<5;z++)if(!v.some(p=>p[0]===x&&p[1]===z))add(x,z,0,'C');}
+      if(id==='woodland_lantern'){box(2,2,0,1,1,4,'b');box(1,1,4,3,3,1,'B');box(1,1,5,3,3,2,Math.sin(t*1.8)>0?'Y':'O');box(1,1,7,3,3,1,'b');add(2,2,8,'O');}
+      if(id==='berry_bush'){box(0,0,0,5,5,1,'g');box(1,1,1,3,3,2,'G');box(0,0,2,5,5,1,'g');for(const [x,z] of [[0,2],[2,0],[4,2],[2,4],[1,1],[3,3]])add(x,z,3,'R');}
+      if(id==='deer'){box(1,1,0,3,3,3,'B');for(const z of [0,4]){add(1,z,0,'b');add(3,z,0,'b');}add(2,0,3,'B');add(2,0,4,'T');add(1,0,4,'X');add(3,0,4,'X');add(1,0,5,'B');add(3,0,5,'B');add(0,0,6,'b');add(4,0,6,'b');}
+      if(id==='rabbit'){box(1,1,0,3,3,2,'X');add(2,2,2,'X');add(2,1,2,'X');add(1,1,2,'K');add(3,1,2,'K');add(1,0,2,'S');add(3,0,2,'S');add(1,1,3,'X');add(3,1,3,'X');}
+      if(id==='pine'){add(2,2,0,'B');add(2,2,1,'B');for(let y=2;y<7;y++){const r=3-Math.floor((y-2)*0.7);for(let i=-r;i<=r;i++)for(let j=-r;j<=r;j++)if(Math.abs(i)+Math.abs(j)<=r)add(2+i,2+j,y,'G');}add(2,2,7,'Y');}
+      if(id==='bridge'){for(let x=0;x<10;x++){add(x,0,0,'B');add(x,4,0,'B');}for(const x of [0,9])box(x,0,1,1,5,2,'b');for(let x=1;x<9;x++)box(x,1,0,1,3,1,'T');}
+      if(id==='well'){box(0,0,0,5,5,3,'H');box(1,1,0,3,3,3,'c');for(const [x,z] of [[0,0],[0,4],[4,0],[4,4]])box(x,z,3,1,1,4,'h');box(0,0,7,5,5,1,'b');add(2,2,0,'C');add(2,2,1,'C');}
+      if(id==='fireflies'){box(1,1,0,3,3,4,'c');box(1,1,4,3,3,1,'h');const flicker=Math.sin(t*3)>.3;if(flicker){add(2,1,2,'Y');add(1,2,3,'Y');}else{add(2,3,1,'Y');add(3,2,3,'Y');}}
+      if(id==='acorn'){box(1,1,0,3,3,2,'B');box(0,0,2,5,5,1,'b');add(2,2,3,'b');add(2,2,4,'G');}
       if(id==='flowers'&&state){
         const g=state.growth;
         return v.filter(p=>p[2]===0||(g>0&&p[2]===1)||(g>=3&&p[2]===2&&(g===5||p[0]<3)))
@@ -1522,6 +1623,10 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
           if(id==='turtle'&&(x===0||x===4))y+=Math.sin(t*1.4+(z===1?0:Math.PI))*.35;
           if(id==='crab'&&(x===0||x===4))z+=walk*.2;
           if(id==='parrot'&&c==='L')y+=Math.sin(t*1.1)*.25;
+          if(id==='fox'&&(x===0||x===4))z+=walk*.15;
+          if(id==='owl'&&c==='B'&&y>=3)y+=Math.sin(t*.8)*.15;
+          if(id==='deer'&&y>=4)y+=Math.sin(t*.6)*.12;
+          if(id==='rabbit'&&y===0)y+=Math.abs(Math.sin(t*3))*.3;
           if((id==='parrot'&&y>=3)||(id==='crab'&&z===0))y-=nibble*.35;
           return [x,z,y,c];
         });
@@ -1636,6 +1741,43 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
           else if(g===4)put(xi,zi,top,'P');
           else put(xi,zi,top,'G');
         }
+        return b.out();
+      },
+      fox(t){
+        const b=builder(10,10),{put,box,ell}=b;
+        box(3,2,0,1,1,3,'O','leg');box(6,2,0,1,1,3,'O','leg');box(3,7,0,1,1,3,'O','leg');box(6,7,0,1,1,3,'O','leg');
+        ell(5,5,5,3,4,2,'O','body');box(4,1,4,2,2,2,'O','body');
+        put(5,0,6,'O','head');put(4,0,6,'O','head');put(6,0,6,'O','head');
+        put(4,0,7,'X','ear');put(6,0,7,'X','ear');put(5,0,5,'X','nose');
+        box(4,8,4,2,2,1,'X','tail');box(4,9,5,2,1,1,'X','tail');
+        return b.out();
+      },
+      owl(t){
+        const b=builder(10,10),{put,box,ell}=b;
+        ell(5,5,4,3,3,3,'B','body');
+        put(4,3,6,'Y','eye');put(6,3,6,'Y','eye');put(5,3,5,'b','beak');
+        box(1,4,4,2,3,2,'B','wing');box(7,4,4,2,3,2,'B','wing');
+        put(4,3,8,'B','ear');put(6,3,8,'B','ear');
+        box(4,5,0,1,1,2,'b','leg');box(6,5,0,1,1,2,'b','leg');
+        return b.out();
+      },
+      deer(t){
+        const b=builder(10,10),{put,box,ell}=b;
+        box(3,2,0,1,1,4,'b','leg');box(6,2,0,1,1,4,'b','leg');box(3,7,0,1,1,4,'b','leg');box(6,7,0,1,1,4,'b','leg');
+        ell(5,5,6,2.5,3.5,2,'B','body');
+        box(4,1,6,2,2,2,'T','head');put(5,0,8,'T','head');put(4,0,8,'T','head');
+        put(3,0,9,'b','antler');put(7,0,9,'b','antler');put(2,0,10,'b','antler');put(8,0,10,'b','antler');
+        box(4,8,5,2,1,1,'X','tail');
+        return b.out();
+      },
+      rabbit(t){
+        const b=builder(10,10),{put,box,ell}=b;
+        ell(5,5,3,2.5,3,2,'X','body');
+        box(4,3,5,2,2,2,'X','head');put(5,2,6,'S','nose');
+        put(4,3,7,'X','ear');put(4,3,8,'X','ear');put(5,3,7,'X','ear');put(5,3,8,'X','ear');
+        box(4,5,0,1,1,2,'X','leg');box(6,5,0,1,1,2,'X','leg');
+        box(3,6,1,1,2,1,'X','leg');box(6,6,1,1,2,1,'X','leg');
+        put(5,8,3,'X','tail');
         return b.out();
       }
     };
@@ -1757,8 +1899,11 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       return {x:x+x0,z:z+z0,w:nw,d:nd,mask:out};
     }
     // a fresh irregular island, roughly 4×4 planet cells in size
-    function makeBlob() {
-      const W=26,R=7.4+Math.random()*1.2,lobes=[2,3,4,5].map((k,n)=>({k,a:[.2,.14,.1,.06][n]*(.6+Math.random()*.8),p:Math.random()*6.283}));
+    function makeBlob(sizeOverride) {
+      // sizeOverride: 4=default, 5-9=expanded tiers (bigger R for bigger islands)
+      const baseR=sizeOverride?7.4*(sizeOverride/4):7.4+Math.random()*1.2;
+      const W=Math.ceil(baseR*4),R=baseR+Math.random()*(sizeOverride?0.6:1.2);
+      const lobes=[2,3,4,5].map((k,n)=>({k,a:[.2,.14,.1,.06][n]*(.6+Math.random()*.8),p:Math.random()*6.283}));
       const mask=new Uint8Array(W*W);
       for(let j=0;j<W;j++)for(let i=0;i<W;i++) {
         const dx=i+.5-W/2,dz=j+.5-W/2,ang=Math.atan2(dz,dx);
@@ -1799,6 +1944,8 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const n=v=>Math.max(0,Math.min(99999,Math.floor(Number(v))||0));
       const totalShapes=Math.max(0,Math.min(1e9,Math.floor(Number(d.totalShapes))||0)),day=dayOf(totalShapes);
       const inv={};for(const i of ITEMS)inv[i.id]=n(d.inv[i.id]);
+      // Preserve expansion tier purchases
+      for(const k of Object.keys(d.inv||{}))if(k.startsWith('expand_'))inv[k]=n(d.inv[k]);
       const islands=[];
       for(const s of d.islands.slice(0,48)) {
         if(!s||typeof s!=='object')continue;
@@ -1852,7 +1999,8 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         if(owned('flowers')>0||(d.careGifts&&d.careGifts.garden))earnedMax=Math.max(earnedMax,30);
         COLLECTIBLES.forEach((c,k)=>{if(owned(c.id)>0)earnedMax=Math.max(earnedMax,(k+1)*40);});
       }
-      return {inv,islands,ocean,totalShapes,food:n(d.food),earnedMax,coins:n(d.coins)};
+      const expandedSizes=Array.isArray(d.expandedSizes)?d.expandedSizes.filter(s=>Number.isFinite(s)&&s>=4&&s<=9).slice(0,5):[];
+      return {inv,islands,ocean,totalShapes,food:n(d.food),earnedMax,coins:n(d.coins),expandedSizes};
     }
     const vertexSource=`
       attribute vec3 aPos; attribute vec3 aNormal; attribute vec3 aTangent;
@@ -2042,18 +2190,24 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         save();updateCare();
       }
       // Gifts are paid out once per score ever reached: only scores above the previous best earn anything new.
+      // Gift queue for non-blocking toasts shown 2s apart
+      const giftQueue=[];
       function processScore(score){
         if(!(score>earnedMax))return [];
-        const from=earnedMax,gifts=[];
-        const give=(id,announce)=>{inv[id]=(inv[id]||0)+1;fresh.add(id);if(announce)gifts.push(BY_ID[id].name);};
-        for(const it of ITEMS.slice(0,5))if(it.at>from&&it.at<=score)give(it.id,false);
-        if(30>from&&30<=score)give('flowers',true);
-        for(let k=Math.floor(from/40)+1;k*40<=score;k++)give(COLLECTIBLES[(k-1)%COLLECTIBLES.length].id,true);
-        earnedMax=score;save();rebuild();return gifts;
+        const from=earnedMax,newGifts=[];
+        for(const it of ITEMS){
+          if(it.at>from&&it.at<=score){
+            inv[it.id]=(inv[it.id]||0)+1;
+            fresh.add(it.id);
+            newGifts.push({id:it.id,name:it.name,msg:PRESENCE[it.id]||''});
+          }
+        }
+        earnedMax=score;save();rebuild();
+        return newGifts;
       }
       const T=(n,p)=>{try{window.TrillionStats&&TrillionStats.track(n,p);}catch(e){}};
       const fresh=new Set();
-      const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items}))}));localStorage.setItem(KEY+'-at',String(Date.now()));}catch(e){}if(window.TrillionCloud)TrillionCloud.changed();};
+      const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,expandedSizes:saved.expandedSizes||[],islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items}))}));localStorage.setItem(KEY+'-at',String(Date.now()));}catch(e){}if(window.TrillionCloud)TrillionCloud.changed();};
       let running=false,time=0,last=0,frame=0;
       let angle=0,kick=0,pitch=.38,pitchPlanet=.38,pitchZoom=1.0;
       let orient=[1,0,0,0,1,0,0,0,1],tip=null;
@@ -2105,7 +2259,11 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         }
         if(id==='island') {
           if(zoomTarget>0)zoomOut();
-          const b=makeBlob();
+          // Use expanded island size if one was purchased
+          const expandSizes=saved.expandedSizes||[];
+          const sz=expandSizes.length?expandSizes.shift():undefined;
+          if(sz)save(); // consume the expanded size from queue
+          const b=makeBlob(sz);
           hold={id,f:topFace(),x:Math.floor((PX-b.w)/2),z:Math.floor((PX-b.d)/2),w:b.w,d:b.d,mask:b.mask,depth:null,r:0,h:.9,shake:0,near:false};
           hold.near=touchesAny(hold);
         } else {
@@ -2356,6 +2514,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       function updateCoins(bump) {
         coinCount.textContent='×'+coins;
         if(bump){coinBox.classList.add('bump');clearTimeout(bumpTimer);bumpTimer=setTimeout(()=>coinBox.classList.remove('bump'),350);}
+        if(typeof rebuildShop==='function')rebuildShop();
       }
       function exportData() {
         return {game:'trillion-aloha',version:5,savedAt:new Date().toISOString(),coins,totalShapes,food,ocean:ocean.map(t=>({...t})),earnedMax,inv:{...inv},islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items.map(t=>({...t}))}))};
@@ -2416,7 +2575,76 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         const result=careFor(t,'care',day(),food);food=result.food;T('aloha_care',{id:t.id});
         say(result.message,6);save();updateCare();rebuild();
       }
-      ui.append(top,carePanel,hint,bar,back);root.append(ui);
+      // ---- Coin Shop ----
+      const EXPAND_TIERS=[
+        {size:5,cost:25,label:'5×5 Island'},
+        {size:6,cost:50,label:'6×6 Island'},
+        {size:7,cost:100,label:'7×7 Island'},
+        {size:8,cost:200,label:'8×8 Island'},
+        {size:9,cost:400,label:'9×9 Island'}];
+      const EXTRA_ITEM_COST=10;
+      const shopPanel=document.createElement('section');shopPanel.className='aloha-care';shopPanel.setAttribute('aria-label','Coin shop');
+      const shopTitle=document.createElement('strong');shopTitle.textContent='COIN SHOP';
+      const shopList=document.createElement('div');shopList.className='aloha-shop-list';
+      shopPanel.append(shopTitle,shopList);
+      function rebuildShop(){
+        shopList.textContent='';
+        // Planet expansion tiers
+        EXPAND_TIERS.forEach((tier,i)=>{
+          const btn=document.createElement('button');btn.className='aloha-file-btn';
+          const bought=inv['expand_'+tier.size]>0;
+          btn.textContent=bought?`${tier.label} ✓`:`${tier.label} · ${tier.cost} COINS`;
+          btn.disabled=bought||coins<tier.cost;
+          if(!bought)btn.addEventListener('click',()=>{
+            if(coins<tier.cost)return;
+            coins-=tier.cost;
+            inv['expand_'+tier.size]=1;
+            // Grant a bigger island item
+            inv.island=(inv.island||0)+1;
+            // Store the size override for the next island placement
+            if(!saved.expandedSizes)saved.expandedSizes=[];
+            saved.expandedSizes.push(tier.size);
+            T('aloha_buy_expand',{tier:i+1,size:tier.size});
+            save();updateCoins(false);rebuildShop();rebuild();
+            say(`Planet expanded! You got a ${tier.label} to place.`,5);
+          });
+          shopList.append(btn);
+        });
+        // Separator
+        const sep=document.createElement('div');sep.style.cssText='border-top:1px solid #3b6c96;margin:8px 0;';
+        shopList.append(sep);
+        // Extra items (only items the player has earned at least once)
+        const earnedItems=ITEMS.filter(it=>inv[it.id]>0||fresh.has(it.id));
+        if(earnedItems.length>0){
+          const label=document.createElement('small');label.textContent=`Extra items · ${EXTRA_ITEM_COST} coins each`;label.style.cssText='display:block;opacity:.6;margin-bottom:6px;';
+          shopList.append(label);
+          earnedItems.forEach(it=>{
+            if(it.id==='island')return; // Can't buy plain islands, use expansion
+            const btn=document.createElement('button');btn.className='aloha-file-btn';
+            btn.textContent=`${it.name} · ${EXTRA_ITEM_COST}`;
+            btn.disabled=coins<EXTRA_ITEM_COST;
+            btn.addEventListener('click',()=>{
+              if(coins<EXTRA_ITEM_COST)return;
+              coins-=EXTRA_ITEM_COST;inv[it.id]=(inv[it.id]||0)+1;
+              T('aloha_buy_item',{id:it.id});
+              save();updateCoins(false);rebuildShop();rebuild();
+              say(`Bought ${it.name}!`,3);
+            });
+            shopList.append(btn);
+          });
+        }else{
+          const empty=document.createElement('small');empty.textContent='Earn items through gameplay to buy extras here.';empty.style.opacity='.5';
+          shopList.append(empty);
+        }
+      }
+      // Wrap care + shop in a scrollable sidebar
+      const sidebar=document.createElement('div');
+      sidebar.style.cssText='position:absolute;left:20px;top:100px;width:225px;max-height:calc(100vh - 140px);overflow-y:auto;pointer-events:auto;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin;';
+      sidebar.append(carePanel,shopPanel);
+      // Override care panel positioning since sidebar handles it
+      carePanel.style.position='static';carePanel.style.left='auto';carePanel.style.top='auto';carePanel.style.width='100%';
+      shopPanel.style.position='static';shopPanel.style.left='auto';shopPanel.style.top='auto';shopPanel.style.width='100%';
+      ui.append(top,sidebar,hint,bar,back);root.append(ui);
       function rebuild() {
         bar.textContent='';
         const owned=ITEMS.filter(i=>inv[i.id]>0);
@@ -2433,7 +2661,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
           b.addEventListener('click',e=>{e.stopPropagation();if(hold&&hold.id===it.id)cancelHold();else startHold(it.id);});
           bar.append(b);
         });
-        updateHint();updateCare();
+        updateHint();updateCare();rebuildShop();
       }
       function updateHint() {
         let t=note;
@@ -2755,7 +2983,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       return {
         start() {if(running)return;running=true;time=0;last=0;nextRipple=5;rippleCount=0;ripples=[];angle=0;kick=0;pitch=pitchPlanet=.38;zoomK=zoomTarget=0;zoomIsland=-1;hold=null;fallHeld=false;tip=null;mergeFx=null;rebuild();frame=requestAnimationFrame(draw);},
         stop() {save();running=false;cancelAnimationFrame(frame);hold=null;fallHeld=false;},
-        key,keyup,award,advanceShapes,processScore,addCoins,exportData,importData,milestones:MILESTONES,get coins(){return coins;},
+        key,keyup,award,advanceShapes,processScore,giftQueue,addCoins,exportData,importData,milestones:MILESTONES,get coins(){return coins;},get earnedMax(){return earnedMax;},
         get time(){return time;},
         get rippleCount(){return rippleCount;},
         ripples:()=>ripples.length,
@@ -2763,7 +2991,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         debug:()=>({totalShapes,day:day(),food,ocean:ocean.map(t=>({...t})),careTargets:careTargets().filter(a=>facing(a.f)).map(a=>({id:a.t.id,box:careScreen(a)})),inv:{...inv},islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,area:areaOf(s),items:s.items.map(t=>({...t})),rows:maskRows(s)})),hold:hold&&{id:hold.id,f:hold.f,x:hold.x,z:hold.z,w:hold.w,d:hold.d,h:hold.h,near:hold.near,r:hold.r},zoomK,zoomIsland,zoomTarget,hint:hint.textContent,valid:holdValid(hold),top:FACE_NAMES[topFace()],tipping:!!tip,merging:!!mergeFx})
       };
     }
-    return {create,ITEMS,MILESTONES,COLLECTIBLES,icon:voxelIcon,model,sanitize,dimsPx,careState,careFor,dayOf,oceanStep};
+    return {create,ITEMS,MILESTONES,COLLECTIBLES,GIFT_LADDER,PRESENCE,icon:voxelIcon,model,sanitize,dimsPx,careState,careFor,dayOf,oceanStep};
   })();
   </script>
 <script>
@@ -3147,7 +3375,7 @@ window.TrillionCloud=(()=>{
     if(panel)TrillionCloud.addOpener(panel,panel.querySelector('#continue-game')||panel.querySelector('.keyboard-hint'),'cta');
   }
   let alohaOpen=false,alohaBusy=false,alohaWasPaused=false,alohaCoin=0,lastAlohaScore=0;
-  let alohaGiftTimer,lastAlohaDispensed=game.totalDispensed||0;
+  let alohaGiftTimer,alohaGiftShowing=false,lastAlohaDispensed=game.totalDispensed||0;
   const alohaWait=ms=>new Promise(r=>setTimeout(r,ms));
   async function toggleAloha() {
     if(!aloha||alohaBusy)return;
@@ -3337,8 +3565,28 @@ window.TrillionCloud=(()=>{
       const count=game.totalDispensed||0;
       if(count>lastAlohaDispensed)aloha.advanceShapes(count-lastAlohaDispensed);
       lastAlohaDispensed=count;
-      const gifts=aloha.processScore(game.score);
-      if(gifts.length){const toast=document.querySelector('#aloha-gift');if(toast){toast.textContent=`ALOHA GIFT · ${gifts.join(' + ')} · Press 7 to visit your planet`;toast.hidden=false;clearTimeout(alohaGiftTimer);alohaGiftTimer=setTimeout(()=>toast.hidden=true,6500);}}
+      const newGifts=aloha.processScore(game.score);
+      if(newGifts.length) aloha.giftQueue.push(...newGifts);
+      // Queued toast system: show one gift at a time, 2s apart
+      if(aloha.giftQueue.length&&!alohaGiftShowing){
+        alohaGiftShowing=true;
+        const g=aloha.giftQueue.shift();
+        const toast=document.querySelector('#aloha-gift');
+        if(toast){toast.innerHTML=`<strong>${g.name}</strong><br><span style="opacity:.8;font-weight:400">${g.msg}</span>`;toast.hidden=false;clearTimeout(alohaGiftTimer);alohaGiftTimer=setTimeout(()=>{toast.hidden=true;setTimeout(()=>{alohaGiftShowing=false;},500);},5000);}
+      }
+      // Progress hint toward next gift (goal-gradient)
+      const gp=document.querySelector('#gift-progress');
+      if(gp){
+        const ladder=TrillionAloha.GIFT_LADDER;const em=aloha.earnedMax||0;
+        const next=ladder.find(t=>t>em);
+        if(next!==undefined){
+          const prev=ladder[ladder.indexOf(next)-1]||0;
+          const pct=Math.min(100,Math.round(((game.score-prev)/(next-prev))*100));
+          gp.hidden=false;
+          gp.querySelector('#gift-bar').style.setProperty('--pct',Math.max(0,pct)+'%');
+          gp.querySelector('#gift-hint').textContent=`${next-game.score>0?next-game.score:0} to go`;
+        }else{gp.hidden=true;}
+      }
     }
     while(aloha&&game.score>=(alohaCoin+1)*10){aloha.addCoins(1);alohaCoin++;}
     if(game.placed!==lastPlaced){landFx=game.placed>lastPlaced&&glowSnap?{...glowSnap,t:0}:null;glowSnap=null;lastPlaced=game.placed;}
