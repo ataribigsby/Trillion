@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Trillion</title>
   <style>
 :root { color-scheme:dark; font-family:ui-sans-serif,system-ui,sans-serif; }
@@ -419,6 +419,85 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
 .aloha-shop-list button { font-size:11px;padding:6px 10px; }
 @media(max-width:760px){#aloha .aloha-care{top:85px;left:10px;width:175px;padding:10px;font-size:12px;}#aloha .aloha-care p{font-size:11px;}#aloha .aloha-top{right:10px;gap:4px;}}
 </style>
+<style id="touch-aloha-css">
+.aloha-touch-btn,.aloha-chips{display:none}
+body.touch-ui #aloha .desk-only,body.touch-ui #aloha .aloha-caption{display:none!important}
+body.touch-ui.aloha-open #touch-controls{z-index:60;display:block}
+body.touch-ui.aloha-open #tc-top,body.touch-ui.aloha-open #tc-powers,body.touch-ui.aloha-open #tc-paused{display:none!important}
+body.touch-ui #aloha .aloha-touch-btn{display:block;position:absolute;font:700 12px system-ui,sans-serif;letter-spacing:.08em;color:#fff;background:rgba(10,30,40,.72);border:1px solid rgba(255,255,255,.35);border-radius:18px;padding:9px 14px;z-index:5}
+body.touch-ui #aloha .aloha-touch-btn[hidden]{display:none}
+body.touch-ui #aloha .aloha-exit-btn{left:10px;top:max(10px,env(safe-area-inset-top))}
+body.touch-ui #aloha .aloha-drawer-btn{left:10px;top:calc(max(10px,env(safe-area-inset-top)) + 44px)}
+body.touch-ui #aloha .aloha-chips{display:flex;gap:8px;position:absolute;left:50%;transform:translateX(-50%);bottom:330px;z-index:5}
+body.touch-ui #aloha .aloha-chips .aloha-touch-btn{position:static}
+body.touch-ui #aloha .aloha-sidebar{left:10px!important;right:10px;top:calc(max(10px,env(safe-area-inset-top)) + 90px)!important;width:auto!important;max-height:42vh;transform:translateY(-130%);transition:transform .25s;z-index:6}
+body.touch-ui #aloha .aloha-sidebar.open{transform:none}
+body.touch-ui #aloha .aloha-top{transform:scale(.8);transform-origin:top right;right:6px!important;top:max(8px,env(safe-area-inset-top))!important}
+body.touch-ui #aloha .aloha-inventory{bottom:200px!important;height:auto!important;transform:scale(.72);transform-origin:bottom center}
+body.touch-ui #aloha .aloha-hint{bottom:290px!important;font-size:11px!important;letter-spacing:1px!important;padding:0 12px}
+</style>
+<style id="touch-css">
+/* ---- Touch layout: two control spheres (portrait first). Shown only on touch devices, or with ?touch=1 ---- */
+#touch-controls,#tc-top{display:none}
+body.touch-ui:not(.at-title) #touch-controls,body.touch-ui:not(.at-title) #tc-top{display:block}
+body.touch-ui{overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body.touch-ui #touch-controls{position:fixed;left:0;right:0;bottom:0;height:200px;z-index:40;pointer-events:none;padding-bottom:env(safe-area-inset-bottom)}
+.sphere-wrap{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 30px);display:flex;flex-direction:column;align-items:center;gap:7px;pointer-events:none}
+.sphere-wrap.left{left:14px}.sphere-wrap.right{right:14px}
+.sphere{--c:#35d6ff;--g:#35d6ff99;position:relative;width:116px;height:116px;border-radius:50%;pointer-events:auto;touch-action:none;cursor:pointer;
+  border:2px solid #ffffff40;outline:none;
+  background:radial-gradient(circle at 33% 27%,#ffffffd9 0 5%,color-mix(in srgb,var(--c) 45%,#fff) 13%,var(--c) 42%,color-mix(in srgb,var(--c) 40%,#050b16) 78%,#050b16 100%);
+  box-shadow:0 0 26px var(--g),0 8px 18px #000b,inset -10px -14px 22px #0008,inset 6px 8px 14px #ffffff55;transition:box-shadow .2s,transform .12s,filter .2s}
+.sphere[data-mode="slide"]{--c:#ffb534;--g:#ffb534aa}
+.sphere.right-sphere{--c:#a98bff;--g:#a98bffa0}
+.sphere.active{transform:scale(.96)}
+.sphere.held{box-shadow:0 0 0 5px #ffffff55,0 0 44px #fff,0 8px 18px #000b,inset -10px -14px 22px #0008,inset 6px 8px 14px #ffffff55;animation:sphereHold .7s ease-in-out infinite alternate}
+@keyframes sphereHold{to{filter:brightness(1.35)}}
+.sphere .nub{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#ffffffcc,#ffffff22 60%,transparent 72%);transform:translate(var(--nx,0px),var(--ny,0px));transition:transform .12s ease-out;pointer-events:none}
+.sphere.active .nub{transition:none}
+.sphere::after{content:'';position:absolute;inset:-7px;border-radius:50%;border:2px dashed var(--c);opacity:.45;pointer-events:none}
+.sphere[data-hint]::before{content:'';position:absolute;top:50%;width:0;height:0;margin-top:-16px;border:16px solid transparent;pointer-events:none;animation:sphereHint .8s ease-in-out infinite alternate;filter:drop-shadow(0 0 8px #33ff33)}
+.sphere[data-hint="left"]::before{left:-40px;border-right:26px solid #33ff33;border-left:0}
+.sphere[data-hint="right"]::before{right:-40px;border-left:26px solid #33ff33;border-right:0}
+@keyframes sphereHint{from{opacity:.35;transform:translateX(0)}to{opacity:1;transform:translateX(var(--hx,0))}}
+.sphere[data-hint="left"]{--hx:-8px}.sphere[data-hint="right"]{--hx:8px}
+.sphere-cap{font:bold 10px/1.2 'Courier New',monospace;letter-spacing:.16em;color:#dfe9f6;text-shadow:0 1px 6px #000,0 0 12px #000;text-align:center;white-space:nowrap}
+.sphere-cap small{display:block;font-size:8.5px;letter-spacing:.1em;opacity:.7;margin-top:2px}
+#tc-powers{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 34px);transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;pointer-events:none}
+#tc-powers button{pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:6px;width:76px;height:44px;padding:0;border-radius:14px;border:1.5px solid var(--pa,#fff6);background:linear-gradient(155deg,#2d3947f0,#18222eef);color:#eaf0f8;font:700 14px ui-sans-serif,system-ui,sans-serif;touch-action:manipulation}
+#tc-powers button b{font:700 18px ui-sans-serif,system-ui,sans-serif;color:var(--pa,#fff)}
+#tc-powers button:disabled{opacity:.45}
+#tc-powers button:enabled{box-shadow:0 0 14px color-mix(in srgb,var(--pa) 40%,transparent)}
+#tc-bomb{--pa:#ffb3ad}#tc-bloom{--pa:#c3ed89}
+#tc-top{position:fixed;top:max(10px,env(safe-area-inset-top));right:10px;z-index:41}
+#tc-top button{width:42px;height:38px;margin-left:6px;border-radius:10px;border:1px solid #ffffff3a;background:#0b1019cc;color:#e8eef7;font:16px system-ui,sans-serif;touch-action:manipulation}
+#tc-menu{position:absolute;right:0;top:46px;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:12px;border:1px solid #ffffff30;background:#0b1019f2;min-width:150px}
+#tc-menu[hidden]{display:none}
+#tc-menu button{width:100%;margin:0;height:40px;font:600 14px ui-sans-serif,system-ui,sans-serif;text-align:left;padding:0 12px}
+#tc-paused{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);padding:10px 18px;border-radius:10px;background:#0b1019e6;border:1px solid #ffffff3a;color:#fff;font:bold 15px 'Courier New',monospace;letter-spacing:.14em;z-index:41;pointer-events:none}
+#tc-paused[hidden]{display:none}
+/* the in-game screen, slimmed for touch */
+body.touch-ui #game-screen header,body.touch-ui .toolbar,body.touch-ui .control-panel,body.touch-ui #game-screen footer,
+body.touch-ui .readout .eyebrow,body.touch-ui .readout > span,body.touch-ui .readout .separator,body.touch-ui .readout #state,
+body.touch-ui .score-details .game-best{display:none!important}
+body.touch-ui #game-screen .scoreboard{top:max(8px,env(safe-area-inset-top));min-width:0;width:calc(100% - 190px)}
+body.touch-ui #game-screen .scoreboard .eyebrow{font-size:9px}
+body.touch-ui #game-screen #score{font-size:40px;margin:2px 0}
+body.touch-ui .score-details{font-size:10px}
+body.touch-ui #begin-prompt{position:fixed;left:50%;top:calc(max(8px,env(safe-area-inset-top)) + 130px);transform:translateX(-50%);width:max-content;max-width:calc(100vw - 30px);box-sizing:border-box;font-size:12px;margin:0;padding:7px 12px;z-index:5;text-align:center}
+body.touch-ui .scoreboard #score-label{display:none}
+body.touch-ui #game-screen .readout{display:block;position:fixed;top:calc(max(8px,env(safe-area-inset-top)) + 96px);left:50%;bottom:auto;transform:translateX(-50%);padding:5px 14px;white-space:nowrap}
+body.touch-ui #game-screen .readout h1{font-size:14px;margin:0}
+body.touch-ui #game-screen #scene{top:150px;height:calc(100dvh - 150px - 210px);min-height:200px}
+body.touch-ui .music-player{top:max(10px,env(safe-area-inset-top));left:10px;flex-direction:row;padding:0}
+body.touch-ui .music-player input{display:none}
+body.touch-ui .music-player button{min-width:0;width:42px;height:38px;padding:0;font-size:0;border-radius:10px}
+body.touch-ui .music-player button::before{content:'♫';font-size:17px}
+body.touch-ui .music-player button[aria-pressed="false"]{opacity:.55}
+body.touch-ui #guide-hint{bottom:calc(env(safe-area-inset-bottom) + 190px);font-size:12px;padding:8px 10px;max-width:calc(100vw - 20px)}
+body.touch-ui #gift-progress{max-width:120px}
+</style>
 <style>#fortune-cookie .cookie-art{width:260px;height:180px}#fortune-cookie .cookie-half img{display:block;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none}#fortune-cookie .cookie-left img{clip-path:inset(0 50% 0 0)}#fortune-cookie .cookie-right img{clip-path:inset(0 0 0 50%)}#fortune-cookie .fortune-slip{bottom:190px}#fortune-cookie:focus-visible{outline:2px solid #f3cf98;outline-offset:8px;border-radius:12px}@media(max-width:650px){#fortune-cookie .cookie-art{width:180px;height:124px}#fortune-cookie .fortune-slip{bottom:134px;left:0;transform:none;min-width:170px;max-width:200px;animation:none}}</style></head>
 <body class="at-title">
 <script>
@@ -535,6 +614,14 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
     <button id="game-over-title-button">Back to title</button>
   </dialog>
   <div id="guide-hint" role="status" hidden><span class="guide-step"></span><span class="guide-text"></span><button type="button" class="guide-skip">SKIP · ESC</button></div>
+  <div id="tc-top"><button id="tc-aloha" aria-label="Aloha">🌴</button><button id="tc-pause" aria-label="Pause">⏸</button><button id="tc-menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
+    <div id="tc-menu" hidden><button data-do="show-title">Title screen</button><button data-do="reset-view">Reset view</button><button data-do="restart">Restart</button></div></div>
+  <div id="tc-paused" hidden>PAUSED</div>
+  <div id="touch-controls">
+    <div class="sphere-wrap left"><div id="sphere-left" class="sphere" data-mode="turn" role="button" tabindex="0" aria-label="Piece sphere. Drag to turn or slide the block, tap to switch between turning and sliding, hold to drop."><i class="nub"></i></div><div class="sphere-cap" id="cap-left">TURN<small>TAP SWITCH · HOLD DROP</small></div></div>
+    <div id="tc-powers"><button id="tc-bomb" disabled aria-label="Bomb">💣 <b id="tc-bomb-n">0</b></button><button id="tc-bloom" disabled aria-label="Bloom">🌸 <b id="tc-bloom-n">0</b></button></div>
+    <div class="sphere-wrap right"><div id="sphere-right" class="sphere right-sphere" role="button" tabindex="0" aria-label="Cube sphere. Drag to tip the cube, tap to spin it."><i class="nub"></i></div><div class="sphere-cap">TIP THE CUBE<small>TAP SPIN</small></div></div>
+  </div>
   <div id="aloha" aria-hidden="true"><canvas id="aloha-sky"></canvas><canvas id="aloha-planet"></canvas><p class="aloha-caption"><b>ALOHA</b>PRESS 7 TO RETURN</p></div>
   <p id="aloha-gift" role="status" hidden></p>
   <div id="aloha-fade" aria-hidden="true"></div>
@@ -1371,6 +1458,26 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       if(!this.active||this.active.solid)return false;
       if(this.active.upright)return this.changePiece({upright:false},true);
       for(let k=0;k<4;k++)if(this.changePiece({upright:true,roll:((this.active.roll??0)+k)%4},true))return true;
+      return false;
+    }
+    // Touch control: tip the piece toward (+1) or away from (-1) the player, so "roll" always follows the side facing you.
+    // The tipped shape is matched against every pose the piece can take, so any orientation is reachable from the spheres.
+    tipPiece(direction) {
+      const p=this.active;
+      if(!p||p.kind)return false;
+      if(p.solid)return this.togglePosture();
+      const norm=cells=>{const m=[0,1,2].map(i=>Math.min(...cells.map(c=>c[i])));return cells.map(c=>c.map((v,i)=>v-m[i]).join(',')).sort().join('|');};
+      const now=this.voxels(p),tipped=now.map(([x,y,z])=>direction>0?[x,-z,y]:[x,z,-y]),want=norm(tipped);
+      const size=cells=>[0,1,2].map(i=>Math.max(...cells.map(c=>c[i]))+1);
+      const [w0,,d0]=size(now),found=[];
+      for(const upright of [true,false])for(let roll=0;roll<(upright?4:1);roll++)for(let rotation=0;rotation<4;rotation++){
+        const cand={...p,upright,roll,rotation},cells=this.voxels(cand);
+        if(norm(cells)!==want)continue;
+        const [w1,,d1]=size(cells);
+        found.push({upright,roll,rotation,x:p.x+Math.round((w0-w1)/2),z:p.z+Math.round((d0-d1)/2),cost:Math.abs(rotation-p.rotation)+Math.abs(roll-(p.roll??0))});
+      }
+      found.sort((a,b)=>a.cost-b.cost);
+      for(const c of found)if(this.changePiece({upright:c.upright,roll:c.roll,rotation:c.rotation,x:c.x,z:c.z},true))return true;
       return false;
     }
     rollPiece() {
@@ -2873,6 +2980,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         if(coins<FOOD_PRICE){say(`Animal food costs ${FOOD_PRICE} coins. Earn a coin for every 10 points.`,4);return;}
         coins-=FOOD_PRICE;food++;T('aloha_buy_food');save();updateCoins(false);updateCare();say('Bought 1 animal food.',3);
       }
+      let _lastCare=null;
       function updateCare(){
         careClock.textContent=`DAY ${day()+1} · ${5-totalShapes%5} shapes until tomorrow`;
         careFood.textContent=`Animal food: ${food}`;
@@ -2880,6 +2988,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         const caring=selectedCare&&(isGarden(selectedCare)||ANIMALS.has(selectedCare.id));
         careButton.hidden=!caring;
         moveButton.hidden=!(selectedCare&&movable(selectedCare)&&!hold);
+        if(selectedCare!==_lastCare){_lastCare=selectedCare;if(selectedCare)sidebar.classList.add('open');}
         if(selectedCare){
           const t=selectedCare,tail=movable(t)?' · can be moved':' · planted';
           careInfo.textContent=isGarden(t)?`Garden · ${t.growth}/5 waterings · ${t.growth>=5?'ready to harvest':t.lastWater!==day()?'thirsty — flashing blue':'watered today'}${tail}`:ANIMALS.has(t.id)?`${BY_ID[t.id].name} · ${t.fedUntil>day()?t.fedUntil-day()+' days of food':'hungry — resting'}${tail}`:`${BY_ID[t.id].name}${tail}`;
@@ -2968,12 +3077,25 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
       }
       // Wrap care + shop in a scrollable sidebar
       const sidebar=document.createElement('div');
+      sidebar.className='aloha-sidebar';
       sidebar.style.cssText='position:absolute;left:20px;top:100px;width:225px;max-height:calc(100vh - 140px);overflow-y:auto;pointer-events:auto;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin;';
       sidebar.append(carePanel,shopPanel);
       // Override care panel positioning since sidebar handles it
       carePanel.style.position='static';carePanel.style.left='auto';carePanel.style.top='auto';carePanel.style.width='100%';
       shopPanel.style.position='static';shopPanel.style.left='auto';shopPanel.style.top='auto';shopPanel.style.width='100%';
-      ui.append(top,sidebar,hint,bar,back,tapes);root.append(ui);
+      // touch-only helpers: a drawer for the care/shop panels, a way back to the game, and quick move/cancel chips
+      const drawerBtn=document.createElement('button');drawerBtn.className='aloha-touch-btn aloha-drawer-btn';drawerBtn.textContent='☰ SHOP';
+      drawerBtn.addEventListener('click',e=>{e.stopPropagation();sidebar.classList.toggle('open');});
+      const exitBtn=document.createElement('button');exitBtn.className='aloha-touch-btn aloha-exit-btn';exitBtn.textContent='◀ GAME';
+      exitBtn.addEventListener('click',e=>{e.stopPropagation();root.dispatchEvent(new Event('aloha-exit'));});
+      const chips=document.createElement('div');chips.className='aloha-chips';
+      const moveChip=document.createElement('button');moveChip.className='aloha-touch-btn';moveChip.textContent='✋ PICK UP';moveChip.hidden=true;
+      moveChip.addEventListener('click',e=>{e.stopPropagation();if(selectedCare&&!hold)pickUp(selectedCare);});
+      const cancelChip=document.createElement('button');cancelChip.className='aloha-touch-btn';cancelChip.textContent='✕ CANCEL';cancelChip.hidden=true;
+      cancelChip.addEventListener('click',e=>{e.stopPropagation();pendingZoom=-1;if(hold)cancelHold();});
+      chips.append(moveChip,cancelChip);
+      saveBtn.classList.add('desk-only');loadBtn.classList.add('desk-only');
+      ui.append(top,sidebar,hint,bar,back,tapes,chips,drawerBtn,exitBtn);root.append(ui);
       function rebuild() {
         bar.textContent='';
         const owned=ITEMS.filter(i=>inv[i.id]>0);
@@ -3000,8 +3122,10 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
           else if(zoomTarget>0)t=(ITEMS.some(it=>it.id!=='island'&&inv[it.id]>0)?'Pick an item below · ':'')+(earnedTapes(zoomIsland).length?'click a cassette to jump to that level · ':'pass a level to earn its cassette · ')+'ESC to zoom out';
           else if(islands.length||inv.island>0)t=(inv.island>0?'Pick the island below · ':'')+'arrows tip the planet · / spins it'+(islands.length?' · click an island to zoom in':'');
         }
+        if(document.body.classList.contains('touch-ui'))t=t.replace(/WASD move · Q\/E (rotate|turn it)/,'left sphere: slide · tap it to turn').replace(/hold SPACE to (lower|set it down)/,'hold the left sphere to $1'.replace('$1','lower')).replace(/ · ESC (cancel|puts it back)/,'').replace(/arrows tip the planet · \/ spins it/,'right sphere tips the planet · tap it to spin').replace(/click/g,'tap').replace(/ · ESC to zoom out/,'').replace(/ · arrows tip the planet/,'');
         if(hint.textContent!==t)hint.textContent=t;
         back.hidden=!(zoomTarget>0);
+        cancelChip.hidden=!hold;moveChip.hidden=!(selectedCare&&movable(selectedCare)&&!hold);
       }
 
       // ---- camera & drawing ----
@@ -3620,6 +3744,8 @@ window.TrillionCloud=(()=>{
   musicVolume.addEventListener('keydown',event=>event.stopPropagation());
   document.addEventListener('visibilitychange',()=>music.setHidden(document.hidden));
   let onTitle=true,started=false;
+  const TOUCH_UI=(()=>{try{return matchMedia('(pointer:coarse)').matches||/[?&]touch=1\b/.test(location.search);}catch(e){return false;}})();
+  if(TOUCH_UI)document.body.classList.add('touch-ui');
   game.paused=true;
   const titleScreen=document.querySelector('#title-screen'),gameScreen=document.querySelector('#game-screen');
   function updateHighScore() {
@@ -3789,6 +3915,8 @@ window.TrillionCloud=(()=>{
     if(alohaOpen)await toggleAloha();
     (typeof _origStartGame==='function'?_origStartGame:startGame)(true); // straight onto the board: no intro replay
   });
+  alohaRoot.addEventListener('aloha-exit',()=>{if(alohaOpen)toggleAloha();});
+  document.getElementById('tc-aloha')?.addEventListener('click',()=>{if(!alohaOpen)toggleAloha();});
   const alohaWait=ms=>new Promise(r=>setTimeout(r,ms));
   async function toggleAloha() {
     if(!aloha||alohaBusy)return;
@@ -3797,9 +3925,9 @@ window.TrillionCloud=(()=>{
     alohaFade.classList.add('black');await alohaWait(850);
     if(!alohaOpen) {
       alohaWasPaused=game.paused;endDrag();setPaused(true);game.softDrop=false;
-      alohaRoot.classList.add('open');alohaRoot.setAttribute('aria-hidden','false');aloha.start();alohaOpen=true;
+      alohaRoot.classList.add('open');alohaRoot.setAttribute('aria-hidden','false');aloha.start();alohaOpen=true;document.body.classList.add('aloha-open');
     } else {
-      aloha.stop();alohaRoot.classList.remove('open');alohaRoot.setAttribute('aria-hidden','true');alohaOpen=false;
+      aloha.stop();alohaRoot.classList.remove('open');alohaRoot.setAttribute('aria-hidden','true');alohaOpen=false;document.body.classList.remove('aloha-open');
       if(!alohaWasPaused&&!document.hidden)setPaused(false);
       canvas.focus();
     }
@@ -3879,11 +4007,11 @@ window.TrillionCloud=(()=>{
     const hint=document.querySelector('#guide-hint'),stepEl=hint.querySelector('.guide-step'),textEl=hint.querySelector('.guide-text');
     const piece=(cells,x,z)=>({type:'GUIDE',solid:false,upright:false,rotation:0,roll:0,height:0,cells,x,z});
     const STEPS=[
-      {kind:'place',mark:'①',text:'Slide the 1-block into the glowing corner (A / S), then press Space to begin and hold it to drop.',piece:piece([[0,0]],0,2)},
-      {kind:'tip',mark:'②',text:'Tip the cube LEFT with the ← key.',axis:'z',d:1,count:2,arrow:'left'},
-      {kind:'place',mark:'③',text:'Turn the 2-block (Q or E), slide it into the glow (W A S D), then hold Space to drop.',piece:piece([[0,0],[0,1]],0,0)},
-      {kind:'tip',mark:'④',text:'Now tip the cube RIGHT with the → key.',axis:'z',d:-1,count:1,arrow:'right'},
-      {kind:'place',mark:'⑤',text:'Hold Space to drop the 3-block across the glowing middle.',piece:piece([[0,0],[1,0],[2,0]],0,1)}
+      {kind:'place',mark:'①',text:'Slide the 1-block into the glowing corner (A / S), then press Space to begin and hold it to drop.',touch:'Drag the gold left sphere to slide the block into the glowing corner, then hold the sphere to begin and drop it.',mode:'slide',piece:piece([[0,0]],0,2)},
+      {kind:'tip',mark:'②',text:'Tip the cube LEFT with the ← key.',touch:'Drag the right sphere LEFT to tip the cube.',axis:'z',d:1,count:2,arrow:'left'},
+      {kind:'place',mark:'③',text:'Turn the 2-block (Q or E), slide it into the glow (W A S D), then hold Space to drop.',touch:'Drag the blue left sphere sideways to turn the 2-block. Tap the sphere to slide it into the glow, then hold to drop.',mode:'turn',piece:piece([[0,0],[0,1]],0,0)},
+      {kind:'tip',mark:'④',text:'Now tip the cube RIGHT with the → key.',touch:'Now drag the right sphere RIGHT.',axis:'z',d:-1,count:1,arrow:'right'},
+      {kind:'place',mark:'⑤',text:'Hold Space to drop the 3-block across the glowing middle.',touch:'Hold the left sphere to drop the 3-block across the glowing middle.',mode:'slide',piece:piece([[0,0],[1,0],[2,0]],0,1)}
     ];
     const keyOf=list=>list.map(t=>`${t.face}:${t.x}:${t.z}:${t.y||0}`).sort().join('|');
     const g={active:false,i:0,tips:0,targets:null,key:'',arrow:null,ticking:false,
@@ -3899,14 +4027,15 @@ window.TrillionCloud=(()=>{
         const st=STEPS[g.i];
         if(!st){g.end('done');return;}
         g.tips=0;g.targets=null;g.key='';g.arrow=null;game.guideHold=false;
-        if(st.kind==='place'){g.targets=game.targets(st.piece);g.key=keyOf(g.targets);}
+        if(st.kind==='place'){g.targets=game.targets(st.piece);g.key=keyOf(g.targets);if(st.mode&&window.touchSphere)touchSphere.setMode(st.mode);}
         else{g.arrow=st.arrow;game.guideHold=true;}
         g.show();
       },
       show(){
         const st=STEPS[g.i];if(!st)return;
         stepEl.textContent=st.mark;
-        textEl.textContent=st.kind==='tip'&&st.count>1?`${st.text} (${Math.min(g.tips+1,st.count)} of ${st.count})`:st.text;
+        const words=TOUCH_UI&&st.touch?st.touch:st.text;
+        textEl.textContent=st.kind==='tip'&&st.count>1?`${words} (${Math.min(g.tips+1,st.count)} of ${st.count})`:words;
         hint.hidden=false;
       },
       // Called every frame: a tip step is finished once its turns have fully played out.
@@ -4083,6 +4212,107 @@ window.TrillionCloud=(()=>{
     if(key===' '&&!game.paused){if(game.awaitingStart)game.beginPlay();else game.softDrop=true;}
   });
   window.addEventListener('keyup',event=>{if(event.code==='Space'||event.key===' ')game.softDrop=false;});
+  // ---- Touch controls: two spheres. Left = the block (drag to turn or slide, tap to switch, hold to drop); right = the cube (drag to tip, tap to spin) ----
+  (function touchControls(){
+    const L=document.querySelector('#sphere-left'),R=document.querySelector('#sphere-right'),capL=document.querySelector('#cap-left');
+    if(!L||!R)return;
+    let mode='turn';
+    const setMode=m=>{mode=m;L.dataset.mode=m;};
+    window.touchSphere={setMode,get mode(){return mode;}};
+    const trace=(...a)=>{if(window.__tcLog)window.__tcLog.push(a.join(' '));};
+    const inGame=()=>!onTitle&&!alohaBusy&&!document.querySelector('dialog[open]');
+    const press=(key,up)=>{ // Aloha takes keyboard-style events
+      const e={key,code:key===' '?'Space':key,repeat:false,target:document.body,preventDefault(){},stopPropagation(){}};
+      return up?aloha.keyup(e):aloha.key(e);
+    };
+    function gesture(el,o){
+      let st=null;
+      const reset=()=>{if(st&&st.timer)clearTimeout(st.timer);if(st&&st.held&&o.hold)o.hold(false);st=null;el.classList.remove('active','held');el.style.setProperty('--nx','0px');el.style.setProperty('--ny','0px');};
+      el.addEventListener('pointerdown',e=>{
+        if(st||e.button>0)return;
+        e.preventDefault();try{el.setPointerCapture(e.pointerId);}catch(_){}
+        st={id:e.pointerId,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY,ax:0,ay:0,t:performance.now(),moved:false,held:false,timer:null};
+        el.classList.add('active');
+        if(o.hold)st.timer=setTimeout(()=>{if(st&&!st.moved&&inGame()){st.held=true;el.classList.add('held');o.hold(true);}},300);
+      });
+      el.addEventListener('pointermove',e=>{
+        if(!st||e.pointerId!==st.id)return;
+        st.ax+=e.clientX-st.x;st.ay+=e.clientY-st.y;st.x=e.clientX;st.y=e.clientY;
+        const tx=e.clientX-st.sx,ty=e.clientY-st.sy,len=Math.hypot(tx,ty);
+        if(!st.moved&&len>12){st.moved=true;if(!st.held&&st.timer){clearTimeout(st.timer);st.timer=null;}}
+        const k=len>0?Math.min(len,26)/len:0;
+        el.style.setProperty('--nx',(tx*k).toFixed(1)+'px');el.style.setProperty('--ny',(ty*k).toFixed(1)+'px');
+        const T=o.step;
+        if(Math.abs(st.ax)>=T&&Math.abs(st.ax)>=Math.abs(st.ay)){
+          const n=Math.trunc(st.ax/T);for(let i=0;i<Math.abs(n);i++)o.drag(n>0?'right':'left');st.ax-=n*T;st.ay=0;
+        }else if(Math.abs(st.ay)>=T){
+          const n=Math.trunc(st.ay/T);for(let i=0;i<Math.abs(n);i++)o.drag(n>0?'down':'up');st.ay-=n*T;st.ax=0;
+        }
+      });
+      const end=e=>{
+        if(!st||(e&&e.pointerId!==st.id))return;
+        const tap=e&&e.type==='pointerup'&&!st.moved&&!st.held&&performance.now()-st.t<400;
+        reset();if(tap&&o.tap)o.tap();
+      };
+      el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('lostpointercapture',end);
+      el.addEventListener('contextmenu',e=>e.preventDefault());
+    }
+    const sliding=()=>mode==='slide'||!!game.active?.kind;
+    gesture(L,{
+      step:32,
+      drag(dir){
+        if(!inGame()&&!alohaOpen)return;
+        trace('L',alohaOpen?'aloha':sliding()?'slide':'turn',dir);
+        if(alohaOpen){press((mode==='turn'&&(dir==='left'||dir==='right'))?(dir==='left'?'q':'e'):{left:'a',right:'d',up:'w',down:'s'}[dir]);return;}
+        if(sliding()){game.move(dir==='left'?-1:dir==='right'?1:0,dir==='up'?-1:dir==='down'?1:0);return;}
+        if(dir==='left')game.rotatePiece(-1);else if(dir==='right')game.rotatePiece(1);
+        else game.tipPiece(dir==='down'?1:-1);
+      },
+      tap(){trace('L tap');setMode(mode==='turn'?'slide':'turn');},
+      hold(on){
+        trace('L hold',on);
+        if(alohaOpen){press(' ',!on);return;}
+        if(on){if(game.paused||game.gameOver)return;if(game.awaitingStart)game.beginPlay();else game.softDrop=true;}
+        else game.softDrop=false;
+      }
+    });
+    gesture(R,{
+      step:42,
+      drag(dir){
+        trace('R',dir);
+        if(alohaOpen){press({left:'ArrowLeft',right:'ArrowRight',up:'ArrowUp',down:'ArrowDown'}[dir]);return;}
+        if(!inGame())return;
+        if(dir==='left')game.rotateCube('z',1);else if(dir==='right')game.rotateCube('z',-1);
+        else if(dir==='up')game.rotateCube('x',-1);else game.rotateCube('x',1);
+      },
+      tap(){trace('R tap');if(alohaOpen)press('/');else if(inGame())game.rotateCube('y',-1);}
+    });
+    // power-ups, pause and menu
+    const bombB=document.querySelector('#tc-bomb'),bloomB=document.querySelector('#tc-bloom');
+    bombB.addEventListener('click',()=>{if(game.usePowerUp('bomb'))setMode('slide');});
+    bloomB.addEventListener('click',()=>{if(game.usePowerUp('bloom'))setMode('slide');});
+    const tcPause=document.querySelector('#tc-pause'),menuBtn=document.querySelector('#tc-menu-btn'),menu=document.querySelector('#tc-menu'),paused=document.querySelector('#tc-paused');
+    tcPause.addEventListener('click',()=>setPaused(!game.paused));
+    menuBtn.addEventListener('click',()=>{menu.hidden=!menu.hidden;menuBtn.setAttribute('aria-expanded',String(!menu.hidden));});
+    menu.addEventListener('click',e=>{const b=e.target.closest('button[data-do]');if(!b)return;menu.hidden=true;menuBtn.setAttribute('aria-expanded','false');document.querySelector('#'+b.dataset.do).click();});
+    document.querySelector('#begin-prompt').textContent='hold the left sphere to begin';
+    // keep the spheres in step with the game
+    let lastSig='';
+    (function sync(){
+      const kind=game.active?.kind,sig=[game.inventory.bomb,game.inventory.bloom,game.paused,kind,mode,alohaOpen,guide.arrow].join('|');
+      if(sig!==lastSig){
+        lastSig=sig;
+        document.querySelector('#tc-bomb-n').textContent=game.inventory.bomb;document.querySelector('#tc-bloom-n').textContent=game.inventory.bloom;
+        const blocked=game.paused||game.gameOver||!game.active||!!kind||!!game.turn||!!game.resolution;
+        bombB.disabled=blocked||!game.inventory.bomb;bloomB.disabled=blocked||!game.inventory.bloom;
+        tcPause.textContent=game.paused?'▶':'⏸';paused.hidden=!(game.paused&&!onTitle&&!alohaOpen);
+        const eff=kind?'slide':mode;L.dataset.mode=eff;
+        capL.firstChild.textContent=alohaOpen?(eff==='slide'?'MOVE':'TURN'):(eff==='slide'?'SLIDE':'TURN');
+        R.dataset.hint=guide.arrow||'';if(!R.dataset.hint)delete R.dataset.hint;
+      }
+      requestAnimationFrame(sync);
+    })();
+  })();
   const faceLabel=document.querySelector('#face'), countLabel=document.querySelector('#count'), stateLabel=document.querySelector('#state'), pieceLabel=document.querySelector('#piece'), facesLabel=document.querySelector('#faces');
   const scoreLabel=document.querySelector('#score');
   const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -4438,6 +4668,11 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-10-22e',date:'Oct 22, 2026',title:'Touch controls (portrait)',items:[
+      'On phones and tablets the side panels are gone. Two glowing spheres sit at the bottom: the left one turns your block (drag), slides it across the top (tap to switch, it glows amber) and drops it when held. The right one tips the cube when dragged and spins it when tapped.',
+      'Rolling now follows which side of the block faces you, so tipping the block toward you or away does it with no double tap.',
+      'The tutorial shows glowing target cells with arrows on the right sphere. Power-ups and pause live in a slim strip, and in Aloha the shop slides down as a drawer.'
+    ]},
     {id:'2026-10-22d',date:'Oct 22, 2026',title:'Grow your planet',items:[
       'New in the coin shop: Grow planet. For 100 coins the planet gains one more cell of ocean on every face, up to 8 times. Your islands and animals stay put, just smaller against the bigger sea.'
     ]},
