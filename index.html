@@ -1645,7 +1645,10 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
   // Aloha Items are earned silently while playing, then placed here: blob-shaped islands on any side of the planet,
   // and items on an island. Islands are made of small "pixels" (4 per planet cell, so 32×32 per side).
   const TrillionAloha=(()=>{
-    const CELLS=8,CELL=2/CELLS,GRID=48,FINE=4,PX=CELLS*FINE,PIX=2/PX,VOX=CELL/10,MERGE_KEEP=.7,MERGE_GAP=2;
+    // The planet grows a cell at a time: CELLS, and everything measured in cells, follow the number of layers bought.
+    const GRID=48,FINE=4,MERGE_KEEP=.7,MERGE_GAP=2,BASE_CELLS=8,MAX_GROW=8,LAYER_COST=100;
+    let CELLS=BASE_CELLS,CELL=2/CELLS,PX=CELLS*FINE,PIX=2/PX,VOX=CELL/10;
+    const setPlanetLayers=n=>{CELLS=BASE_CELLS+Math.max(0,Math.min(MAX_GROW,Math.floor(n)||0));CELL=2/CELLS;PX=CELLS*FINE;PIX=2/PX;VOX=CELL/10;};
     const RIPPLE_SMALL=.02,RIPPLE_LARGE=.034,RIPPLE_LIFE=20,RIPPLE_SPEED=.55/3;
     const TIP_TIME=.5,MERGE_TIME=1.7;
     // ---- Unified gift ladder (v2, research-backed) ----
@@ -2169,6 +2172,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     // Turns anything (a saved file, old storage) into a safe progress object. Older saves used rectangular islands in cells.
     function sanitize(d) {
       if(!d||typeof d!=='object'||!d.inv||!Array.isArray(d.islands))return null;
+      const layers=Math.max(0,Math.min(MAX_GROW,Math.floor(Number(d.layers))||0));setPlanetLayers(layers);
       const n=v=>Math.max(0,Math.min(99999,Math.floor(Number(v))||0));
       const totalShapes=Math.max(0,Math.min(1e9,Math.floor(Number(d.totalShapes))||0)),day=dayOf(totalShapes);
       const inv={};for(const i of ITEMS)inv[i.id]=n(d.inv[i.id]);
@@ -2236,7 +2240,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         });
       }
       const expandedSizes=Array.isArray(d.expandedSizes)?d.expandedSizes.filter(s=>Number.isFinite(s)&&s>=4&&s<=9).slice(0,5):[];
-      return {inv,islands,ocean,totalShapes,food:n(d.food),earnedMax,coins:n(d.coins),expandedSizes,passed:Math.max(0,Math.min(15,Math.floor(Number(d.passed))||0))};
+      return {inv,islands,ocean,totalShapes,food:n(d.food),earnedMax,coins:n(d.coins),expandedSizes,layers,passed:Math.max(0,Math.min(15,Math.floor(Number(d.passed))||0))};
     }
     const vertexSource=`
       attribute vec3 aPos; attribute vec3 aNormal; attribute vec3 aTangent;
@@ -2273,7 +2277,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     const fragmentSource=`
       #extension GL_OES_standard_derivatives : enable
       precision mediump float;
-      uniform float uTime;
+      uniform float uTime,uCells;
       varying vec3 vNormal,vView,vPos; varying float vHeight; varying vec2 vUV;
       void main() {
         vec3 n=normalize(vNormal),v=normalize(vView);
@@ -2287,7 +2291,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         col+=vec3(.05,.3,.55)*rim*.6;
         vec3 h=normalize(light+v);
         col+=vec3(.75,.9,1.)*pow(max(dot(n,h),0.),70.)*.4;
-        vec2 g=vUV*${(CELLS/2).toFixed(1)};
+        vec2 g=vUV*uCells*.5;
         vec2 w=fwidth(g)*1.2;
         vec2 gridDist=abs(fract(g-.5)-.5)/max(w,vec2(.0001));
         float line=1.-min(min(gridDist.x,gridDist.y),1.);
@@ -2405,7 +2409,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const planetIbo=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,planetIbo);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,m.index,gl.STATIC_DRAW);
       const boxVbo=gl.createBuffer();
       const loc=(p,n)=>gl.getUniformLocation(p,n);
-      const P={rot:loc(planetProgram,'uRot'),focus:loc(planetProgram,'uFocus'),time:loc(planetProgram,'uTime'),aspect:loc(planetProgram,'uAspect'),dist:loc(planetProgram,'uDistance'),ripple:loc(planetProgram,'uRipple[0]'),amp:loc(planetProgram,'uAmp[0]')};
+      const P={rot:loc(planetProgram,'uRot'),focus:loc(planetProgram,'uFocus'),time:loc(planetProgram,'uTime'),aspect:loc(planetProgram,'uAspect'),dist:loc(planetProgram,'uDistance'),ripple:loc(planetProgram,'uRipple[0]'),amp:loc(planetProgram,'uAmp[0]'),cells:loc(planetProgram,'uCells')};
       const Bx={rot:loc(boxProgram,'uRot'),focus:loc(boxProgram,'uFocus'),aspect:loc(boxProgram,'uAspect'),dist:loc(boxProgram,'uDistance')};
       gl.enable(gl.DEPTH_TEST);gl.clearColor(0,0,0,0);
       // Stars
@@ -2416,7 +2420,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const saved=sanitize(load())||sanitize({inv:{},islands:[]});
       const inv={island:0,palm:0,fire:0,parrot:0,raft:0,...saved.inv};
       const islands=saved.islands;
-      let coins=saved.coins,totalShapes=saved.totalShapes,food=saved.food,passed=saved.passed||0; // highest level the player has passed
+      let coins=saved.coins,totalShapes=saved.totalShapes,food=saved.food,passed=saved.passed||0,layers=saved.layers||0; // highest level the player has passed
       const ocean=saved.ocean;let earnedMax=saved.earnedMax;
       let selectedCare=null,pendingZoom=-1;
       const day=()=>dayOf(totalShapes);
@@ -2443,7 +2447,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       }
       const T=(n,p)=>{try{window.TrillionStats&&TrillionStats.track(n,p);}catch(e){}};
       const fresh=new Set();
-      const save=()=>{if(window.TRILLION_WIPING)return;try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,passed,expandedSizes:saved.expandedSizes||[],islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),ch:s.ch||[],items:s.items}))}));localStorage.setItem(KEY+'-at',String(Date.now()));}catch(e){}if(window.TrillionCloud)TrillionCloud.changed();};
+      const save=()=>{if(window.TRILLION_WIPING)return;try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,passed,layers,expandedSizes:saved.expandedSizes||[],islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),ch:s.ch||[],items:s.items}))}));localStorage.setItem(KEY+'-at',String(Date.now()));}catch(e){}if(window.TrillionCloud)TrillionCloud.changed();};
       let running=false,time=0,last=0,frame=0;
       let angle=0,kick=0,pitch=.38,pitchPlanet=.38,pitchZoom=1.0;
       let orient=[1,0,0,0,1,0,0,0,1],tip=null;
@@ -2564,6 +2568,21 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
           if(fits)M.items.push({...it,x:lx,z:lz});else{inv[it.id]++;refunded++;}
         }
         return {M,refunded,s,c:[cx,cz]};
+      }
+      // ---- growing the planet: one more cell on every face, so the same islands sit in more ocean ----
+      function refreshScale(){DECK=3*VOX;for(const k of Object.keys(heights))delete heights[k];}
+      function growPlanet(){
+        if(layers>=MAX_GROW||coins<LAYER_COST||hold||tip)return false;
+        coins-=LAYER_COST;layers++;
+        const before=PX;setPlanetLayers(layers);
+        const shift=(PX-before)/2; // keep everything centred on its face
+        for(const s of islands){s.x+=shift;s.z+=shift;}
+        for(const t of ocean){t.x+=shift;t.z+=shift;}
+        mergeFx=null;pendingZoom=-1;refreshScale();
+        T('aloha_grow',{layers});
+        save();updateCoins(false);rebuildShop();rebuild();
+        say(`The planet grew by a layer (${CELLS}×${CELLS} cells). More ocean to fill.`,6);
+        return true;
       }
       // Each island carries chapters (island.ch). A new island takes the next owned chapter nobody has; merging pools them.
       function assignChapters(){
@@ -2813,13 +2832,13 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         if(typeof rebuildShop==='function')rebuildShop();
       }
       function exportData() {
-        return {game:'trillion-aloha',version:6,savedAt:new Date().toISOString(),expandedSizes:[...(saved.expandedSizes||[])],passed,coins,totalShapes,food,ocean:ocean.map(t=>({...t})),earnedMax,inv:{...inv},islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),ch:s.ch||[],items:s.items.map(t=>({...t}))}))};
+        return {game:'trillion-aloha',version:6,savedAt:new Date().toISOString(),expandedSizes:[...(saved.expandedSizes||[])],passed,layers,coins,totalShapes,food,ocean:ocean.map(t=>({...t})),earnedMax,inv:{...inv},islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),ch:s.ch||[],items:s.items.map(t=>({...t}))}))};
       }
       function recordLevel(n){n=Math.floor(Number(n));if(Number.isFinite(n)&&n>passed&&n<=15){passed=n;save();}}
       function importData(raw) {
         const d=sanitize(raw);
         if(!d)return false;
-        for(const k of Object.keys(inv))delete inv[k];Object.assign(inv,d.inv);saved.expandedSizes=[...d.expandedSizes];islands.length=0;islands.push(...d.islands);coins=d.coins;totalShapes=d.totalShapes;food=d.food;ocean.length=0;ocean.push(...d.ocean);earnedMax=d.earnedMax;passed=d.passed||0;selectedCare=null;
+        for(const k of Object.keys(inv))delete inv[k];Object.assign(inv,d.inv);saved.expandedSizes=[...d.expandedSizes];islands.length=0;islands.push(...d.islands);coins=d.coins;totalShapes=d.totalShapes;food=d.food;ocean.length=0;ocean.push(...d.ocean);earnedMax=d.earnedMax;passed=d.passed||0;layers=d.layers||0;refreshScale();selectedCare=null;
         hold=null;fallHeld=false;zoomTarget=0;zoomK=0;zoomIsland=-1;mergeFx=null;
         save();rebuild();updateCoins();return true;
       }
@@ -2910,6 +2929,16 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
           });
           shopList.append(btn);
         });
+        // Planet growth
+        {
+          const grow=document.createElement('button');grow.className='aloha-file-btn';
+          const full=layers>=MAX_GROW;
+          grow.textContent=full?'Planet fully grown ✓':`Grow planet +1 layer · ${LAYER_COST} COINS`;
+          grow.title=full?'The planet cannot grow any further':`Adds a cell of ocean to every face (now ${CELLS}×${CELLS})`;
+          grow.disabled=full||coins<LAYER_COST;
+          grow.addEventListener('click',()=>growPlanet());
+          shopList.append(grow);
+        }
         // Separator
         const sep=document.createElement('div');sep.style.cssText='border-top:1px solid #3b6c96;margin:8px 0;';
         shopList.append(sep);
@@ -3108,7 +3137,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         }
         return h;
       }
-      const DECK=3*VOX;
+      let DECK=3*VOX;
       // a raft rides the water (bobbing with the ripples), or sits on whatever land it was placed on
       function floatY(t){
         const [w,d]=dimsPx(t.id,t.r),land=roamY({f:t.f,x:t.x+(w-4)/2,z:t.z+(d-4)/2});
@@ -3245,7 +3274,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         const data=new Float32Array(20),amps=new Float32Array(5);
         for(let i=0;i<5;i++){const r=ripples[ripples.length-1-i];data.set(r?[...r.dir,r.age]:[0,1,0,-1],i*4);amps[i]=r?r.amp:0;}
         gl.uniformMatrix3fv(P.rot,false,rotGL);gl.uniform3fv(P.focus,focus);
-        gl.uniform1f(P.time,time);gl.uniform1f(P.aspect,cam.aspect);gl.uniform1f(P.dist,dist);
+        gl.uniform1f(P.cells,CELLS);gl.uniform1f(P.time,time);gl.uniform1f(P.aspect,cam.aspect);gl.uniform1f(P.dist,dist);
         gl.uniform4fv(P.ripple,data);gl.uniform1fv(P.amp,amps);
         gl.drawElements(gl.TRIANGLES,m.index.length,gl.UNSIGNED_SHORT,0);
         // islands, items and the piece being placed
@@ -4409,6 +4438,9 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-10-22d',date:'Oct 22, 2026',title:'Grow your planet',items:[
+      'New in the coin shop: Grow planet. For 100 coins the planet gains one more cell of ocean on every face, up to 8 times. Your islands and animals stay put, just smaller against the bigger sea.'
+    ]},
     {id:'2026-10-22c',date:'Oct 22, 2026',title:'Cassette level select & roaming animals',items:[
       'Zoom in on an island and floating cassette tapes appear. Each one is earned by placing that chapter\u2019s island and passing the level. Click a cassette to jump straight to that level. Cassettes are free.',
       'The Island Chapters panel and the title-screen island picker are gone. The cassettes replace them.',
