@@ -499,7 +499,7 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
     <svg class="sparkle" width="12" height="12" viewBox="0 0 16 16"><path d="M8 0l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="#ffd700"/></svg>
     <svg class="sparkle" width="14" height="14" viewBox="0 0 16 16"><path d="M8 0l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="#fff4b0"/></svg>
     <span class="cookie-label">☞ click for fortune</span>
-    <div class="fortune-slip">✨ ALOHA is now OPEN ✨</div>
+    <div class="fortune-slip">✨ You will soon go skiing in your Formal wear ✨</div>
   </div>
   <div id="aloha-intro" hidden><div class="intro-text">The present moment is constantly expiring and being created<br>(or is it?)<br><br>Hello and Goodbye.<br><br><strong>Aloha.</strong><br><br><button class="intro-dismiss">CONTINUE</button></div></div>
   <script>
@@ -3235,7 +3235,7 @@ window.TrillionStats=(()=>{
 })();
 </script>
 <script>
-// Player accounts: a name plus a recovery code, saved through three locked-down database functions (no passwords, no email).
+// Player accounts: a name plus a password the player picks, saved through locked-down database functions (no email). Older accounts' recovery codes still work as passwords.
 window.TrillionCloud=(()=>{
   'use strict';
   const API='https://hmtrwwbaellwuuqmdeyn.supabase.co',
@@ -3256,15 +3256,15 @@ window.TrillionCloud=(()=>{
   const sig=p=>{const a=p&&p.aloha?{...p.aloha}:null;if(a)delete a.savedAt;return JSON.stringify({a,b:p&&p.best});};
   async function push(keepalive){
     clearTimeout(timer);timer=0;
-    if(!acct||!hooks)return;
+    if(!acct||!hooks)return true;
     const p=hooks.get(),s=sig(p);
-    if(s===lastSent)return;
+    if(s===lastSent)return true;
     status='Saving…';notify();
     try{
       const r=await rpc('write_save',{p_username:acct.u,p_code:acct.c,p_save:p},keepalive);
-      if(r&&r.ok){lastSent=s;status='Saved to the cloud';}else status=(r&&r.error)||'Could not save';
+      if(r&&r.ok){lastSent=s;status='Saved to the cloud';notify();return true;}else status=(r&&r.error)||'Could not save';
     }catch(e){status='Offline — saved on this device only';}
-    notify();
+    notify();return false;
   }
   function changed(){if(!acct||!hooks)return;clearTimeout(timer);timer=setTimeout(()=>push(false),3000);}
   async function pull(force){
@@ -3280,19 +3280,30 @@ window.TrillionCloud=(()=>{
     notify();return true;
   }
   function remember(u,c){acct={u,c};try{localStorage.setItem(LS,JSON.stringify(acct));}catch(e){}}
-  async function createPlayer(name){
-    const r=await rpc('create_player',{p_username:name});
+  async function createPlayer(name,pw){
+    const r=await rpc('create_player_pw',{p_username:name,p_password:pw});
     if(!r||!r.ok)return r||{ok:false,error:'Could not reach the server.'};
-    remember(r.username,r.code);lastSent='';await push(false);notify();ev('account_created');return r;
+    remember(r.username,pw);lastSent='';await push(false);notify();ev('account_created');return r;
   }
   async function signIn(name,code){
-    const r=await rpc('load_save',{p_username:name,p_code:code.trim().toUpperCase()});
-    if(!r||!r.ok)return r||{ok:false,error:'Could not reach the server.'};
-    remember(name.trim(),code.trim().toUpperCase());
+    const tries=[code];const legacy=code.trim().toUpperCase();if(legacy!==code)tries.push(legacy);
+    let r=null,used=code;
+    for(const t of tries){r=await rpc('load_save',{p_username:name,p_code:t});used=t;if(r&&r.ok)break;}
+    if(!r||!r.ok)return r?{ok:false,error:'Name or password is wrong.'}:{ok:false,error:'Could not reach the server.'};
+    remember(name.trim(),used);
     if(r.save){hooks.apply(r.save);lastSent=sig(hooks.get());status='Loaded your cloud save';}else{lastSent='';await push(false);}
     notify();ev('account_signin',{had_save:!!r.save});return r;
   }
-  function signOut(){ev('account_signout');acct=null;lastSent='';status='';try{localStorage.removeItem(LS);}catch(e){}notify();}
+  // Signing out clears this device's islands, high score and account so the next player starts fresh.
+  // Progress is pushed to the cloud first; if that fails we refuse (unless forced) so nothing is lost.
+  async function signOut(force){
+    if(acct&&hooks&&!force){const ok=await push(false);if(!ok)return false;}
+    ev('account_signout');
+    try{['trillion-aloha-v1','trillion-aloha-v1-at','trillion.highScore.v1',LS].forEach(k=>localStorage.removeItem(k));}catch(e){}
+    clearTimeout(timer);timer=0;acct=null;lastSent='';status='';notify();
+    try{location.reload();}catch(e){}
+    return true;
+  }
   function attach(h){hooks=h;if(acct)pull(false);notify();}
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&timer)push(true);});
   window.addEventListener('pagehide',()=>{if(timer)push(true);});
@@ -3332,41 +3343,41 @@ window.TrillionCloud=(()=>{
     const run=async(f)=>{if(busy)return;busy=true;b.querySelectorAll('button').forEach(x=>x.disabled=true);try{await f();}catch(e){msg='Could not reach the server. Check your connection.';}busy=false;render();};
     if(justMade){
       b.append(el('h2',{text:'WELCOME, '+acct.u.toUpperCase()}),
-        el('p',{text:'Your progress now saves to the cloud automatically. This is your recovery code:'}),
-        el('div',{class:'code',text:justMade}),
-        el('p',{class:'err',text:'Write it down or screenshot it now. It is the only way to get your progress back on a new device or after clearing this browser. Anyone with it can load your game, so don’t share it.'}));
-      const copy=btn('COPY CODE',async()=>{try{await navigator.clipboard.writeText(justMade);copy.textContent='COPIED';}catch(e){copy.textContent='SELECT & COPY IT';}});
-      b.append(el('div',{class:'row'},copy,btn('I SAVED IT',close,'main')));return;
+        el('p',{text:'Your progress now saves to the cloud automatically. To play on another device, sign in with your name and password.'}),
+        el('p',{class:'dim',text:'There is no email on file, so remember your password.'}));
+      b.append(el('div',{class:'row'},btn('LET’S PLAY',close,'main')));return;
     }
     if(acct){
       b.append(el('h2',{text:'☁ '+acct.u.toUpperCase()}),say(status||'Signed in. Progress saves automatically.',/offline|wrong|could not/i.test(status)?'err':'ok'),say(msg,'err'));
-      if(mode==='code'){
-        b.append(el('p',{text:'Your recovery code:'}),el('div',{class:'code',text:acct.c}),el('p',{class:'dim',text:'Use it with your name to sign in on another device.'}));
-      }
       const row=el('div',{class:'row'});
       row.append(btn('SAVE NOW',()=>run(async()=>{lastSent='';await push(false);msg='';})),
-        btn(mode==='code'?'HIDE CODE':'SHOW RECOVERY CODE',()=>{mode=mode==='code'?'':'code';render();}),
-        btn('SIGN OUT',()=>{if(mode!=='out'){mode='out';render();}else{signOut();close();}}),
+        btn(mode==='outfail'?'SIGN OUT ANYWAY':'SIGN OUT',()=>{
+          if(mode!=='out'&&mode!=='outfail'){mode='out';render();return;}
+          run(async()=>{const forced=mode==='outfail';const ok=await signOut(forced);if(ok){close();}else{mode='outfail';msg='';}});
+        }),
         btn('CLOSE',close));
-      if(mode==='out')b.append(el('p',{class:'err',text:'Sign out of this device? Your cloud save stays safe; you will need your name and recovery code to sign back in. Press SIGN OUT again to confirm.'}));
+      if(mode==='out')b.append(el('p',{class:'err',text:'Sign out of this device? Your progress is saved to the cloud first, then the islands on this device are cleared. You will need your name and password to sign back in. Press SIGN OUT again to confirm.'}));
+      if(mode==='outfail')b.append(el('p',{class:'err',text:'Could not save to the cloud right now. If you sign out anyway, progress since your last save will be lost. Check your connection and try again, or press SIGN OUT ANYWAY.'}));
       b.append(row);return;
     }
     const name=el('input',{type:'text',maxlength:'20',autocomplete:'off',spellcheck:'false',placeholder:'3-20 letters or numbers'});
-    const code=el('input',{type:'text',autocomplete:'off',spellcheck:'false',placeholder:'XXXXXX-XXXXXX-XXXXXX'});
+    const code=el('input',{type:'password',autocomplete:'off',spellcheck:'false',placeholder:'your password'});
     name.value=vName;code.value=vCode;name.addEventListener('input',()=>{vName=name.value;});code.addEventListener('input',()=>{vCode=code.value;});
+    const showPw=btn('SHOW',()=>{const h=code.type==='password';code.type=h?'text':'password';showPw.textContent=h?'HIDE':'SHOW';});
     if(mode==='in'){
-      b.append(el('h2',{text:'SIGN IN'}),el('p',{text:'Enter your name and recovery code. This replaces the progress on this device with your cloud save.'}),say(msg,'err'),
-        el('label',{text:'PLAYER NAME'}),name,el('label',{text:'RECOVERY CODE'}),code,
+      b.append(el('h2',{text:'SIGN IN'}),el('p',{text:'Enter your name and password. This replaces the progress on this device with your cloud save.'}),say(msg,'err'),
+        el('label',{text:'PLAYER NAME'}),name,el('label',{text:'PASSWORD'}),code,
         el('div',{class:'row'},btn('SIGN IN',()=>run(async()=>{
-          if(name.value.trim().length<3||code.value.trim().length<10){msg='Enter both your name and your recovery code.';return;}
-          const r=await signIn(name.value,code.value);msg=r.ok?'':r.error;if(r.ok){mode='';}
-        }),'main'),btn('BACK',()=>{mode='';msg='';render();})));
+          if(name.value.trim().length<3||!code.value){msg='Enter both your name and your password.';return;}
+          const r=await signIn(name.value,code.value);msg=r.ok?'':r.error;if(r.ok){mode='';vCode='';}
+        }),'main'),showPw,btn('BACK',()=>{mode='';msg='';render();})));
     }else{
-      b.append(el('h2',{text:'PLAYER ACCOUNT'}),el('p',{text:'Pick a name and your progress is saved in the cloud, so you can play from any device. No password and no email. You get a recovery code instead.'}),
-        say(msg,'err'),el('label',{text:'CHOOSE A PLAYER NAME'}),name,
+      b.append(el('h2',{text:'PLAYER ACCOUNT'}),el('p',{text:'Pick a name and a password and your progress is saved in the cloud, so you can play from any device. Any password you like, 4 characters or more. No email needed.'}),
+        say(msg,'err'),el('label',{text:'CHOOSE A PLAYER NAME'}),name,el('label',{text:'CHOOSE A PASSWORD'}),code,
         el('div',{class:'row'},btn('CREATE PLAYER',()=>run(async()=>{
-          const r=await createPlayer(name.value);msg=r.ok?'':r.error;if(r.ok)justMade=r.code;
-        }),'main'),btn('I HAVE A CODE',()=>{mode='in';msg='';render();}),btn('CLOSE',close)));
+          if(code.value.length<4){msg='Pick a password with at least 4 characters.';return;}
+          const r=await createPlayer(name.value,code.value);msg=r.ok?'':r.error;if(r.ok){justMade=true;vCode='';}
+        }),'main'),showPw,btn('I HAVE AN ACCOUNT',()=>{mode='in';msg='';render();}),btn('CLOSE',close)));
     }
     setTimeout(()=>{const f=b.querySelector('input');if(f&&document.activeElement!==f)f.focus();},0);
   }
@@ -3717,7 +3728,7 @@ window.TrillionCloud=(()=>{
   const _origStartGame=startGame;
   startGame=async function(fresh=true){
     hideFortune();
-    if(fresh&&!alohaIntroSeen)await showAlohaIntro();
+    if(fresh)await showAlohaIntro(); // TEMP: show intro every new game (was: only if !alohaIntroSeen)
     _origStartGame(fresh);
   };
   document.querySelector('#start-game').addEventListener('click',()=>startGame());
