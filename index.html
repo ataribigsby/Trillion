@@ -406,8 +406,8 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
 #aloha-gift strong{display:block;font-size:20px;line-height:1.35;color:#784589;margin-bottom:9px;}
 #aloha-gift .gift-invitation{display:block;margin-top:13px;font-weight:750;color:#116b6a;}
 #aloha-gift .gift-sparkle{position:absolute;left:var(--sx);top:var(--sy);width:10px;height:10px;background:var(--spark);clip-path:polygon(50% 0,62% 37%,100% 50%,62% 63%,50% 100%,38% 63%,0 50%,38% 37%);opacity:0;animation:giftSpark 3.4s var(--delay) ease-out infinite;pointer-events:none;}
-#aloha-gift.gift-arriving{animation:giftIn .6s ease-out;}
-@keyframes giftIn{from{opacity:0;transform:translateX(-50%) translateY(12px) scale(.96);}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}}
+#aloha-gift.gift-arriving{animation:giftIn .9s cubic-bezier(.3,.7,.4,1);}
+@keyframes giftIn{0%{opacity:0;transform:translateX(-50%) scale(.55);}32%{opacity:1;transform:translateX(-50%) scale(1.22);}55%{transform:translateX(-50%) scale(.9);}75%{transform:translateX(-50%) scale(1.06);}90%{transform:translateX(-50%) scale(.98);}100%{opacity:1;transform:translateX(-50%) scale(1);}}
 @keyframes giftSpark{0%{opacity:0;transform:translate(0,0) scale(.35) rotate(0deg)}15%{opacity:1}75%{opacity:.8}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3) rotate(130deg)}}
 @media(prefers-reduced-motion:reduce){#aloha-gift.gift-arriving{animation:none}#aloha-gift .gift-sparkle{animation:none;opacity:.6;transform:scale(.65)}}
 #aloha .aloha-care { position:absolute;left:20px;top:100px;width:225px;padding:18px;box-sizing:border-box;background:rgba(7,23,37,.92);border:1px solid #54898f;border-radius:12px;color:#e2f5e9;font:14px/1.5 Arial,sans-serif;pointer-events:auto;box-shadow:0 8px 24px #0006; }
@@ -418,6 +418,8 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
 .aloha-shop-list { display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:280px;overflow-y:auto; }
 .aloha-shop-list button { font-size:11px;padding:6px 10px; }
 @media(max-width:760px){#aloha .aloha-care{top:85px;left:10px;width:175px;padding:10px;font-size:12px;}#aloha .aloha-care p{font-size:11px;}#aloha .aloha-top{right:10px;gap:4px;}}
+body.touch-ui #aloha-gift{bottom:auto;top:max(12px,env(safe-area-inset-top));padding:16px 18px;font-size:14px;line-height:1.45;z-index:45}
+body.touch-ui #aloha-gift strong{font-size:17px}
 </style>
 <style id="touch-aloha-css">
 .aloha-touch-btn,.aloha-chips{display:none}
@@ -4376,7 +4378,7 @@ window.TrillionCloud=(()=>{
         const message=document.createElement('span');message.textContent=gift.msg;
         toast.replaceChildren(heading,message);
         if(gift.id!=='island'){
-          const invitation=document.createElement('span');invitation.className='gift-invitation';invitation.textContent='Press 7 to go to Aloha.';toast.append(invitation);
+          const invitation=document.createElement('span');invitation.className='gift-invitation';invitation.textContent=document.body.classList.contains('touch-ui')?'Tap the palm tree to visit Aloha.':'Press 7 to go to Aloha.';toast.append(invitation);
         }
         for(let i=0;i<24;i++){
           const sparkle=document.createElement('i');sparkle.className='gift-sparkle';sparkle.setAttribute('aria-hidden','true');
@@ -4669,6 +4671,9 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-10-22f',date:'Oct 22, 2026',title:'Award pop-up',items:[
+      'On phones the award message now appears over the top of the screen instead of covering the controls, and it never blocks taps. It pops in close, settles back a little, then steadies with a quick bounce.'
+    ]},
     {id:'2026-10-22e',date:'Oct 22, 2026',title:'Touch controls (portrait)',items:[
       'On phones and tablets the side panels are gone. Two glowing spheres sit at the bottom: the left one turns your block (drag), slides it across the top (tap to switch, it glows amber) and drops it when held. The right one tips the cube when dragged and spins it when tapped.',
       'Rolling now follows which side of the block faces you, so tipping the block toward you or away does it with no double tap.',
