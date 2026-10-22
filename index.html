@@ -109,6 +109,13 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
 #aloha-intro .intro-text { max-width:520px;padding:32px;text-align:center;font:16px/2 'Courier New',monospace;color:#33ff33;text-shadow:0 0 8px #33ff3366,0 0 20px #33ff3322;letter-spacing:.5px; }
 #aloha-intro .intro-dismiss { margin-top:20px;display:inline-block;font:bold 11px/1 'Courier New',monospace;color:#33ff33;border:1px solid #33ff3355;background:transparent;padding:8px 18px;cursor:pointer;letter-spacing:2px;opacity:.6;transition:opacity .2s; }
 #aloha-intro .intro-dismiss:hover { opacity:1; }
+/* Guided opening banner */
+#guide-hint { position:fixed;left:50%;bottom:172px;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:12px;width:max-content;max-width:min(560px,calc(100vw - 24px));box-sizing:border-box;padding:10px 14px;border:1px solid #7fe3a8;border-radius:6px;background:#0b1a14f2;color:#d9ffe8;font:bold 14px/1.4 'Courier New',monospace;letter-spacing:.02em;box-shadow:0 6px 24px #000a,0 0 18px #33ff3322;pointer-events:none; }
+#guide-hint[hidden] { display:none; }
+#guide-hint .guide-step { flex:0 0 auto;color:#33ff33;font-size:18px;text-shadow:0 0 8px #33ff3399; }
+#guide-hint .guide-skip { flex:0 0 auto;pointer-events:auto;cursor:pointer;font:bold 10px/1 'Courier New',monospace;letter-spacing:1px;color:#9fd9b5;background:transparent;border:1px solid #7fe3a888;border-radius:4px;padding:6px 8px; }
+#guide-hint .guide-skip:hover,#guide-hint .guide-skip:focus-visible { color:#fff;border-color:#7fe3a8; }
+@media(max-width:700px) { #guide-hint { bottom:150px;font-size:12px;padding:8px 10px; } }
 /* Update log — title screen */
 #log-open { position:fixed;right:20px;top:20px;z-index:12;display:inline-flex;align-items:center;gap:8px;font:bold 11px/1 'Courier New',monospace;letter-spacing:2px;color:#33ff33;background:#06120acc;border:1px solid #33ff3366;padding:10px 14px;cursor:pointer;text-shadow:0 0 8px #33ff3355;box-shadow:0 4px 14px #0008;transition:border-color .2s,transform .2s; }
 #log-open:hover,#log-open:focus-visible { border-color:#33ff33;transform:translateY(-1px); }
@@ -507,6 +514,7 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
     <button id="play-again" class="start-button" autofocus>TRY AGAIN <span aria-hidden="true">▶</span></button>
     <button id="game-over-title-button">Back to title</button>
   </dialog>
+  <div id="guide-hint" role="status" hidden><span class="guide-step"></span><span class="guide-text"></span><button type="button" class="guide-skip">SKIP · ESC</button></div>
   <div id="aloha" aria-hidden="true"><canvas id="aloha-sky"></canvas><canvas id="aloha-planet"></canvas><p class="aloha-caption"><b>ALOHA</b>PRESS 7 TO RETURN</p></div>
   <p id="aloha-gift" role="status" hidden></p>
   <div id="aloha-fade" aria-hidden="true"></div>
@@ -1596,7 +1604,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       }
       if(this.playerCount===2&&this.turnMoves>=5){this.handoff=true;this.softDrop=false;return;}
       if(!this.tutorial&&!this.active?.kind&&!this.tutorialRefund&&this.tutorialQueue.length)this.tutorial=this.tutorialQueue.shift();
-      if(this.handoff||this.tutorial||this.awaitingStart)return;
+      if(this.handoff||this.tutorial||this.awaitingStart||this.guideHold)return;
       const floor=this.landingLevel()*this.cell;
       // From level 10 on, pieces hover in place and only fall while Space is held.
       const speed=this.manualDrop?(this.softDrop?SOFT_DROP_MULTIPLIER:0):(this.softDrop?SOFT_DROP_MULTIPLIER:1);
@@ -3707,13 +3715,99 @@ window.TrillionCloud=(()=>{
   },true);
   window.addEventListener('keyup',event=>{if(event.target.closest?.('#acct-overlay,#log-overlay'))return;if(alohaOpen||alohaBusy){event.stopImmediatePropagation();if(alohaOpen)aloha.keyup(event);}},true);
 
-  document.querySelector('#restart').addEventListener('click',()=>{updateHighScore();game.reset();setPaused(false);canvas.focus();});
+  document.querySelector('#restart').addEventListener('click',()=>{guide.end('restart');updateHighScore();game.reset();setPaused(false);canvas.focus();});
+  // ---- Guided opening ----
+  // Walks a new player through the classic first chain: 1-block in the corner, tip left twice, 2-block up the left edge,
+  // tip right once, 3-block across the middle. Tips wait for the player; any step off the script ends the guide.
+  const GUIDE_EVERY_TIME=true; // TEMP: show on every new game (set false to show once per browser)
+  const GUIDE_KEY='trillion-guide-v1';
+  const guide=(()=>{
+    const hint=document.querySelector('#guide-hint'),stepEl=hint.querySelector('.guide-step'),textEl=hint.querySelector('.guide-text');
+    const piece=(cells,x,z)=>({type:'GUIDE',solid:false,upright:false,rotation:0,roll:0,height:0,cells,x,z});
+    const STEPS=[
+      {kind:'place',mark:'①',text:'Slide the 1-block into the glowing corner (A / S), then press Space to begin and hold it to drop.',piece:piece([[0,0]],0,2)},
+      {kind:'tip',mark:'②',text:'Tip the cube LEFT with the ← key.',axis:'z',d:1,count:2,arrow:'left'},
+      {kind:'place',mark:'③',text:'Turn the 2-block (Q or E), slide it into the glow (W A S D), then hold Space to drop.',piece:piece([[0,0],[0,1]],0,0)},
+      {kind:'tip',mark:'④',text:'Now tip the cube RIGHT with the → key.',axis:'z',d:-1,count:1,arrow:'right'},
+      {kind:'place',mark:'⑤',text:'Hold Space to drop the 3-block across the glowing middle.',piece:piece([[0,0],[1,0],[2,0]],0,1)}
+    ];
+    const keyOf=list=>list.map(t=>`${t.face}:${t.x}:${t.z}:${t.y||0}`).sort().join('|');
+    const g={active:false,i:0,tips:0,targets:null,key:'',arrow:null,ticking:false,
+      step(){return STEPS[g.i];},
+      seen(){try{return !!localStorage.getItem(GUIDE_KEY);}catch(e){return false;}},
+      begin(){
+        g.end(null,true);
+        if(game.level!==1||game.chapterOffset||game.playerCount!==1||game.active?.type!=='SINGLE')return;
+        if(!GUIDE_EVERY_TIME&&g.seen())return;
+        g.active=true;g.i=0;g.enter();
+      },
+      enter(){
+        const st=STEPS[g.i];
+        if(!st){g.end('done');return;}
+        g.tips=0;g.targets=null;g.key='';g.arrow=null;game.guideHold=false;
+        if(st.kind==='place'){g.targets=game.targets(st.piece);g.key=keyOf(g.targets);}
+        else{g.arrow=st.arrow;game.guideHold=true;}
+        g.show();
+      },
+      show(){
+        const st=STEPS[g.i];if(!st)return;
+        stepEl.textContent=st.mark;
+        textEl.textContent=st.kind==='tip'&&st.count>1?`${st.text} (${Math.min(g.tips+1,st.count)} of ${st.count})`:st.text;
+        hint.hidden=false;
+      },
+      // Called every frame: a tip step is finished once its turns have fully played out.
+      update(){
+        if(!g.active)return;
+        const st=STEPS[g.i];
+        if(st.kind==='tip'){
+          game.guideHold=true;
+          if(g.tips>=st.count&&!game.turn&&!game.turnQueue.length){g.i++;g.enter();}
+          else g.show();
+        }
+        hint.hidden=onTitle;
+      },
+      onTip(axis,direction){
+        const st=STEPS[g.i];
+        if(st.kind==='tip'&&axis===st.axis&&direction===st.d&&g.tips<st.count)g.tips++;
+        else g.end('off-script');
+      },
+      onLand(key){
+        const st=STEPS[g.i];
+        if(st.kind==='place'&&key===g.key){g.i++;g.enter();}
+        else g.end('off-script');
+      },
+      end(reason,quiet){
+        if(g.active&&reason==='done'){try{localStorage.setItem(GUIDE_KEY,'1');}catch(e){}}
+        g.active=false;g.targets=null;g.arrow=null;g.key='';game.guideHold=false;hint.hidden=true;
+      }
+    };
+    // Watch the player's moves without changing how the game plays.
+    const baseTick=game.tick.bind(game),baseRotate=game.rotateCube.bind(game),baseLand=game.land.bind(game);
+    game.tick=dt=>{g.ticking=true;try{baseTick(dt);}finally{g.ticking=false;}};
+    game.rotateCube=(axis,direction)=>{
+      if(g.active&&!g.ticking){
+        const blocked=game.handoff||game.tutorial||game.paused||game.gameOver||game.growth||game.celebration||game.resolution;
+        if(!blocked)g.onTip(axis,direction);
+      }
+      return baseRotate(axis,direction);
+    };
+    game.land=()=>{
+      const key=g.active&&game.active&&!game.active.kind?keyOf(game.placementTargets()):'';
+      const ok=baseLand();
+      if(ok&&g.active)g.onLand(key);
+      return ok;
+    };
+    hint.querySelector('.guide-skip').addEventListener('click',()=>{g.end('skipped');canvas.focus();});
+    window.addEventListener('keydown',e=>{if(g.active&&!onTitle&&e.key==='Escape'){g.end('skipped');}},true);
+    return g;
+  })();
   function startGame(fresh=true) {
     if(gameOverDialog.open)gameOverDialog.close();
     music.start();
     updateHighScore();
     if(fresh){refreshChapterChoices();game.startLevel=selectedChapter;game.playerCount=Number(document.querySelector('input[name=players]:checked').value);game.reset();alohaCoin=0;lastAlohaScore=0;}
     onTitle=false;started=true;statGameStart(fresh);
+    if(fresh)guide.begin();
     titleScreen.hidden=true;gameScreen.inert=false;gameScreen.removeAttribute('aria-hidden');
     document.body.classList.remove('at-title');
     setPaused(false);canvas.focus();
@@ -3756,7 +3850,7 @@ window.TrillionCloud=(()=>{
   function showTitle() {
     refreshChapterChoices();
     if(gameOverDialog.open)gameOverDialog.close();
-    onTitle=true;endDrag();setPaused(true);updateHighScore();
+    onTitle=true;endDrag();setPaused(true);updateHighScore();guide.end('title');
     titleScreen.hidden=false;document.body.classList.add('at-title');
     if(Date.now()<fortuneExpiry)fortuneCookie.hidden=false;
     document.querySelector('#continue-game').hidden=!started||game.gameOver;
@@ -3879,7 +3973,7 @@ window.TrillionCloud=(()=>{
   function render(time) {
     const dt=previous===undefined?0:Math.min((time-previous)/1000,.05); previous=time;
     if(onTitle){requestAnimationFrame(render);return;}
-    game.tick(dt);updateHighScore();
+    game.tick(dt);guide.update();updateHighScore();
     // Aloha Items are earned silently as the score passes 10, 30, 60, 100 and 150 in a run.
     if(game.score<lastAlohaScore){alohaCoin=0;}
     lastAlohaScore=game.score;
@@ -4107,6 +4201,35 @@ window.TrillionCloud=(()=>{
         glowPatch(c.x,c.z,CELL*.465,c.topY+.006,mix(landFx.base,[1,1,1],fade*.5));
       }
     }
+    // Guided opening: glowing destination cells on the cube, and a floating arrow when it is time to tip.
+    if(guide.active&&!game.growth&&!game.celebration&&!game.resolution){
+      const gp=reducedMotion.matches?.5:(.5+.5*Math.sin(powerTime*5.4));
+      if(guide.targets&&!game.turn){
+        for(const t of guide.targets){
+          const u=-1+(t.x+.5)*CELL,v=-1+(t.z+.5)*CELL;
+          patch(FACES[t.face],u,v,CELL*.5,1.006,mix([.55,.42,.1],[1,.9,.4],gp),m);
+          patch(FACES[t.face],u,v,CELL*.36,1.009,mix([.9,.75,.25],[1,1,.85],gp),m);
+          wireBox(game.surfacePoint(t.face,t.x,t.z,.5),CELL*.5,mix([1,.8,.3],[1,1,1],gp),m);
+        }
+      }
+      if(guide.arrow&&!game.turn){
+        const dir=guide.arrow==='left'?-1:1,bob=reducedMotion.matches?0:Math.sin(powerTime*3.2)*.08,slide=reducedMotion.matches?0:Math.sin(powerTime*4.4)*.12;
+        const y=1.95+bob,col=mix([.6,.45,.08],[1,.95,.5],gp),K=1.4;
+        const P=(a,b,yy)=>[dir*a*K+dir*slide,yy,b*K];
+        const outline=[[-.5,-.14],[.1,-.14],[.1,-.36],[.62,0],[.1,.36],[.1,.14],[-.5,.14]];
+        const shaft=[[-.5,-.14],[.1,-.14],[.1,.14],[-.5,.14]],head=[[.1,-.36],[.62,0],[.1,.36]];
+        // Soft shadow on the top face so the arrow reads as floating.
+        const sy=1.012;
+        quad(shaft.map(([a,b])=>[dir*a*K*.9,sy,b*K*.9]),[0,1,0],[.05,.08,.12],unit);
+        quad([...head,head[2]].map(([a,b])=>[dir*a*K*.9,sy,b*K*.9]),[0,1,0],[.05,.08,.12],unit);
+        quad(shaft.map(([a,b])=>P(a,b,y)),[0,1,0],col,unit);
+        quad([...head,head[2]].map(([a,b])=>P(a,b,y)),[0,1,0],col,unit);
+        for(let i=0;i<outline.length;i++){
+          const a=outline[i],b=outline[(i+1)%outline.length];
+          outlines.push(...P(a[0],a[1],y),0,1,0,1,1,1,...P(b[0],b[1],y),0,1,0,1,1,1);
+        }
+      }
+    }
     const targetDistance=8.5+Math.max(0,extent-2.8)*3+Math.max(0,pieceExtent-3.4)*2.2;
     cameraDistance+=(targetDistance-cameraDistance)*Math.min(1,dt*5);
     const viewBlend=1-Math.exp(-dt*14);
@@ -4161,6 +4284,11 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-10-21c',date:'Oct 21, 2026',title:'Guided first chain',items:[
+      'New games now start with a short guided opening. Glowing squares show where to place your first three blocks, and flashing arrows show when to tip the cube.',
+      'The game waits for you at each tip. Skip it any time with Esc, or just play your own way and the guide steps aside.',
+      'Follow it to the end and your first chain takes you straight to Level 2.'
+    ]},
     {id:'2026-10-21b',date:'Oct 21, 2026',title:'Player accounts & a fresh start',items:[
       'Pick your own password when you create a player. No more recovery codes to copy and paste.',
       'Signing out now saves your progress to the cloud, then clears the islands on this device so the next player starts fresh.',
