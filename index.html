@@ -697,14 +697,15 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
     }
     awardChime(){
       const c=this.context;if(!c||c.state!=='running'||!this.enabled||this.hidden||this.volume===0)return;
-      // One gentle struck bell: quiet inharmonic overtones and a long, soft decay.
-      const time=c.currentTime+.012;
-      for(const [ratio,peak,decay] of [[1,.13,5.8],[2.756,.037,3.5],[5.404,.012,1.9],[8.93,.003,1.1]]){
-        const oscillator=c.createOscillator(),envelope=c.createGain();oscillator.type='sine';oscillator.frequency.value=523.25*ratio;
-        envelope.gain.setValueAtTime(0,time);envelope.gain.linearRampToValueAtTime(peak,time+.012);
-        envelope.gain.exponentialRampToValueAtTime(.00001,time+decay);envelope.gain.linearRampToValueAtTime(0,time+decay+.05);
+      // Singing bowl tuned to D (the key of the score): a soft swell, a slow beat from two
+      // slightly detuned fundamentals, quiet bowl overtones, and a long fade into the reverb.
+      const time=c.currentTime+.012,root=293.66;
+      for(const [ratio,peak,decay,attack] of [[1,.10,7.5,.45],[1.007,.09,7,.5],[2,.04,5.2,.35],[2.71,.014,3.4,.3],[5.15,.004,2,.25]]){
+        const oscillator=c.createOscillator(),envelope=c.createGain();oscillator.type='sine';oscillator.frequency.value=root*ratio;
+        envelope.gain.setValueAtTime(0,time);envelope.gain.linearRampToValueAtTime(peak,time+attack);
+        envelope.gain.exponentialRampToValueAtTime(.00001,time+attack+decay);envelope.gain.linearRampToValueAtTime(0,time+attack+decay+.05);
         oscillator.connect(envelope);envelope.connect(this.input);
-        oscillator.onended=()=>{oscillator.disconnect();envelope.disconnect();};oscillator.start(time);oscillator.stop(time+decay+.06);
+        oscillator.onended=()=>{oscillator.disconnect();envelope.disconnect();};oscillator.start(time);oscillator.stop(time+attack+decay+.06);
       }
     }
     chipVoice(event){
@@ -4299,6 +4300,9 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-10-22b',date:'Oct 22, 2026',title:'A gentler award sound',items:[
+      'The award chime is now a soft singing bowl, tuned to the key of the music. It swells in and slowly fades out.'
+    ]},
     {id:'2026-10-22a',date:'Oct 22, 2026',title:'A new look for the title screen',items:[
       'Wood grain now runs edge to edge, with the dark green showing above and below.',
       'A polished chrome bezel frames the title panel.',
