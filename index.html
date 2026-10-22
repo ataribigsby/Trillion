@@ -3,9 +3,6 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
   <title>Trillion</title>
   <style>
 :root { color-scheme:dark; font-family:ui-sans-serif,system-ui,sans-serif; }
@@ -95,7 +92,7 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
 #fortune-cookie .cookie-half svg { width:100%;height:100%; }
 #fortune-cookie.cracked .cookie-left { transform:rotate(-22deg) translate(-14px,6px); transition:transform .5s cubic-bezier(.34,1.56,.64,1); }
 #fortune-cookie.cracked .cookie-right { transform:rotate(18deg) translate(10px,4px); transition:transform .5s cubic-bezier(.34,1.56,.64,1); }
-#fortune-cookie .cookie-label { font:900 18px/1.1 'Orbitron',ui-sans-serif,system-ui,sans-serif;color:#f0d68a;letter-spacing:3px;text-transform:uppercase;text-shadow:0 2px 6px #000,0 0 18px #c4943a77,0 0 40px #f0d68a33;animation:cookiePulse 2s ease-in-out infinite;white-space:nowrap; }
+#fortune-cookie .cookie-label { font:700 11px/1 'Courier New',monospace;color:#f0d68a;letter-spacing:2px;text-transform:uppercase;text-shadow:0 1px 4px #000,0 0 12px #c4943a55;animation:cookiePulse 2s ease-in-out infinite; }
 @keyframes cookiePulse { 0%,100% { opacity:.75; } 50% { opacity:1;text-shadow:0 1px 4px #000,0 0 18px #f0d68a88; } }
 #fortune-cookie .fortune-slip { display:none;position:absolute;bottom:90px;left:50%;transform:translateX(-50%);min-width:200px;max-width:260px;padding:14px 18px;background:linear-gradient(135deg,#fef9e7,#f5e6c0);color:#5a2d0c;font:bold 13px/1.6 'Courier New',monospace;border-radius:4px;box-shadow:0 6px 24px #00000077,inset 0 1px 0 #fff8;text-align:center;animation:fortuneReveal .6s cubic-bezier(.34,1.56,.64,1) forwards; }
 #fortune-cookie.cracked .fortune-slip { display:block; }
@@ -115,7 +112,7 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
 @media(max-width:650px) {
   #fortune-cookie { left:10px;bottom:10px; }
   #fortune-cookie .cookie-art { width:90px;height:62px; }
-  #fortune-cookie .cookie-label { font-size:13px;letter-spacing:2px; }
+  #fortune-cookie .cookie-label { font-size:9px;letter-spacing:1px; }
   #fortune-cookie .fortune-slip { min-width:160px;font-size:11px;bottom:64px; }
   #aloha-intro .intro-text { font-size:13px;padding:20px; }
 }
@@ -369,8 +366,15 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
 #aloha .aloha-slot .item-name { display:block;font:600 11px/1.2 system-ui,sans-serif;color:#e3f2ff;padding:2px 4px; }
 #aloha .aloha-slot .count { top:3px;bottom:auto; }
 #aloha .aloha-bar-label { display:none; }#aloha .aloha-hint { bottom:140px; }
-#aloha-gift {position:fixed;bottom:65px;left:50%;transform:translateX(-50%);z-index:15;max-width:85vw;padding:14px 24px;border:1px solid #8cd8c4;border-radius:10px;background:#102a32ee;color:#dfffee;font:600 14px/1.6 system-ui,sans-serif;text-align:center;pointer-events:none;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:giftIn .4s ease-out;}
-@keyframes giftIn{from{opacity:0;transform:translateX(-50%) translateY(12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+#aloha-gift {position:fixed;bottom:60px;left:50%;transform:translateX(-50%);z-index:45;width:min(440px,calc(100vw - 48px));box-sizing:border-box;padding:22px 28px;border:2px solid #fff4a5;border-radius:18px;background:linear-gradient(125deg,#fff4bd 0%,#ffe0f2 52%,#cef9ef 100%);color:#253554;font:500 16px/1.6 system-ui,sans-serif;text-align:center;pointer-events:none;box-shadow:0 0 28px #ffcf7770,0 0 65px #e78aff45,0 12px 32px #0007;isolation:isolate;}
+#aloha-gift[hidden],.at-title #aloha-gift{display:none}
+#aloha-gift strong{display:block;font-size:20px;line-height:1.35;color:#784589;margin-bottom:9px;}
+#aloha-gift .gift-invitation{display:block;margin-top:13px;font-weight:750;color:#116b6a;}
+#aloha-gift .gift-sparkle{position:absolute;left:var(--sx);top:var(--sy);width:10px;height:10px;background:var(--spark);clip-path:polygon(50% 0,62% 37%,100% 50%,62% 63%,50% 100%,38% 63%,0 50%,38% 37%);opacity:0;animation:giftSpark 3.4s var(--delay) ease-out infinite;pointer-events:none;}
+#aloha-gift.gift-arriving{animation:giftIn .6s ease-out;}
+@keyframes giftIn{from{opacity:0;transform:translateX(-50%) translateY(12px) scale(.96);}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}}
+@keyframes giftSpark{0%{opacity:0;transform:translate(0,0) scale(.35) rotate(0deg)}15%{opacity:1}75%{opacity:.8}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3) rotate(130deg)}}
+@media(prefers-reduced-motion:reduce){#aloha-gift.gift-arriving{animation:none}#aloha-gift .gift-sparkle{animation:none;opacity:.6;transform:scale(.65)}}
 #aloha .aloha-care { position:absolute;left:20px;top:100px;width:225px;padding:18px;box-sizing:border-box;background:rgba(7,23,37,.92);border:1px solid #54898f;border-radius:12px;color:#e2f5e9;font:14px/1.5 Arial,sans-serif;pointer-events:auto;box-shadow:0 8px 24px #0006; }
 #aloha .aloha-care strong { display:block;color:#91edc1;letter-spacing:2px;font-size:12px;margin-bottom:12px; }
 #aloha .aloha-care p { color:#a9c8d4;font-size:13px;margin:12px 0 0; }
@@ -497,7 +501,7 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
     <span class="cookie-label">☞ click for fortune</span>
     <div class="fortune-slip">✨ ALOHA is now OPEN ✨</div>
   </div>
-  <div id="aloha-intro" hidden><div class="intro-text">The present moment is constantly expiring and being created<br>(or is it?)<br><br>Hello and Goodbye.<br><br><strong>Aloha.</strong><br><br>Press 7 to seek Aloha.<button class="intro-dismiss">CONTINUE</button></div></div>
+  <div id="aloha-intro" hidden><div class="intro-text">The present moment is constantly expiring and being created<br>(or is it?)<br><br>Hello and Goodbye.<br><br><strong>Aloha.</strong><br><br><button class="intro-dismiss">CONTINUE</button></div></div>
   <script>
 (function(root) {
   'use strict';
@@ -585,6 +589,18 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
         volume:typeof value?.volume==='number'&&Number.isFinite(value.volume)?Math.max(0,Math.min(1,value.volume)):.45};
     } catch {return {enabled:true,volume:.45};}
   }
+  // Each award gets its full reading time; obscured or background screens do not consume it.
+  class AwardQueue {
+    constructor(){this.current=null;this.elapsed=0;this.gap=0;}
+    update(queue,dt,visible=true){
+      if(!visible)return null;
+      const step=Math.max(0,Math.min(.1,dt||0));
+      if(this.current){this.elapsed+=step;if(this.elapsed>=(this.current.id==='island'?8:18)){this.current=null;this.gap=.7;}return null;}
+      if(this.gap>0){this.gap=Math.max(0,this.gap-step);return null;}
+      if(!queue.length)return null;
+      this.current=queue.shift();this.elapsed=0;return this.current;
+    }
+  }
   class AmbientMusic {
     constructor({storage,onChange=()=>{}}={}) {
       Object.assign(this,preferences(storage));this.storage=storage;this.onChange=onChange;
@@ -637,6 +653,18 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
         oscillator.connect(envelope);envelope.connect(panner);
         oscillator.onended=()=>{oscillator.disconnect();envelope.disconnect();if(--remaining===0)panner.disconnect();};
         oscillator.start(time);oscillator.stop(end+.02);
+      }
+    }
+    awardChime(){
+      const c=this.context;if(!c||c.state!=='running'||!this.enabled||this.hidden||this.volume===0)return;
+      // One gentle struck bell: quiet inharmonic overtones and a long, soft decay.
+      const time=c.currentTime+.012;
+      for(const [ratio,peak,decay] of [[1,.13,5.8],[2.756,.037,3.5],[5.404,.012,1.9],[8.93,.003,1.1]]){
+        const oscillator=c.createOscillator(),envelope=c.createGain();oscillator.type='sine';oscillator.frequency.value=523.25*ratio;
+        envelope.gain.setValueAtTime(0,time);envelope.gain.linearRampToValueAtTime(peak,time+.012);
+        envelope.gain.exponentialRampToValueAtTime(.00001,time+decay);envelope.gain.linearRampToValueAtTime(0,time+decay+.05);
+        oscillator.connect(envelope);envelope.connect(this.input);
+        oscillator.onended=()=>{oscillator.disconnect();envelope.disconnect();};oscillator.start(time);oscillator.stop(time+decay+.06);
       }
     }
     chipVoice(event){
@@ -704,7 +732,7 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
     }
     setHidden(hidden) {this.hidden=hidden;if(hidden)this.quiet(true);else if(this.started&&this.enabled)this.activate();}
   }
-  const api={AmbientMusic,phrase,fanfare,preferences,BEAT};
+  const api={AmbientMusic,AwardQueue,phrase,fanfare,preferences,BEAT};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.TrillionMusic=api;
 })(globalThis);
 
@@ -1094,6 +1122,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     }
     applyTerrainTwist(twist){const p=this.planTerrainTwist(twist);this.boards=p.boards;this.tiles=p.tiles;}
     shape(type){if(INTRO_SHAPES[type])return INTRO_SHAPES[type];if(SOLIDS[type])return SOLIDS[type];return type==='I'&&this.size===3?SHAPES.I.slice(0,3):SHAPES[type];}
+    get progressionScore(){return this.score+(this.chapterOffset||0);}
     get manualDrop(){return this.progression&&!!LEVELS[this.level-1].manualDrop;}
     get fullCube(){return this.live.every(Boolean);}
     activeFaces(){return FACES.map((_,i)=>i).filter(i=>this.live[i]);}
@@ -1106,7 +1135,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     growIfReady() {
       if(!this.progression)return;
       const next=LEVELS[this.level];
-      if(!next||this.score<next.score)return;
+      if(!next||this.progressionScore<next.score)return;
       const prev=LEVELS[this.level-1];
       this.level=next.level;this.bag=[];this.introBag=[];this.softDrop=false;this.turnQueue=[];
       if(this.celebrations)this.celebration={level:next.level,size:next.size,elapsed:0,duration:next.celebration??CELEBRATION_DURATION,caption:next.caption};
@@ -1158,8 +1187,10 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     }
     reset() {
       this.playerScores=[0,0];this.currentPlayer=0;this.turnMoves=0;this.handoff=false;
-      this.size=this.startSize;this.growth=null;this.celebration=null;this.awaitingStart=this.waitForStart;
-      this.level=1;this.terrainRoot=0;this.live=FACES.map(()=>true);
+      const entry=this.progression&&[1,4,7,10,13].includes(this.startLevel)?this.startLevel:1;
+      const config=LEVELS[entry-1];this.chapterOffset=entry>1?config.score:0;
+      this.size=entry>1?config.size:this.startSize;this.growth=null;this.celebration=null;this.awaitingStart=this.waitForStart;
+      this.level=entry;this.terrainRoot=0;this.live=FACES.map((_,f)=>config.faces==='corner'?[0,2,4].includes(f):config.faces==='plane'?f===0:true);
       this.orientation=identity();this.turn=null;this.turnQueue=[];this.softDrop=false;
       this.boards=FACES.map(()=>Array(this.area).fill(null));
       this.tiles=FACES.map((_,face)=>Array(this.area).fill(face));
@@ -2638,7 +2669,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       function addCoins(n=1) {coins+=n;save();updateCoins(true);updateCare();}
       function award(index) {
         const it=ITEMS[index];if(!it)return;
-        inv[it.id]++;fresh.add(it.id);save();rebuild();return it;
+        inv[it.id]++;fresh.add(it.id);giftQueue.push({id:it.id,name:it.name,msg:PRESENCE[it.id]||''});save();rebuild();return it;
       }
 
       // ---- UI ----
@@ -2664,12 +2695,12 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         if(typeof rebuildShop==='function')rebuildShop();
       }
       function exportData() {
-        return {game:'trillion-aloha',version:5,savedAt:new Date().toISOString(),coins,totalShapes,food,ocean:ocean.map(t=>({...t})),earnedMax,inv:{...inv},islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items.map(t=>({...t}))}))};
+        return {game:'trillion-aloha',version:6,savedAt:new Date().toISOString(),expandedSizes:[...(saved.expandedSizes||[])],coins,totalShapes,food,ocean:ocean.map(t=>({...t})),earnedMax,inv:{...inv},islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items.map(t=>({...t}))}))};
       }
       function importData(raw) {
         const d=sanitize(raw);
         if(!d)return false;
-        Object.assign(inv,d.inv);islands.length=0;islands.push(...d.islands);coins=d.coins;totalShapes=d.totalShapes;food=d.food;ocean.length=0;ocean.push(...d.ocean);earnedMax=d.earnedMax;selectedCare=null;
+        for(const k of Object.keys(inv))delete inv[k];Object.assign(inv,d.inv);saved.expandedSizes=[...d.expandedSizes];islands.length=0;islands.push(...d.islands);coins=d.coins;totalShapes=d.totalShapes;food=d.food;ocean.length=0;ocean.push(...d.ocean);earnedMax=d.earnedMax;selectedCare=null;
         hold=null;fallHeld=false;zoomTarget=0;zoomK=0;zoomIsland=-1;mergeFx=null;
         save();rebuild();updateCoins();return true;
       }
@@ -2724,11 +2755,29 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       }
       // ---- Coin Shop ----
       const EXPAND_TIERS=[
-        {size:5,cost:25,label:'5×5 Island'},
-        {size:6,cost:50,label:'6×6 Island'},
-        {size:7,cost:100,label:'7×7 Island'},
-        {size:8,cost:200,label:'8×8 Island'},
-        {size:9,cost:400,label:'9×9 Island'}];
+        {size:5,cost:10,label:'Island 2 · Levels 4–6'},
+        {size:6,cost:20,label:'Island 3 · Levels 7–9'},
+        {size:7,cost:30,label:'Island 4 · Levels 10–12'},
+        {size:8,cost:40,label:'Island 5 · Levels 13–15'}];
+      // Entitlements survive island placement, merging, and all existing save formats.
+      function chapterCount(){
+        let count=1;for(let size=5;size<=9;size++)if(inv['expand_'+size]>0)count=Math.max(count,Math.min(5,size-3));
+        return count;
+      }
+      const chapterPanel=document.createElement('section');chapterPanel.className='aloha-care';chapterPanel.setAttribute('aria-label','Island chapters');
+      function rebuildChapters(){
+        const title=document.createElement('strong');title.textContent='ISLAND CHAPTERS';
+        const note=document.createElement('p');note.textContent='Start a fresh game at an owned island. Your Aloha world stays with you. Each island opens a three-level chapter.';
+        chapterPanel.replaceChildren(title,note);
+        for(let i=0;i<chapterCount();i++){
+          const start=1+i*3,b=document.createElement('button');b.className='aloha-file-btn';b.style.cssText='display:block;width:100%;margin-top:8px';
+          b.textContent=`ISLAND ${i+1} · LEVELS ${start}–${start+2}`;
+          b.title=`Start fresh at level ${start}: empty board and zero score`;
+          b.onclick=()=>root.dispatchEvent(new CustomEvent('aloha-start-chapter',{detail:{level:start}}));chapterPanel.append(b);
+        }
+        const help=document.createElement('small');help.textContent='Fresh board · Zero score · Continue onward through later levels';chapterPanel.append(help);
+        root.dispatchEvent(new Event('aloha-chapters-changed'));
+      }
       const EXTRA_ITEM_COST=10;
       const shopPanel=document.createElement('section');shopPanel.className='aloha-care';shopPanel.setAttribute('aria-label','Coin shop');
       const shopTitle=document.createElement('strong');shopTitle.textContent='COIN SHOP';
@@ -2739,9 +2788,11 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         // Planet expansion tiers
         EXPAND_TIERS.forEach((tier,i)=>{
           const btn=document.createElement('button');btn.className='aloha-file-btn';
-          const bought=inv['expand_'+tier.size]>0;
+          const bought=chapterCount()>=i+2;
           btn.textContent=bought?`${tier.label} ✓`:`${tier.label} · ${tier.cost} COINS`;
-          btn.disabled=bought||coins<tier.cost;
+          const available=chapterCount()===i+1;
+          btn.disabled=bought||!available||coins<tier.cost;
+          if(!bought&&!available)btn.title='Get the previous island first';
           if(!bought)btn.addEventListener('click',()=>{
             if(coins<tier.cost)return;
             coins-=tier.cost;
@@ -2753,7 +2804,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
             saved.expandedSizes.push(tier.size);
             T('aloha_buy_expand',{tier:i+1,size:tier.size});
             save();updateCoins(false);rebuildShop();rebuild();
-            say(`Planet expanded! You got a ${tier.label} to place.`,5);
+            say(`${tier.label} unlocked! Place your new island, or start its chapter from Island Chapters.`,7);
           });
           shopList.append(btn);
         });
@@ -2787,7 +2838,8 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       // Wrap care + shop in a scrollable sidebar
       const sidebar=document.createElement('div');
       sidebar.style.cssText='position:absolute;left:20px;top:100px;width:225px;max-height:calc(100vh - 140px);overflow-y:auto;pointer-events:auto;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin;';
-      sidebar.append(carePanel,shopPanel);
+      sidebar.append(chapterPanel,carePanel,shopPanel);
+      chapterPanel.style.cssText='position:static;width:100%;box-sizing:border-box';
       // Override care panel positioning since sidebar handles it
       carePanel.style.position='static';carePanel.style.left='auto';carePanel.style.top='auto';carePanel.style.width='100%';
       shopPanel.style.position='static';shopPanel.style.left='auto';shopPanel.style.top='auto';shopPanel.style.width='100%';
@@ -2808,7 +2860,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
           b.addEventListener('click',e=>{e.stopPropagation();if(hold&&hold.id===it.id)cancelHold();else startHold(it.id);});
           bar.append(b);
         });
-        updateHint();updateCare();rebuildShop();
+        updateHint();updateCare();rebuildShop();rebuildChapters();
       }
       function updateHint() {
         let t=note;
@@ -3130,7 +3182,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       return {
         start() {if(running)return;running=true;time=0;last=0;nextRipple=5;rippleCount=0;ripples=[];angle=0;kick=0;pitch=pitchPlanet=.38;zoomK=zoomTarget=0;zoomIsland=-1;hold=null;fallHeld=false;tip=null;mergeFx=null;rebuild();frame=requestAnimationFrame(draw);},
         stop() {save();running=false;cancelAnimationFrame(frame);hold=null;fallHeld=false;},
-        key,keyup,award,advanceShapes,processScore,giftQueue,addCoins,exportData,importData,milestones:MILESTONES,get coins(){return coins;},get earnedMax(){return earnedMax;},
+        key,keyup,award,advanceShapes,processScore,giftQueue,addCoins,exportData,importData,chapterCount,milestones:MILESTONES,get coins(){return coins;},get earnedMax(){return earnedMax;},
         get time(){return time;},
         get rippleCount(){return rippleCount;},
         ripples:()=>ripples.length,
@@ -3522,7 +3574,29 @@ window.TrillionCloud=(()=>{
     if(panel)TrillionCloud.addOpener(panel,panel.querySelector('#continue-game')||panel.querySelector('.keyboard-hint'),'cta');
   }
   let alohaOpen=false,alohaBusy=false,alohaWasPaused=false,alohaCoin=0,lastAlohaScore=0;
-  let alohaGiftTimer,alohaGiftShowing=false,lastAlohaDispensed=game.totalDispensed||0;
+  const awardNotices=new TrillionMusic.AwardQueue();
+  let lastAlohaDispensed=game.totalDispensed||0;
+  let selectedChapter=1;
+  const chapterLabel=document.createElement('label');chapterLabel.style.cssText='display:block;margin:10px 0;font:13px system-ui,sans-serif;letter-spacing:0';
+  chapterLabel.textContent='Starting island ';const chapterSelect=document.createElement('select');chapterSelect.id='starting-island';chapterSelect.style.cssText='padding:7px;background:#172335;color:#fff;border:1px solid #8bb7bc;border-radius:5px;font:inherit';chapterLabel.append(chapterSelect);
+  document.querySelector('#start-game').before(chapterLabel);
+  function refreshChapterChoices(){
+    const count=aloha?aloha.chapterCount():1;
+    if(selectedChapter>1+(count-1)*3)selectedChapter=1;
+    chapterSelect.replaceChildren();
+    for(let i=0;i<count;i++){const option=document.createElement('option');option.value=1+i*3;option.textContent=`Island ${i+1} · Levels ${1+i*3}–${3+i*3}`;chapterSelect.append(option);}
+    chapterSelect.value=String(selectedChapter);chapterLabel.hidden=count===1;
+  }
+  chapterSelect.addEventListener('keydown',event=>event.stopPropagation());
+  chapterSelect.addEventListener('change',()=>{selectedChapter=Number(chapterSelect.value);});
+  alohaRoot.addEventListener('aloha-chapters-changed',refreshChapterChoices);refreshChapterChoices();
+  alohaRoot.addEventListener('aloha-start-chapter',async event=>{
+    const level=Number(event.detail?.level);
+    if(alohaBusy||![1,4,7,10,13].includes(level)||level>1+(aloha.chapterCount()-1)*3)return;
+    selectedChapter=level;refreshChapterChoices();
+    if(alohaOpen)await toggleAloha();
+    startGame(true);
+  });
   const alohaWait=ms=>new Promise(r=>setTimeout(r,ms));
   async function toggleAloha() {
     if(!aloha||alohaBusy)return;
@@ -3607,7 +3681,7 @@ window.TrillionCloud=(()=>{
     if(gameOverDialog.open)gameOverDialog.close();
     music.start();
     updateHighScore();
-    if(fresh){game.playerCount=Number(document.querySelector('input[name=players]:checked').value);game.reset();}
+    if(fresh){refreshChapterChoices();game.startLevel=selectedChapter;game.playerCount=Number(document.querySelector('input[name=players]:checked').value);game.reset();alohaCoin=0;lastAlohaScore=0;}
     onTitle=false;started=true;statGameStart(fresh);
     titleScreen.hidden=true;gameScreen.inert=false;gameScreen.removeAttribute('aria-hidden');
     document.body.classList.remove('at-title');
@@ -3649,6 +3723,7 @@ window.TrillionCloud=(()=>{
   document.querySelector('#start-game').addEventListener('click',()=>startGame());
   document.querySelector('#continue-game').addEventListener('click',()=>startGame(false));
   function showTitle() {
+    refreshChapterChoices();
     if(gameOverDialog.open)gameOverDialog.close();
     onTitle=true;endDrag();setPaused(true);updateHighScore();
     titleScreen.hidden=false;document.body.classList.add('at-title');
@@ -3783,13 +3858,27 @@ window.TrillionCloud=(()=>{
       lastAlohaDispensed=count;
       const newGifts=aloha.processScore(game.score);
       if(newGifts.length) aloha.giftQueue.push(...newGifts);
-      // Queued toast system: show one gift at a time, 2s apart
-      if(aloha.giftQueue.length&&!alohaGiftShowing){
-        alohaGiftShowing=true;
-        const g=aloha.giftQueue.shift();
-        const toast=document.querySelector('#aloha-gift');
-        if(toast){toast.innerHTML=`<strong>${g.name}</strong><br><span style="opacity:.8;font-weight:400">${g.msg}</span>`;toast.hidden=false;clearTimeout(alohaGiftTimer);alohaGiftTimer=setTimeout(()=>{toast.hidden=true;setTimeout(()=>{alohaGiftShowing=false;},500);},5000);}
+      const toast=document.querySelector('#aloha-gift');
+      const noticeVisible=!document.hidden&&!alohaOpen&&!alohaBusy&&!game.celebration&&!document.querySelector('dialog[open]');
+      const gift=awardNotices.update(aloha.giftQueue,dt,noticeVisible);
+      if(gift&&toast){
+        const heading=document.createElement('strong');heading.textContent=gift.id==='island'?gift.name:`You were awarded: ${gift.name}`;
+        const message=document.createElement('span');message.textContent=gift.msg;
+        toast.replaceChildren(heading,message);
+        if(gift.id!=='island'){
+          const invitation=document.createElement('span');invitation.className='gift-invitation';invitation.textContent='Press 7 to go to Aloha.';toast.append(invitation);
+        }
+        for(let i=0;i<24;i++){
+          const sparkle=document.createElement('i');sparkle.className='gift-sparkle';sparkle.setAttribute('aria-hidden','true');
+          const angle=i/24*Math.PI*2;
+          sparkle.style.cssText=`--sx:${50+Math.cos(angle)*48}%;--sy:${50+Math.sin(angle)*48}%;--dx:${Math.cos(angle)*65}px;--dy:${Math.sin(angle)*50-15}px;--delay:${-(i%8)*.42}s;--spark:${['#ffbf48','#ff79bc','#58efd7','#9d9aff','#fff59d','#76c8ff'][i%6]}`;
+          toast.append(sparkle);
+        }
+        toast.classList.remove('gift-arriving');void toast.offsetWidth;toast.classList.add('gift-arriving');
+        toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');
+        music.awardChime();
       }
+      if(toast)toast.hidden=!noticeVisible||!awardNotices.current;
       // Progress hint toward next gift (goal-gradient)
       const gp=document.querySelector('#gift-progress');
       if(gp){
@@ -4022,7 +4111,7 @@ window.TrillionCloud=(()=>{
     const targetHue=42+game.score*.9;
     scoreHue=reducedMotion.matches?targetHue:scoreHue+(targetHue-scoreHue)*(1-Math.exp(-dt*4));
     scoreLabel.style.color=`hsl(${scoreHue%360} 88% 70%)`;
-    document.querySelector('#award').textContent=(game.chainPoints?`+${game.chainPoints} · `:'')+(nextLevel?`Level ${nextLevel.level} at ${nextLevel.score} points`:'Final level');
+    document.querySelector('#award').textContent=(game.chainPoints?`+${game.chainPoints} · `:'')+(nextLevel?`Level ${nextLevel.level} at ${nextLevel.score-(game.chapterOffset||0)} points`:'Final level');
     document.querySelector('#space-label').innerHTML=game.manualDrop?'Hold to<br>drop':'Hold to<br>fall faster';
     document.querySelector('#bomb-count').textContent=game.inventory.bomb;
     document.querySelector('#bloom-count').textContent=game.inventory.bloom;
