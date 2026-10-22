@@ -426,7 +426,7 @@ body.touch-ui #aloha-gift strong{font-size:17px}
 body.touch-ui #aloha .desk-only,body.touch-ui #aloha .aloha-caption{display:none!important}
 body.touch-ui.aloha-open #touch-controls{z-index:60;display:block}
 body.touch-ui.aloha-open #tc-top,body.touch-ui.aloha-open #tc-powers,body.touch-ui.aloha-open #tc-paused{display:none!important}
-body.touch-ui #aloha .aloha-touch-btn{display:block;position:absolute;font:700 12px system-ui,sans-serif;letter-spacing:.08em;color:#fff;background:rgba(10,30,40,.72);border:1px solid rgba(255,255,255,.35);border-radius:18px;padding:9px 14px;z-index:5}
+body.touch-ui #aloha .aloha-touch-btn{pointer-events:auto;display:block;position:absolute;font:700 12px system-ui,sans-serif;letter-spacing:.08em;color:#fff;background:rgba(10,30,40,.72);border:1px solid rgba(255,255,255,.35);border-radius:18px;padding:9px 14px;z-index:5}
 body.touch-ui #aloha .aloha-touch-btn[hidden]{display:none}
 body.touch-ui #aloha .aloha-exit-btn{left:10px;top:max(10px,env(safe-area-inset-top))}
 body.touch-ui #aloha .aloha-drawer-btn{left:10px;top:calc(max(10px,env(safe-area-inset-top)) + 44px)}
@@ -4378,7 +4378,7 @@ window.TrillionCloud=(()=>{
         const message=document.createElement('span');message.textContent=gift.msg;
         toast.replaceChildren(heading,message);
         if(gift.id!=='island'){
-          const invitation=document.createElement('span');invitation.className='gift-invitation';invitation.textContent=document.body.classList.contains('touch-ui')?'Tap the palm tree to visit Aloha.':'Press 7 to go to Aloha.';toast.append(invitation);
+          const invitation=document.createElement('span');invitation.className='gift-invitation';invitation.textContent=document.body.classList.contains('touch-ui')?'Tap 🌴 to go to Aloha.':'Press 7 to go to Aloha.';toast.append(invitation);
         }
         for(let i=0;i<24;i++){
           const sparkle=document.createElement('i');sparkle.className='gift-sparkle';sparkle.setAttribute('aria-hidden','true');
@@ -4671,6 +4671,10 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-10-22g',date:'Oct 22, 2026',title:'Touch fixes',items:[
+      'The award message on phones now says to tap the 🌴 button to go to Aloha.',
+      'The ◀ GAME button in Aloha now works, and so do the SHOP drawer, pick up and cancel buttons.'
+    ]},
     {id:'2026-10-22f',date:'Oct 22, 2026',title:'Award pop-up',items:[
       'On phones the award message now appears over the top of the screen instead of covering the controls, and it never blocks taps. It pops in close, settles back a little, then steadies with a quick bounce.'
     ]},
