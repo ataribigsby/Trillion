@@ -109,6 +109,25 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
 #aloha-intro .intro-text { max-width:520px;padding:32px;text-align:center;font:16px/2 'Courier New',monospace;color:#33ff33;text-shadow:0 0 8px #33ff3366,0 0 20px #33ff3322;letter-spacing:.5px; }
 #aloha-intro .intro-dismiss { margin-top:20px;display:inline-block;font:bold 11px/1 'Courier New',monospace;color:#33ff33;border:1px solid #33ff3355;background:transparent;padding:8px 18px;cursor:pointer;letter-spacing:2px;opacity:.6;transition:opacity .2s; }
 #aloha-intro .intro-dismiss:hover { opacity:1; }
+/* Update log — title screen */
+#log-open { position:fixed;right:20px;top:20px;z-index:12;display:inline-flex;align-items:center;gap:8px;font:bold 11px/1 'Courier New',monospace;letter-spacing:2px;color:#33ff33;background:#06120acc;border:1px solid #33ff3366;padding:10px 14px;cursor:pointer;text-shadow:0 0 8px #33ff3355;box-shadow:0 4px 14px #0008;transition:border-color .2s,transform .2s; }
+#log-open:hover,#log-open:focus-visible { border-color:#33ff33;transform:translateY(-1px); }
+#log-open .log-dot { width:8px;height:8px;border-radius:50%;background:#33ff33;box-shadow:0 0 8px #33ff33;animation:logDot 2.4s ease-in-out infinite; }
+#log-open .log-dot[hidden] { display:none; }
+@keyframes logDot { 0%,100% { opacity:.35; } 50% { opacity:1; } }
+#log-overlay { position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;background:#000000e6;font-family:'Courier New',monospace; }
+#log-overlay[hidden] { display:none; }
+#log-box { width:min(560px,100%);max-height:88vh;overflow:auto;box-sizing:border-box;padding:26px 28px;background:#030a05;border:1px solid #33ff3355;color:#33ff33;text-shadow:0 0 8px #33ff3344;box-shadow:0 0 40px #33ff3318; }
+#log-box h2 { margin:0 0 4px;font-size:16px;letter-spacing:4px; }
+#log-box .log-sub { margin:0 0 18px;font-size:11px;letter-spacing:1px;opacity:.65; }
+#log-box .log-entry { margin:0 0 20px;padding-top:14px;border-top:1px solid #33ff3333; }
+#log-box .log-entry:first-of-type { border-top:0;padding-top:0; }
+#log-box .log-date { font-size:10px;letter-spacing:2px;opacity:.65; }
+#log-box h3 { margin:4px 0 8px;font-size:14px;letter-spacing:1px; }
+#log-box ul { margin:0;padding:0 0 0 18px;font-size:13px;line-height:1.7; }
+#log-box .log-close { margin-top:6px;font:bold 11px/1 'Courier New',monospace;letter-spacing:2px;color:#33ff33;background:transparent;border:1px solid #33ff3377;padding:9px 18px;cursor:pointer; }
+#log-box .log-close:hover,#log-box .log-close:focus-visible { border-color:#33ff33; }
+@media(max-width:650px) { #log-open { right:8px;top:6px;font-size:9px;padding:6px 9px; } #log-box { padding:20px; } }
 @media(max-width:650px) {
   #fortune-cookie { left:10px;bottom:10px; }
   #fortune-cookie .cookie-art { width:90px;height:62px; }
@@ -412,6 +431,7 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
     </div>
     <p class="title-footnote">MADE FOR SLOW EVENINGS &amp; HIGH SCORES.</p>
     <p class="title-footnote" style="margin-top:6px;opacity:.8">ANONYMOUS PLAY STATS HELP IMPROVE THE GAME · NO NAMES, NO EMAIL</p>
+  <button id="log-open" type="button" aria-haspopup="dialog"><i class="log-dot" hidden></i>UPDATE LOG</button>
   </section>
   <div class="music-player" aria-label="Music controls">
     <button id="music-toggle" aria-pressed="true" title="Toggle background music">♫ Music on</button>
@@ -3685,7 +3705,7 @@ window.TrillionCloud=(()=>{
     }
     if(alohaOpen||alohaBusy){event.preventDefault();event.stopImmediatePropagation();if(alohaOpen&&!alohaBusy)aloha.key(event);}
   },true);
-  window.addEventListener('keyup',event=>{if(event.target.closest?.('#acct-overlay'))return;if(alohaOpen||alohaBusy){event.stopImmediatePropagation();if(alohaOpen)aloha.keyup(event);}},true);
+  window.addEventListener('keyup',event=>{if(event.target.closest?.('#acct-overlay,#log-overlay'))return;if(alohaOpen||alohaBusy){event.stopImmediatePropagation();if(alohaOpen)aloha.keyup(event);}},true);
 
   document.querySelector('#restart').addEventListener('click',()=>{updateHighScore();game.reset();setPaused(false);canvas.focus();});
   function startGame(fresh=true) {
@@ -4135,5 +4155,58 @@ window.TrillionCloud=(()=>{
 })();
 
 </script>
-<script>document.querySelector('#fortune-cookie').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();e.currentTarget.click();}});</script></body>
+<script>document.querySelector('#fortune-cookie').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();e.currentTarget.click();}});</script><script>
+// Update log: newest entry first. To add an update, put a new object at the TOP of this list (give it a new id).
+(()=>{
+  'use strict';
+  const SEEN_KEY='trillion-log-seen-v1';
+  const UPDATE_LOG=[
+    {id:'2026-10-21b',date:'Oct 21, 2026',title:'Player accounts & a fresh start',items:[
+      'Pick your own password when you create a player. No more recovery codes to copy and paste.',
+      'Signing out now saves your progress to the cloud, then clears the islands on this device so the next player starts fresh.',
+      'The Aloha welcome now plays at the start of every new game.',
+      'A new fortune is waiting in the cookie.',
+      'New: this Update Log.'
+    ]},
+    {id:'2026-10-21a',date:'Oct 21, 2026',title:'Island chapters & gifts',items:[
+      'Buy islands with coins to unlock chapters, then start from a later chapter on the title screen.',
+      'New award queue with a soft bell chime, so rewards arrive one at a time while you keep playing.',
+      'Redesigned gift notifications with sparkles.',
+      'Fifteen levels, with terrain and echo worlds as you climb.'
+    ]}
+  ];
+  const btn=document.querySelector('#log-open'),dot=btn&&btn.querySelector('.log-dot');
+  if(!btn)return;
+  let seen='';try{seen=localStorage.getItem(SEEN_KEY)||'';}catch(e){}
+  const latest=UPDATE_LOG[0].id;
+  const refreshDot=()=>{if(dot)dot.hidden=seen===latest;};
+  refreshDot();
+  const el=(t,a,...k)=>{const e=document.createElement(t);for(const x in a||{})x==='class'?e.className=a[x]:x==='text'?e.textContent=a[x]:e.setAttribute(x,a[x]);k.flat().forEach(c=>e.append(c));return e;};
+  let ov=null;
+  function close(){if(ov)ov.hidden=true;btn.focus();}
+  function open(){
+    if(!ov){
+      const box=el('div',{id:'log-box',role:'dialog','aria-modal':'true','aria-labelledby':'log-title'});
+      box.append(el('h2',{id:'log-title',text:'UPDATE LOG'}),el('p',{class:'log-sub',text:'What’s new in Trillion'}));
+      UPDATE_LOG.forEach(u=>{
+        const sec=el('div',{class:'log-entry'});
+        sec.append(el('div',{class:'log-date',text:u.date.toUpperCase()}),el('h3',{text:u.title}),el('ul',{},u.items.map(t=>el('li',{text:t}))));
+        box.append(sec);
+      });
+      const x=el('button',{type:'button',class:'log-close',text:'CLOSE'});x.addEventListener('click',close);box.append(x);
+      ov=el('div',{id:'log-overlay',hidden:''},box);
+      ov.addEventListener('click',e=>{if(e.target===ov)close();});
+      // Keep key presses away from the game while the log is open.
+      ['keydown','keyup','keypress'].forEach(t=>ov.addEventListener(t,e=>{e.stopPropagation();if(t==='keydown'&&e.key==='Escape'){e.preventDefault();close();}}));
+      document.body.append(ov);
+    }
+    ov.hidden=false;
+    try{localStorage.setItem(SEEN_KEY,latest);}catch(e){}
+    seen=latest;refreshDot();
+    const c=ov.querySelector('.log-close');if(c)c.focus();
+  }
+  btn.addEventListener('click',open);
+})();
+</script>
+</body>
 </html>
