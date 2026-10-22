@@ -385,13 +385,12 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
 #aloha .aloha-back[hidden] { display:none; }
 #aloha .aloha-tapes { position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .45s ease; }
 #aloha .aloha-tapes.on { opacity:1; }
-#aloha .aloha-tape { position:absolute;left:0;top:0;width:108px;padding:0;border:0;background:none;cursor:pointer;pointer-events:none;will-change:transform; }
+#aloha .aloha-tape { position:absolute;left:0;top:0;width:108px;animation:tapePop .6s cubic-bezier(.2,1.4,.4,1) both;padding:0;border:0;background:none;cursor:pointer;pointer-events:none;will-change:transform; }
 #aloha .aloha-tapes.on .aloha-tape { pointer-events:auto; }
 #aloha .aloha-tape svg { display:block;width:100%;height:auto;overflow:visible;filter:drop-shadow(0 9px 5px #0007);transition:transform .18s ease,filter .18s ease; }
 #aloha .aloha-tape:hover svg,#aloha .aloha-tape:focus-visible svg { transform:scale(1.1) rotate(-3deg);filter:drop-shadow(0 0 10px #ffe9a8) drop-shadow(0 9px 5px #0007);outline:none; }
-#aloha .aloha-tape.locked { cursor:help; }
-#aloha .aloha-tape.locked svg { filter:grayscale(.85) brightness(.8) drop-shadow(0 9px 5px #0007); }
-@media(prefers-reduced-motion:reduce){#aloha .aloha-tape svg,#aloha .aloha-tapes{transition:none}}
+@keyframes tapePop{from{opacity:0;scale:.4}to{opacity:1;scale:1}}
+@media(prefers-reduced-motion:reduce){#aloha .aloha-tape svg,#aloha .aloha-tapes{transition:none}#aloha .aloha-tape{animation:none}}
 @media(max-width:700px) { #aloha .aloha-slot { width:54px;height:54px; } #aloha .aloha-slot canvas { width:40px;height:40px; } #aloha .aloha-bar-label { display:none; } }
 #aloha-fade { position:fixed;inset:0;z-index:60;background:#000;opacity:0;pointer-events:none;transition:opacity .8s ease; }
 #aloha-fade.black { opacity:1; }
@@ -2229,7 +2228,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         COLLECTIBLES.forEach((c,k)=>{if(owned(c.id)>0)earnedMax=Math.max(earnedMax,(k+1)*40);});
       }
       const expandedSizes=Array.isArray(d.expandedSizes)?d.expandedSizes.filter(s=>Number.isFinite(s)&&s>=4&&s<=9).slice(0,5):[];
-      return {inv,islands,ocean,totalShapes,food:n(d.food),earnedMax,coins:n(d.coins),expandedSizes};
+      return {inv,islands,ocean,totalShapes,food:n(d.food),earnedMax,coins:n(d.coins),expandedSizes,passed:Math.max(0,Math.min(15,Math.floor(Number(d.passed))||0))};
     }
     const vertexSource=`
       attribute vec3 aPos; attribute vec3 aNormal; attribute vec3 aTangent;
@@ -2409,7 +2408,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const saved=sanitize(load())||sanitize({inv:{},islands:[]});
       const inv={island:0,palm:0,fire:0,parrot:0,raft:0,...saved.inv};
       const islands=saved.islands;
-      let coins=saved.coins,totalShapes=saved.totalShapes,food=saved.food;
+      let coins=saved.coins,totalShapes=saved.totalShapes,food=saved.food,passed=saved.passed||0; // highest level the player has passed
       const ocean=saved.ocean;let earnedMax=saved.earnedMax;
       let selectedCare=null,pendingZoom=-1;
       const day=()=>dayOf(totalShapes);
@@ -2436,7 +2435,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       }
       const T=(n,p)=>{try{window.TrillionStats&&TrillionStats.track(n,p);}catch(e){}};
       const fresh=new Set();
-      const save=()=>{if(window.TRILLION_WIPING)return;try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,expandedSizes:saved.expandedSizes||[],islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items}))}));localStorage.setItem(KEY+'-at',String(Date.now()));}catch(e){}if(window.TrillionCloud)TrillionCloud.changed();};
+      const save=()=>{if(window.TRILLION_WIPING)return;try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,passed,expandedSizes:saved.expandedSizes||[],islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items}))}));localStorage.setItem(KEY+'-at',String(Date.now()));}catch(e){}if(window.TrillionCloud)TrillionCloud.changed();};
       let running=false,time=0,last=0,frame=0;
       let angle=0,kick=0,pitch=.38,pitchPlanet=.38,pitchZoom=1.0;
       let orient=[1,0,0,0,1,0,0,0,1],tip=null;
@@ -2749,31 +2748,34 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
 <path d="M28 78 L36 63 H84 L92 78 Z" fill="#2a3340" stroke="#0d1319" stroke-width="1.5"/><g fill="#9aa5b0"><circle cx="45" cy="71" r="2"/><circle cx="75" cy="71" r="2"/></g>
 ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="13" rx="2" fill="#ffd36b" stroke="#14202c" stroke-width="1.5"/><path d="M3 7 V3.5 a6 6 0 0 1 12 0 V7" fill="none" stroke="#ffd36b" stroke-width="2.4"/></g>':''}</svg>`;
       }
+      // a cassette is earned by two things together: the chapter's island is placed and bought, and that level has been passed
+      function earnedTapes(k){
+        if(!islands[k])return [];
+        const count=chapterCount(),out=[];
+        islandChapters(k).forEach((c,row)=>{
+          if(c>=count)return;
+          for(let i=0;i<3;i++){const level=c*3+1+i;if(level<=passed)out.push({c,i,level,row});}
+        });
+        return out;
+      }
       function buildTapes(k){
         tapes.replaceChildren();tapeEls=[];
-        const count=chapterCount();
-        islandChapters(k).forEach((c,row)=>{
-          for(let i=0;i<3;i++){
-            const level=c*3+1+i,locked=c>=count;
-            const b=document.createElement('button');b.type='button';b.className='aloha-tape'+(locked?' locked':'');
-            b.setAttribute('aria-label',locked?`Level ${level}, locked. Unlock Island ${c+1} in the coin shop.`:`Start fresh at level ${level}`);
-            b.title=locked?`Unlock Island ${c+1} in the coin shop to play levels ${c*3+1}–${c*3+3}`:`Jump to Level ${level}: fresh board, zero score`;
-            b.innerHTML=tapeSvg(level,c,locked);
-            b.addEventListener('pointerdown',e=>e.stopPropagation());
-            b.addEventListener('click',e=>{
-              e.stopPropagation();
-              if(locked){say(`Unlock Island ${c+1} in the coin shop to play levels ${c*3+1}–${c*3+3}.`,5);return;}
-              root.dispatchEvent(new CustomEvent('aloha-start-chapter',{detail:{level}}));
-            });
-            tapes.append(b);tapeEls.push({b,row,i,rows:islandChapters(k).length});
-          }
+        const rows=islandChapters(k).length;
+        earnedTapes(k).forEach(({c,i,level,row})=>{
+          const b=document.createElement('button');b.type='button';b.className='aloha-tape';
+          b.setAttribute('aria-label',`Start fresh at level ${level}`);
+          b.title=`Jump to Level ${level}: fresh board, zero score`;
+          b.innerHTML=tapeSvg(level,c,false);
+          b.addEventListener('pointerdown',e=>e.stopPropagation());
+          b.addEventListener('click',e=>{e.stopPropagation();root.dispatchEvent(new CustomEvent('aloha-start-chapter',{detail:{level}}));});
+          tapes.append(b);tapeEls.push({b,row,i,rows});
         });
       }
       function updateTapes(){
         const show=zoomTarget>0&&zoomK>.85&&zoomIsland>=0&&islands[zoomIsland]&&!hold&&!tip&&!mergeFx;
         tapes.classList.toggle('on',!!show);
         if(!show)return;
-        const key=`${zoomIsland}|${chapterCount()}|${islands.length}`;
+        const key=`${zoomIsland}|${chapterCount()}|${islands.length}|${passed}`;
         if(key!==tapeKey){tapeKey=key;buildTapes(zoomIsland);}
         const poly=islandPolygon(zoomIsland),top=Math.min(...poly.map(p=>p[1])),cx=(Math.min(...poly.map(p=>p[0]))+Math.max(...poly.map(p=>p[0])))/2;
         const W=root.clientWidth,gap=Math.min(128,(W-40)/3),rowH=84;
@@ -2800,12 +2802,13 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         if(typeof rebuildShop==='function')rebuildShop();
       }
       function exportData() {
-        return {game:'trillion-aloha',version:6,savedAt:new Date().toISOString(),expandedSizes:[...(saved.expandedSizes||[])],coins,totalShapes,food,ocean:ocean.map(t=>({...t})),earnedMax,inv:{...inv},islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items.map(t=>({...t}))}))};
+        return {game:'trillion-aloha',version:6,savedAt:new Date().toISOString(),expandedSizes:[...(saved.expandedSizes||[])],passed,coins,totalShapes,food,ocean:ocean.map(t=>({...t})),earnedMax,inv:{...inv},islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items.map(t=>({...t}))}))};
       }
+      function recordLevel(n){n=Math.floor(Number(n));if(Number.isFinite(n)&&n>passed&&n<=15){passed=n;save();}}
       function importData(raw) {
         const d=sanitize(raw);
         if(!d)return false;
-        for(const k of Object.keys(inv))delete inv[k];Object.assign(inv,d.inv);saved.expandedSizes=[...d.expandedSizes];islands.length=0;islands.push(...d.islands);coins=d.coins;totalShapes=d.totalShapes;food=d.food;ocean.length=0;ocean.push(...d.ocean);earnedMax=d.earnedMax;selectedCare=null;
+        for(const k of Object.keys(inv))delete inv[k];Object.assign(inv,d.inv);saved.expandedSizes=[...d.expandedSizes];islands.length=0;islands.push(...d.islands);coins=d.coins;totalShapes=d.totalShapes;food=d.food;ocean.length=0;ocean.push(...d.ocean);earnedMax=d.earnedMax;passed=d.passed||0;selectedCare=null;
         hold=null;fallHeld=false;zoomTarget=0;zoomK=0;zoomIsland=-1;mergeFx=null;
         save();rebuild();updateCoins();return true;
       }
@@ -2895,7 +2898,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
             saved.expandedSizes.push(tier.size);
             T('aloha_buy_expand',{tier:i+1,size:tier.size});
             save();updateCoins(false);rebuildShop();rebuild();
-            say(`${tier.label} unlocked! Place your new island, or start its chapter from Island Chapters.`,7);
+            say(`${tier.label} unlocked! Place your new island. Its cassettes appear as you pass each level.`,7);
           });
           shopList.append(btn);
         });
@@ -2957,7 +2960,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         if(!t) {
           if(hold&&hold.moving)t='WASD move · Q/E rotate · hold SPACE to set it down · ESC puts it back';
           else if(hold)t=hold.id==='island'?`WASD move · Q/E turn it · hold SPACE to lower · arrows tip the planet · ESC cancel${hold.near?' · it will merge':''}`:'WASD move · Q/E rotate · hold SPACE to lower · ESC cancel';
-          else if(zoomTarget>0)t=(ITEMS.some(it=>it.id!=='island'&&inv[it.id]>0)?'Pick an item below · ':'')+'click a cassette to jump to that level · ESC to zoom out';
+          else if(zoomTarget>0)t=(ITEMS.some(it=>it.id!=='island'&&inv[it.id]>0)?'Pick an item below · ':'')+(earnedTapes(zoomIsland).length?'click a cassette to jump to that level · ':'pass a level to earn its cassette · ')+'ESC to zoom out';
           else if(islands.length||inv.island>0)t=(inv.island>0?'Pick the island below · ':'')+'arrows tip the planet · / spins it'+(islands.length?' · click an island to zoom in':'');
         }
         if(hint.textContent!==t)hint.textContent=t;
@@ -3333,7 +3336,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
       return {
         start() {if(running)return;running=true;time=0;last=0;nextRipple=5;rippleCount=0;ripples=[];angle=0;kick=0;pitch=pitchPlanet=.38;zoomK=zoomTarget=0;zoomIsland=-1;hold=null;fallHeld=false;tip=null;mergeFx=null;rebuild();frame=requestAnimationFrame(draw);},
         stop() {save();running=false;cancelAnimationFrame(frame);hold=null;fallHeld=false;},
-        key,keyup,award,advanceShapes,processScore,giftQueue,addCoins,exportData,importData,chapterCount,milestones:MILESTONES,get coins(){return coins;},get earnedMax(){return earnedMax;},
+        key,keyup,award,advanceShapes,processScore,giftQueue,addCoins,exportData,importData,chapterCount,recordLevel,milestones:MILESTONES,get coins(){return coins;},get earnedMax(){return earnedMax;},
         get time(){return time;},
         get rippleCount(){return rippleCount;},
         ripples:()=>ripples.length,
@@ -3805,6 +3808,7 @@ window.TrillionCloud=(()=>{
       statSecs[st]+=.5;if(st==='playing')statGameSecs+=.5;
       statBest=Math.max(statBest,game.score);
       if(!onTitle){
+        if(aloha&&game.level>1)aloha.recordLevel(game.level-1);
         if(game.level!==statLevel){if(game.level>statLevel)TrillionStats.track('level_up',{level:game.level,score:game.score,secs:Math.round(statGameSecs)});statLevel=game.level;}
         if(game.gameOver&&!statOver){statOver=true;TrillionStats.track('game_over',{score:game.score,level:game.level,lines:game.lines,placed:game.placed,secs:Math.round(statGameSecs),face:game.lossFace,players:game.playerCount});}
         if(!game.gameOver)statOver=false;
@@ -4398,7 +4402,7 @@ window.TrillionCloud=(()=>{
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
     {id:'2026-10-22c',date:'Oct 22, 2026',title:'Cassette level select & roaming animals',items:[
-      'Zoom in on an island and three floating cassette tapes appear, one for each level of that island. Click one to jump straight to that level.',
+      'Zoom in on an island and floating cassette tapes appear. Each one is earned by placing that chapter\u2019s island and passing the level. Click a cassette to jump straight to that level. Cassettes are free.',
       'The Island Chapters panel and the title-screen island picker are gone. The cassettes replace them.',
       'Every animal now wanders on its own: a few quiet steps, then a long rest.',
       'The Coral Crab can go in the water as well as on land, just like the Sea Turtle.'
