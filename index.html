@@ -2414,7 +2414,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       }
       const T=(n,p)=>{try{window.TrillionStats&&TrillionStats.track(n,p);}catch(e){}};
       const fresh=new Set();
-      const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,expandedSizes:saved.expandedSizes||[],islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items}))}));localStorage.setItem(KEY+'-at',String(Date.now()));}catch(e){}if(window.TrillionCloud)TrillionCloud.changed();};
+      const save=()=>{if(window.TRILLION_WIPING)return;try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,expandedSizes:saved.expandedSizes||[],islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items}))}));localStorage.setItem(KEY+'-at',String(Date.now()));}catch(e){}if(window.TrillionCloud)TrillionCloud.changed();};
       let running=false,time=0,last=0,frame=0;
       let angle=0,kick=0,pitch=.38,pitchPlanet=.38,pitchZoom=1.0;
       let orient=[1,0,0,0,1,0,0,0,1],tip=null;
@@ -3328,6 +3328,8 @@ window.TrillionCloud=(()=>{
   async function signOut(force){
     if(acct&&hooks&&!force){const ok=await push(false);if(!ok)return false;}
     ev('account_signout');
+    // Stop the game re-saving its in-memory islands on the way out (it saves on pagehide), then wipe.
+    window.TRILLION_WIPING=true;
     try{['trillion-aloha-v1','trillion-aloha-v1-at','trillion.highScore.v1',LS].forEach(k=>localStorage.removeItem(k));}catch(e){}
     clearTimeout(timer);timer=0;acct=null;lastSent='';status='';notify();
     try{location.reload();}catch(e){}
