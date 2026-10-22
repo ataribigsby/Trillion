@@ -383,6 +383,15 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
 #aloha .aloha-file-btn:active { transform:translateY(2px);box-shadow:0 1px 0 #1a3550; }
 #aloha .aloha-back { position:absolute;left:20px;top:20px;pointer-events:auto;border:2px solid #3b6c96;background:#0b1a2b;color:#cfe8fa;padding:8px 12px;font:bold 11px 'Courier New',monospace;letter-spacing:2px;box-shadow:0 3px 0 #1a3550;cursor:pointer; }
 #aloha .aloha-back[hidden] { display:none; }
+#aloha .aloha-tapes { position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .45s ease; }
+#aloha .aloha-tapes.on { opacity:1; }
+#aloha .aloha-tape { position:absolute;left:0;top:0;width:108px;padding:0;border:0;background:none;cursor:pointer;pointer-events:none;will-change:transform; }
+#aloha .aloha-tapes.on .aloha-tape { pointer-events:auto; }
+#aloha .aloha-tape svg { display:block;width:100%;height:auto;overflow:visible;filter:drop-shadow(0 9px 5px #0007);transition:transform .18s ease,filter .18s ease; }
+#aloha .aloha-tape:hover svg,#aloha .aloha-tape:focus-visible svg { transform:scale(1.1) rotate(-3deg);filter:drop-shadow(0 0 10px #ffe9a8) drop-shadow(0 9px 5px #0007);outline:none; }
+#aloha .aloha-tape.locked { cursor:help; }
+#aloha .aloha-tape.locked svg { filter:grayscale(.85) brightness(.8) drop-shadow(0 9px 5px #0007); }
+@media(prefers-reduced-motion:reduce){#aloha .aloha-tape svg,#aloha .aloha-tapes{transition:none}}
 @media(max-width:700px) { #aloha .aloha-slot { width:54px;height:54px; } #aloha .aloha-slot canvas { width:40px;height:40px; } #aloha .aloha-bar-label { display:none; } }
 #aloha-fade { position:fixed;inset:0;z-index:60;background:#000;opacity:0;pointer-events:none;transition:opacity .8s ease; }
 #aloha-fade.black { opacity:1; }
@@ -1228,7 +1237,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     }
     reset() {
       this.playerScores=[0,0];this.currentPlayer=0;this.turnMoves=0;this.handoff=false;
-      const entry=this.progression&&[1,4,7,10,13].includes(this.startLevel)?this.startLevel:1;
+      const entry=this.progression&&Number.isInteger(this.startLevel)&&this.startLevel>=1&&this.startLevel<=LEVELS.length?this.startLevel:1;
       const config=LEVELS[entry-1];this.chapterOffset=entry>1?config.score:0;
       this.size=entry>1?config.size:this.startSize;this.growth=null;this.celebration=null;this.awaitingStart=this.waitForStart;
       this.level=entry;this.terrainRoot=0;this.live=FACES.map((_,f)=>config.faces==='corner'?[0,2,4].includes(f):config.faces==='plane'?f===0:true);
@@ -1727,7 +1736,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     const BY_ID=Object.fromEntries(ITEMS.map(i=>[i.id,i]));
     const MILESTONES=ITEMS.filter(i=>i.milestone).map(i=>i.at);
     const ANIMALS=new Set(['parrot','crab','turtle','fox','owl','deer','rabbit']);
-    const AQUATIC=new Set(['turtle','raft']); // things that live on the planet's surface itself, not on an island
+    const AQUATIC=new Set(['turtle','crab','raft']); // things that live on the planet's surface itself, not on an island
     const isGarden=t=>t.id==='flowers'||t.id==='berry_bush';
     // Planted things stay where they were put; everything else can be picked up and moved.
     const PLANTED=new Set(['palm','flowers','hut','lighthouse','tiki','windmill','crystal','pine','cabin','well','berry_bush']);
@@ -2449,7 +2458,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       function holdValid(h) {
         if(!h)return false;
         if(h.ride)return h.x>=0&&h.z>=0&&h.x+4<=PX&&h.z+4<=PX&&!!raftUnder(h);
-        if(AQUATIC.has(h.id))return h.x>=0&&h.z>=0&&h.x+h.w<=PX&&h.z+h.d<=PX; // turtles go anywhere, land or sea
+        if(AQUATIC.has(h.id))return h.x>=0&&h.z>=0&&h.x+h.w<=PX&&h.z+h.d<=PX; // turtles and crabs go anywhere, land or sea
         if(h.id==='island')return h.x>=0&&h.z>=0&&h.x+h.w<=PX&&h.z+h.d<=PX;
         const s=islands[zoomIsland];if(!s)return false;
         for(let j=h.z;j<h.z+h.d;j++)for(let i=h.x;i<h.x+h.w;i++)if(!inMask(s,i,j))return false;
@@ -2475,7 +2484,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
           if(zoomTarget>0)zoomOut();
           const f=topFace(),[w,d]=dimsPx(id,0),spot={x:Math.floor((PX-w)/2),z:Math.floor((PX-d)/2)};
           hold={id,f,...spot,w,d,r:0,h:.7,shake:0};
-          say(id==='raft'?'The raft floats on land or sea. WASD to position · Q/E turn · hold SPACE to launch.':'Turtles roam land and sea. WASD to position; hold SPACE to release.',6);rebuild();return;
+          say(id==='raft'?'The raft floats on land or sea. WASD to position · Q/E turn · hold SPACE to launch.':`${BY_ID[id].name}s roam land and sea. WASD to position; hold SPACE to release.`,6);rebuild();return;
         }
         if(id==='island') {
           if(zoomTarget>0)zoomOut();
@@ -2582,7 +2591,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
           }
         }
         else if(h.moving&&AQUATIC.has(h.id)){ocean.push(Object.assign(h.moving.item,{f:h.f,x:h.x,z:h.z,r:h.r}));say('Moved.',3);}
-        else if(AQUATIC.has(h.id)){ocean.push({id:h.id,f:h.f,x:h.x,z:h.z,r:h.r,dx:1,dz:0,...careState({id:h.id},day())});inv[h.id]--;say(h.id==='raft'?'Raft launched! Pick the parrot to put it aboard.':'Turtle released! Click it to feed it.',5);}
+        else if(AQUATIC.has(h.id)){ocean.push({id:h.id,f:h.f,x:h.x,z:h.z,r:h.r,dx:1,dz:0,...careState({id:h.id},day())});inv[h.id]--;say(h.id==='raft'?'Raft launched! Pick the parrot to put it aboard.':`${BY_ID[h.id].name} released! Click it to feed it.`,5);}
         else if(h.moving){islands[zoomIsland].items.push(Object.assign(h.moving.item,{x:h.x,z:h.z,r:h.r}));say('Moved.',3);}
         else {
           islands[zoomIsland].items.push({id:h.id,x:h.x,z:h.z,r:h.r,...careState({id:h.id},day())});inv[h.id]--;
@@ -2599,7 +2608,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         if(isl>=0){
           if(zoomTarget===0||zoomIsland!==isl)return;
           const s=islands[isl],[w,d]=dimsPx(t.id,t.r);
-          s.items.splice(s.items.indexOf(t),1);
+          s.items.splice(s.items.indexOf(t),1);roamState.delete(t);
           hold={id:t.id,f:s.f,x:t.x,z:t.z,w,d,r:t.r,h:.2,shake:0,moving:{from:'island',isl,item:t}};
         } else if(ocean.includes(t)){
           if(t.rider){say('Lift the parrot off the raft first.',4);return;}
@@ -2720,6 +2729,60 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const bar=document.createElement('div');bar.className='aloha-inventory';bar.setAttribute('role','toolbar');bar.setAttribute('aria-label','Aloha items');
       const back=document.createElement('button');back.className='aloha-back';back.textContent='◀ BACK TO PLANET';back.hidden=true;
       back.addEventListener('click',()=>zoomOut());
+      // ---- cassette tapes: floating level-select over a zoomed-in island ----
+      const tapes=document.createElement('div');tapes.className='aloha-tapes';
+      const TAPE_COLORS=[['#d9534f','#f08a5d'],['#2f9e8f','#6fd3c0'],['#e0a526','#f6d56a'],['#6a5acd','#a79bf0'],['#d65f98','#f3a1c9']];
+      let tapeKey='',tapeEls=[];
+      // the chapters an island carries: its own, and (on the last island) any owned chapters that have no island of their own
+      function islandChapters(k){
+        const n=islands.length,count=chapterCount(),list=[k];
+        if(k===n-1)for(let c=k+1;c<count;c++)list.push(c);
+        return list;
+      }
+      function tapeSvg(level,c,locked){
+        const [body,accent]=TAPE_COLORS[c%TAPE_COLORS.length];
+        return `<svg viewBox="0 0 120 80" aria-hidden="true"><rect x="2" y="2" width="116" height="76" rx="8" fill="${locked?'#6b7684':body}" stroke="#14202c" stroke-width="3"/>
+<rect x="10" y="9" width="100" height="30" rx="4" fill="#f4ead2" stroke="#14202c" stroke-width="1.5"/><rect x="10" y="9" width="100" height="8" rx="4" fill="${locked?'#9aa4b0':accent}"/>
+<text x="60" y="32" text-anchor="middle" font-family="'Courier New',monospace" font-weight="bold" font-size="14" fill="#1d2b3a" letter-spacing="1">Level ${level}</text>
+<rect x="24" y="43" width="72" height="17" rx="8" fill="#1b232d" stroke="#0d1319" stroke-width="1.5"/>
+<g fill="#e8edf1"><circle cx="40" cy="51.5" r="5.5"/><circle cx="80" cy="51.5" r="5.5"/></g><g fill="#1b232d"><circle cx="40" cy="51.5" r="2"/><circle cx="80" cy="51.5" r="2"/></g>
+<path d="M28 78 L36 63 H84 L92 78 Z" fill="#2a3340" stroke="#0d1319" stroke-width="1.5"/><g fill="#9aa5b0"><circle cx="45" cy="71" r="2"/><circle cx="75" cy="71" r="2"/></g>
+${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="13" rx="2" fill="#ffd36b" stroke="#14202c" stroke-width="1.5"/><path d="M3 7 V3.5 a6 6 0 0 1 12 0 V7" fill="none" stroke="#ffd36b" stroke-width="2.4"/></g>':''}</svg>`;
+      }
+      function buildTapes(k){
+        tapes.replaceChildren();tapeEls=[];
+        const count=chapterCount();
+        islandChapters(k).forEach((c,row)=>{
+          for(let i=0;i<3;i++){
+            const level=c*3+1+i,locked=c>=count;
+            const b=document.createElement('button');b.type='button';b.className='aloha-tape'+(locked?' locked':'');
+            b.setAttribute('aria-label',locked?`Level ${level}, locked. Unlock Island ${c+1} in the coin shop.`:`Start fresh at level ${level}`);
+            b.title=locked?`Unlock Island ${c+1} in the coin shop to play levels ${c*3+1}–${c*3+3}`:`Jump to Level ${level}: fresh board, zero score`;
+            b.innerHTML=tapeSvg(level,c,locked);
+            b.addEventListener('pointerdown',e=>e.stopPropagation());
+            b.addEventListener('click',e=>{
+              e.stopPropagation();
+              if(locked){say(`Unlock Island ${c+1} in the coin shop to play levels ${c*3+1}–${c*3+3}.`,5);return;}
+              root.dispatchEvent(new CustomEvent('aloha-start-chapter',{detail:{level}}));
+            });
+            tapes.append(b);tapeEls.push({b,row,i,rows:islandChapters(k).length});
+          }
+        });
+      }
+      function updateTapes(){
+        const show=zoomTarget>0&&zoomK>.85&&zoomIsland>=0&&islands[zoomIsland]&&!hold&&!tip&&!mergeFx;
+        tapes.classList.toggle('on',!!show);
+        if(!show)return;
+        const key=`${zoomIsland}|${chapterCount()}|${islands.length}`;
+        if(key!==tapeKey){tapeKey=key;buildTapes(zoomIsland);}
+        const poly=islandPolygon(zoomIsland),top=Math.min(...poly.map(p=>p[1])),cx=(Math.min(...poly.map(p=>p[0]))+Math.max(...poly.map(p=>p[0])))/2;
+        const W=root.clientWidth,gap=Math.min(128,(W-40)/3),rowH=84;
+        for(const {b,row,i,rows} of tapeEls){
+          const bob=Math.sin(time*1.3+i*1.7+row*.9)*6,tilt=Math.sin(time*.9+i*2.1+row)*2.5;
+          const x=clamp(cx+(i-1)*gap-54,8,W-116),y=Math.max(70,top-98-(rows-1-row)*rowH)+bob;
+          b.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${tilt.toFixed(2)}deg)`;
+        }
+      }
       // coin balance, plus save / load for backing up Aloha progress
       const top=document.createElement('div');top.className='aloha-top';
       const coinBox=document.createElement('div');coinBox.className='aloha-coins';coinBox.title='Coins: one for every 10 points';
@@ -2806,20 +2869,6 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         let count=1;for(let size=5;size<=9;size++)if(inv['expand_'+size]>0)count=Math.max(count,Math.min(5,size-3));
         return count;
       }
-      const chapterPanel=document.createElement('section');chapterPanel.className='aloha-care';chapterPanel.setAttribute('aria-label','Island chapters');
-      function rebuildChapters(){
-        const title=document.createElement('strong');title.textContent='ISLAND CHAPTERS';
-        const note=document.createElement('p');note.textContent='Start a fresh game at an owned island. Your Aloha world stays with you. Each island opens a three-level chapter.';
-        chapterPanel.replaceChildren(title,note);
-        for(let i=0;i<chapterCount();i++){
-          const start=1+i*3,b=document.createElement('button');b.className='aloha-file-btn';b.style.cssText='display:block;width:100%;margin-top:8px';
-          b.textContent=`ISLAND ${i+1} · LEVELS ${start}–${start+2}`;
-          b.title=`Start fresh at level ${start}: empty board and zero score`;
-          b.onclick=()=>root.dispatchEvent(new CustomEvent('aloha-start-chapter',{detail:{level:start}}));chapterPanel.append(b);
-        }
-        const help=document.createElement('small');help.textContent='Fresh board · Zero score · Continue onward through later levels';chapterPanel.append(help);
-        root.dispatchEvent(new Event('aloha-chapters-changed'));
-      }
       const EXTRA_ITEM_COST=10;
       const shopPanel=document.createElement('section');shopPanel.className='aloha-care';shopPanel.setAttribute('aria-label','Coin shop');
       const shopTitle=document.createElement('strong');shopTitle.textContent='COIN SHOP';
@@ -2880,12 +2929,11 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       // Wrap care + shop in a scrollable sidebar
       const sidebar=document.createElement('div');
       sidebar.style.cssText='position:absolute;left:20px;top:100px;width:225px;max-height:calc(100vh - 140px);overflow-y:auto;pointer-events:auto;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin;';
-      sidebar.append(chapterPanel,carePanel,shopPanel);
-      chapterPanel.style.cssText='position:static;width:100%;box-sizing:border-box';
+      sidebar.append(carePanel,shopPanel);
       // Override care panel positioning since sidebar handles it
       carePanel.style.position='static';carePanel.style.left='auto';carePanel.style.top='auto';carePanel.style.width='100%';
       shopPanel.style.position='static';shopPanel.style.left='auto';shopPanel.style.top='auto';shopPanel.style.width='100%';
-      ui.append(top,sidebar,hint,bar,back);root.append(ui);
+      ui.append(top,sidebar,hint,bar,back,tapes);root.append(ui);
       function rebuild() {
         bar.textContent='';
         const owned=ITEMS.filter(i=>inv[i.id]>0);
@@ -2902,14 +2950,14 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
           b.addEventListener('click',e=>{e.stopPropagation();if(hold&&hold.id===it.id)cancelHold();else startHold(it.id);});
           bar.append(b);
         });
-        updateHint();updateCare();rebuildShop();rebuildChapters();
+        updateHint();updateCare();rebuildShop();
       }
       function updateHint() {
         let t=note;
         if(!t) {
           if(hold&&hold.moving)t='WASD move · Q/E rotate · hold SPACE to set it down · ESC puts it back';
           else if(hold)t=hold.id==='island'?`WASD move · Q/E turn it · hold SPACE to lower · arrows tip the planet · ESC cancel${hold.near?' · it will merge':''}`:'WASD move · Q/E rotate · hold SPACE to lower · ESC cancel';
-          else if(zoomTarget>0)t=ITEMS.some(it=>it.id!=='island'&&inv[it.id]>0)?'Pick an item below · ESC to zoom out':'ESC to zoom out';
+          else if(zoomTarget>0)t=(ITEMS.some(it=>it.id!=='island'&&inv[it.id]>0)?'Pick an item below · ':'')+'click a cassette to jump to that level · ESC to zoom out';
           else if(islands.length||inv.island>0)t=(inv.island>0?'Pick the island below · ':'')+'arrows tip the planet · / spins it'+(islands.length?' · click an island to zoom in':'');
         }
         if(hint.textContent!==t)hint.textContent=t;
@@ -2940,10 +2988,10 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       function careTargets(){
         const list=[];
         for(const s of islands)for(const t of s.items){
-          const [w,d]=dimsPx(t.id,t.r);list.push({t,f:s.f,x:s.x+t.x,z:s.z+t.z,w,d,y:itemTop(s,t.x,t.z,w,d),isl:islands.indexOf(s)});
+          const [w,d]=dimsPx(t.id,t.r),ro=roamState.get(t),ox=ro?ro.ox:0,oz=ro?ro.oz:0;list.push({t,f:s.f,x:s.x+t.x+ox,z:s.z+t.z+oz,w,d,y:ro&&ro.ry!==undefined?ro.ry:itemTop(s,t.x,t.z,w,d),isl:islands.indexOf(s)});
         }
         for(const t of ocean){
-          if(t.id==='turtle'||(t.id==='raft'&&!t.rider))list.push({t,f:t.f,x:t.x,z:t.z,w:dimsPx(t.id,t.r)[0],d:dimsPx(t.id,t.r)[1],y:t.id==='raft'?floatY(t):(t.y||1.025),isl:-1});
+          if(ANIMALS.has(t.id)||(t.id==='raft'&&!t.rider))list.push({t,f:t.f,x:t.x,z:t.z,w:dimsPx(t.id,t.r)[0],d:dimsPx(t.id,t.r)[1],y:t.id==='raft'?floatY(t):(t.y||1.025),isl:-1});
           if(t.rider)list.push({t:t.rider,f:t.f,x:t.x+t.rider.x,z:t.z+t.rider.z,w:4,d:4,y:floatY(t)+DECK,isl:-1});
         }
         return list;
@@ -3056,6 +3104,69 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         if(land>1.03)return land;
         return .994+swellAt(t.f,t.x+w/2,t.z+d/2)+.003*Math.sin(time*1.3+t.x*.7+t.z*.4);
       }
+      // ---- gentle roaming: every animal wanders now and then, never far, and never constantly ----
+      const roamState=new WeakMap(); // runtime only, so wandering never touches the save file
+      const ROAM_SPEED=.9; // island pixels per second
+      const roamOk=(s,t,x,z)=>{
+        const [w,d]=dimsPx(t.id,t.r);
+        if(x<0||z<0||x+w>s.w||z+d>s.d)return false;
+        for(let j=Math.floor(z);j<Math.ceil(z+d-1e-6);j++)for(let i=Math.floor(x);i<Math.ceil(x+w-1e-6);i++)if(!inMask(s,i,j))return false;
+        for(const o of s.items){
+          if(o===t)continue;
+          const [ow,od]=dimsPx(o.id,o.r),ro=roamState.get(o);
+          if(overlap(o.x,o.z,ow,od,x,z,w,d))return false;
+          if(ro&&overlap(o.x+ro.ox,o.z+ro.oz,ow,od,x,z,w,d))return false;
+        }
+        return true;
+      };
+      const facingOf=(dx,dz)=>((Math.round(Math.atan2(dx,-dz)/(Math.PI/2))%4)+4)%4;
+      function roamIsland(s,t,dt){
+        let r=roamState.get(t);
+        if(!r){r={ox:0,oz:0,tx:0,tz:0,mv:false,wait:1.5+Math.random()*6,fr:t.r,ry:undefined};roamState.set(t,r);}
+        const fed=t.fedUntil>day();
+        if(fed||r.mv)t.age+=dt;
+        if(!roamOk(s,t,t.x+r.ox,t.z+r.oz)&&!(r.tx===0&&r.tz===0&&r.mv)){r.tx=0;r.tz=0;r.mv=true;} // something was set down on top of me: stroll home
+        if(r.mv){
+          const dx=r.tx-r.ox,dz=r.tz-r.oz,dist=Math.hypot(dx,dz),step=ROAM_SPEED*dt;
+          if(dist<=step){r.ox=r.tx;r.oz=r.tz;r.mv=false;r.wait=4+Math.random()*9;}
+          else{
+            const nx=r.ox+dx/dist*step,nz=r.oz+dz/dist*step;
+            if(roamOk(s,t,t.x+nx,t.z+nz)||(r.tx===0&&r.tz===0)){r.ox=nx;r.oz=nz;r.fr=facingOf(dx,dz);}
+            else{r.mv=false;r.wait=2+Math.random()*3;}
+          }
+        }else{
+          r.wait-=dt;
+          if(r.wait<=0){
+            r.wait=3+Math.random()*5;
+            for(let tries=0;tries<10;tries++){
+              const a=Math.random()*Math.PI*2,len=2+Math.random()*5,tx=r.ox+Math.cos(a)*len,tz=r.oz+Math.sin(a)*len;
+              let clear=true;for(let u=1;u<=len;u++)if(!roamOk(s,t,t.x+r.ox+(tx-r.ox)*u/len,t.z+r.oz+(tz-r.oz)*u/len)){clear=false;break;}
+              if(clear&&roamOk(s,t,t.x+tx,t.z+tz)){r.tx=tx;r.tz=tz;r.mv=true;break;}
+            }
+          }
+        }
+        const [w,d]=dimsPx(t.id,t.r),goal=itemTop(s,Math.round(t.x+r.ox),Math.round(t.z+r.oz),w,d);
+        r.ry=r.ry===undefined?goal:r.ry+(goal-r.ry)*Math.min(1,dt*6);
+      }
+      const oceanRoam=new WeakMap();
+      function roamOcean(t,dt){
+        let o=oceanRoam.get(t);
+        if(!o){o={mv:0,wait:Math.random()*4};oceanRoam.set(t,o);}
+        const fed=t.fedUntil>day();
+        if(o.mv>0){
+          o.mv-=dt;t.age+=dt;
+          Object.assign(t,oceanStep(t,dt));
+          if(o.mv<=0)o.wait=4+Math.random()*9;
+        }else{
+          if(fed)t.age+=dt;
+          o.wait-=dt;
+          if(o.wait<=0){
+            o.mv=3+Math.random()*5;
+            const a=(Math.random()-.5)*1.7,c=Math.cos(a),sn=Math.sin(a),dx=t.dx*c-t.dz*sn,dz=t.dx*sn+t.dz*c;
+            t.dx=dx;t.dz=dz;
+          }
+        }
+      }
       // a roaming turtle rides up over sand and grass and back down into the water
       function roamY(t){
         let top=1.025;
@@ -3067,15 +3178,12 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         return top;
       }
       function update(dt) {
-        for(const s of islands)for(const t of s.items)if(ANIMALS.has(t.id)&&t.fedUntil>day())t.age+=dt;
+        for(const s of islands)for(const t of s.items)if(ANIMALS.has(t.id))roamIsland(s,t,dt);
         for(const t of ocean){
           if(t.rider&&t.rider.fedUntil>day())t.rider.age+=dt;
-          if(t.id!=='turtle')continue;
+          if(!ANIMALS.has(t.id))continue;
           const goal=roamY(t);t.y=t.y===undefined?goal:t.y+(goal-t.y)*Math.min(1,dt*8);
-          if(!(t.fedUntil>day()))continue;
-          t.age+=dt;
-          const next=oceanStep(t,dt);
-          Object.assign(t,next);
+          roamOcean(t,dt);
         }
         while(time>=nextRipple){rippleCount++;
           let x=rnd()*2-1,y=rnd()*2-1,z=rnd()*2-1;const l=Math.hypot(x,y,z)||1;
@@ -3117,6 +3225,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         const Oa=tip?mul(rotAxis(tip.k,tip.sign*Math.PI/2*smooth(tip.t)),tip.from):orient;
         cam={rot:mul(rotX(pitch),mul(rotY(angle),Oa)),focus,dist,aspect:w/h};
         const rotGL=toGL(cam.rot);
+        updateTapes();
         gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
         // planet
         gl.useProgram(planetProgram);
@@ -3134,9 +3243,9 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         const drawItems=s=>{for(const t of s.items){
           const [tw,td]=dimsPx(t.id,t.r),anim=ANIMALS.has(t.id)?t.age:0;
           // A small wander stays inside the reserved footprint, keeping paths off neighbouring gardens.
-          const wander=ANIMALS.has(t.id)?Math.sin(anim*.4)*.18:0;
+          const ro=ANIMALS.has(t.id)?roamState.get(t):null,wander=ro?ro.ox:0,wz=ro?ro.oz:0;
           const tint=isGarden(t)&&t.growth<5&&t.lastWater!==day()?{c:[.1,.55,1],t:.25+.6*(.5+.5*Math.sin(time*4))}:null;
-          pushItem(tris,s.f,t.id,t.r,s.x+t.x+wander,s.z+t.z+Math.sin(anim*.31)*.12,itemTop(s,t.x,t.z,tw,td),tint,t);
+          pushItem(tris,s.f,t.id,ro?ro.fr:t.r,s.x+t.x+wander,s.z+t.z+wz,ro&&ro.ry!==undefined?ro.ry:itemTop(s,t.x,t.z,tw,td),tint,t);
         }};
         for(const t of ocean){
           const y=t.id==='raft'?floatY(t):(t.y||1.025);
@@ -3632,25 +3741,13 @@ window.TrillionCloud=(()=>{
   const awardNotices=new TrillionMusic.AwardQueue();
   let lastAlohaDispensed=game.totalDispensed||0;
   let selectedChapter=1;
-  const chapterLabel=document.createElement('label');chapterLabel.style.cssText='display:block;margin:10px 0;font:13px system-ui,sans-serif;letter-spacing:0';
-  chapterLabel.textContent='Starting island ';const chapterSelect=document.createElement('select');chapterSelect.id='starting-island';chapterSelect.style.cssText='padding:7px;background:#172335;color:#fff;border:1px solid #8bb7bc;border-radius:5px;font:inherit';chapterLabel.append(chapterSelect);
-  document.querySelector('#start-game').before(chapterLabel);
-  function refreshChapterChoices(){
-    const count=aloha?aloha.chapterCount():1;
-    if(selectedChapter>1+(count-1)*3)selectedChapter=1;
-    chapterSelect.replaceChildren();
-    for(let i=0;i<count;i++){const option=document.createElement('option');option.value=1+i*3;option.textContent=`Island ${i+1} · Levels ${1+i*3}–${3+i*3}`;chapterSelect.append(option);}
-    chapterSelect.value=String(selectedChapter);chapterLabel.hidden=count===1;
-  }
-  chapterSelect.addEventListener('keydown',event=>event.stopPropagation());
-  chapterSelect.addEventListener('change',()=>{selectedChapter=Number(chapterSelect.value);});
-  alohaRoot.addEventListener('aloha-chapters-changed',refreshChapterChoices);refreshChapterChoices();
+  function refreshChapterChoices(){}
   alohaRoot.addEventListener('aloha-start-chapter',async event=>{
     const level=Number(event.detail?.level);
-    if(alohaBusy||![1,4,7,10,13].includes(level)||level>1+(aloha.chapterCount()-1)*3)return;
+    if(alohaBusy||!Number.isInteger(level)||level<1||level>aloha.chapterCount()*3)return;
     selectedChapter=level;refreshChapterChoices();
     if(alohaOpen)await toggleAloha();
-    startGame(true);
+    (typeof _origStartGame==='function'?_origStartGame:startGame)(true); // straight onto the board: no intro replay
   });
   const alohaWait=ms=>new Promise(r=>setTimeout(r,ms));
   async function toggleAloha() {
@@ -3864,7 +3961,7 @@ window.TrillionCloud=(()=>{
   document.querySelector('#start-game').addEventListener('click',()=>startGame());
   document.querySelector('#continue-game').addEventListener('click',()=>startGame(false));
   function showTitle() {
-    refreshChapterChoices();
+    selectedChapter=1;
     if(gameOverDialog.open)gameOverDialog.close();
     onTitle=true;endDrag();setPaused(true);updateHighScore();guide.end('title');
     titleScreen.hidden=false;document.body.classList.add('at-title');
@@ -4300,6 +4397,12 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-10-22c',date:'Oct 22, 2026',title:'Cassette level select & roaming animals',items:[
+      'Zoom in on an island and three floating cassette tapes appear, one for each level of that island. Click one to jump straight to that level.',
+      'The Island Chapters panel and the title-screen island picker are gone. The cassettes replace them.',
+      'Every animal now wanders on its own: a few quiet steps, then a long rest.',
+      'The Coral Crab can go in the water as well as on land, just like the Sea Turtle.'
+    ]},
     {id:'2026-10-22b',date:'Oct 22, 2026',title:'A gentler award sound',items:[
       'The award chime is now a soft singing bowl, tuned to the key of the music. It swells in and slowly fades out.',
       'Award messages now stay up for 7 seconds instead of 18.'
