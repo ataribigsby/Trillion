@@ -1441,21 +1441,43 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     }
     changePiece(change,clamp=false) {
       if(this.handoff||this.tutorial||this.paused||this.gameOver||(this.growth||this.celebration)||!this.active)return false;
-      const candidate={...this.active,...change};
+      const base={...this.active,...change};
       const [width,depth]=this.worldDimensions();
-      if(clamp) {
-        const cells=this.voxels(candidate);
-        candidate.x=Math.max(0,Math.min(candidate.x,width-1-Math.max(...cells.map(c=>c[0]))));
-        candidate.z=Math.max(0,Math.min(candidate.z,depth-1-Math.max(...cells.map(c=>c[2]))));
+      const ok=candidate=>{
+        if(this.hasOverhang(candidate))return false;
+        if(!this.worldCells(candidate).every(([x,,z])=>x>=0&&x<width&&z>=0&&z<depth))return false;
+        // Do not move a piece sideways through a stack it has already descended below.
+        return !(this.landingLevel(candidate)*this.cell>candidate.height+1e-9);
+      };
+      if(!clamp){if(!ok(base))return false;this.active=base;return true;}
+      const cells=this.voxels(base);
+      const cx=Math.max(0,Math.min(base.x,width-1-Math.max(...cells.map(c=>c[0])))),cz=Math.max(0,Math.min(base.z,depth-1-Math.max(...cells.map(c=>c[2]))));
+      // Turning near an edge or a stack: if the snug spot is blocked, ease the piece a cell or two sideways instead of refusing.
+      const tries=[[0,0]];
+      for(let r=1;r<=2;r++)for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++)if(Math.max(Math.abs(dx),Math.abs(dz))===r)tries.push([dx,dz]);
+      tries.sort((p,q)=>(p[0]*p[0]+p[1]*p[1])-(q[0]*q[0]+q[1]*q[1]));
+      for(const [dx,dz] of tries){
+        const candidate={...base,x:cx+dx,z:cz+dz};
+        if(candidate.x<0||candidate.z<0)continue;
+        if(ok(candidate)){this.active=candidate;return true;}
       }
-      if(this.hasOverhang(candidate))return false;
-      if(!this.worldCells(candidate).every(([x,,z])=>x>=0&&x<width&&z>=0&&z<depth))return false;
-      // Do not move a piece sideways through a stack it has already descended below.
-      if(this.landingLevel(candidate)*this.cell>candidate.height+1e-9)return false;
-      this.active=candidate;return true;
+      return false;
     }
     move(dx,dz) {if(this.active)return this.changePiece({x:this.active.x+dx,z:this.active.z+dz});}
-    rotatePiece(direction) {if(this.active)return this.changePiece({rotation:(this.active.rotation+direction+4)%4},true);}
+    // Turns about the middle of the piece's footprint (not its corner), so it spins in place instead of swinging sideways into walls.
+    rotatePiece(direction) {
+      const p=this.active;if(!p)return false;
+      const span=piece=>{const c=this.voxels(piece);return [Math.max(...c.map(v=>v[0]))+1,Math.max(...c.map(v=>v[2]))+1];};
+      const next={...p,rotation:(p.rotation+direction+4)%4},[w0,d0]=span(p),[w1,d1]=span(next);
+      // Remember the exact (half-cell) centre so repeated turns spin in place instead of creeping sideways.
+      const pc=p.pivot&&Math.abs(p.x+w0/2-p.pivot[0])<=.5&&Math.abs(p.z+d0/2-p.pivot[1])<=.5?p.pivot:[p.x+w0/2,p.z+d0/2];
+      const nx=Math.round(pc[0]-w1/2),nz=Math.round(pc[1]-d1/2);
+      if(this.changePiece({rotation:next.rotation,x:nx,z:nz},true)){
+        if(this.active.x===nx&&this.active.z===nz)this.active.pivot=pc;else this.active.pivot=undefined;
+        return true;
+      }
+      return this.changePiece({rotation:next.rotation},true);
+    }
     // Standing up picks the first roll (starting from the current one) that has no overhang.
     togglePosture() {
       if(!this.active||this.active.solid)return false;
@@ -4671,6 +4693,9 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-10-22h',date:'Oct 22, 2026',title:'Smoother block turning',items:[
+      'Turning a block now spins it around its middle, so it stays put instead of swinging sideways into the cube edge. If the turn would still be blocked by an edge or a stack, the block eases over a cell or two to fit rather than refusing.'
+    ]},
     {id:'2026-10-22g',date:'Oct 22, 2026',title:'Touch fixes',items:[
       'The award message on phones now says to tap the 🌴 button to go to Aloha.',
       'The ◀ GAME button in Aloha now works, and so do the SHOP drawer, pick up and cancel buttons.'
