@@ -2190,7 +2190,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
           mask=new Uint8Array(w*dd).fill(1);
         }
         if(!(f>=0&&f<6&&x>=0&&z>=0&&x+w<=PX&&z+dd<=PX))continue;
-        const isl={f,x,z,w,d:dd,mask,items:[]};
+        const isl={f,x,z,w,d:dd,mask,items:[],ch:Array.isArray(s.ch)?[...new Set(s.ch.map(Number).filter(c=>Number.isInteger(c)&&c>=0&&c<5))].sort((a,b)=>a-b):undefined};
         if(!areaOf(isl))continue;
         if(islands.some(o=>o.f===f&&touches(o,isl,0)))continue;
         for(const t of Array.isArray(s.items)?s.items:[]) {
@@ -2226,6 +2226,14 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         for(const it of ITEMS.slice(0,5))if(owned(it.id)>0)earnedMax=Math.max(earnedMax,it.at);
         if(owned('flowers')>0||(d.careGifts&&d.careGifts.garden))earnedMax=Math.max(earnedMax,30);
         COLLECTIBLES.forEach((c,k)=>{if(owned(c.id)>0)earnedMax=Math.max(earnedMax,(k+1)*40);});
+      }
+      { // chapters: keep each at most once; saves from before islands carried chapters get the old arrangement
+        let owned=1;for(let size=5;size<=9;size++)if(inv['expand_'+size]>0)owned=Math.max(owned,Math.min(5,size-3));
+        const seen=new Set();
+        islands.forEach((isl,k)=>{
+          if(isl.ch===undefined){isl.ch=k<owned?[k]:[];if(k===islands.length-1)for(let c=k+1;c<owned;c++)isl.ch.push(c);}
+          isl.ch=isl.ch.filter(c=>c<owned&&!seen.has(c));isl.ch.forEach(c=>seen.add(c));
+        });
       }
       const expandedSizes=Array.isArray(d.expandedSizes)?d.expandedSizes.filter(s=>Number.isFinite(s)&&s>=4&&s<=9).slice(0,5):[];
       return {inv,islands,ocean,totalShapes,food:n(d.food),earnedMax,coins:n(d.coins),expandedSizes,passed:Math.max(0,Math.min(15,Math.floor(Number(d.passed))||0))};
@@ -2435,7 +2443,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       }
       const T=(n,p)=>{try{window.TrillionStats&&TrillionStats.track(n,p);}catch(e){}};
       const fresh=new Set();
-      const save=()=>{if(window.TRILLION_WIPING)return;try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,passed,expandedSizes:saved.expandedSizes||[],islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items}))}));localStorage.setItem(KEY+'-at',String(Date.now()));}catch(e){}if(window.TrillionCloud)TrillionCloud.changed();};
+      const save=()=>{if(window.TRILLION_WIPING)return;try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,passed,expandedSizes:saved.expandedSizes||[],islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),ch:s.ch||[],items:s.items}))}));localStorage.setItem(KEY+'-at',String(Date.now()));}catch(e){}if(window.TrillionCloud)TrillionCloud.changed();};
       let running=false,time=0,last=0,frame=0;
       let angle=0,kick=0,pitch=.38,pitchPlanet=.38,pitchZoom=1.0;
       let orient=[1,0,0,0,1,0,0,0,1],tip=null;
@@ -2488,10 +2496,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         if(id==='island') {
           if(zoomTarget>0)zoomOut();
           // Use expanded island size if one was purchased
-          const expandSizes=saved.expandedSizes||[];
-          const sz=expandSizes.length?expandSizes.shift():undefined;
-          if(sz)save(); // consume the expanded size from queue
-          const b=makeBlob(sz);
+          const b=makeBlob(); // every island comes in the standard size; merge them to make bigger ones
           hold={id,f:topFace(),x:Math.floor((PX-b.w)/2),z:Math.floor((PX-b.d)/2),w:b.w,d:b.d,mask:b.mask,depth:null,r:0,h:.9,shake:0,near:false};
           hold.near=touchesAny(hold);
         } else {
@@ -2560,20 +2565,30 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         }
         return {M,refunded,s,c:[cx,cz]};
       }
+      // Each island carries chapters (island.ch). A new island takes the next owned chapter nobody has; merging pools them.
+      function assignChapters(){
+        const count=chapterCount(),taken=new Set(islands.flatMap(s=>s.ch||[]));
+        for(const s of islands){
+          if(s.ch&&s.ch.length)continue;
+          s.ch=[];
+          for(let c=0;c<count;c++)if(!taken.has(c)){s.ch=[c];taken.add(c);break;}
+        }
+      }
       function addIsland(h) {
-        const nu={f:h.f,x:h.x,z:h.z,w:h.w,d:h.d,mask:h.mask.slice(),items:[]};
+        const nu={f:h.f,x:h.x,z:h.z,w:h.w,d:h.d,mask:h.mask.slice(),items:[],ch:[]};
         let group=[nu,...islands.filter(o=>touches(nu,o))];
-        if(group.length===1){islands.push(nu);say('Island placed. Click it to zoom in.',6);return;}
+        if(group.length===1){islands.push(nu);assignChapters();say('Island placed. Click it to zoom in.',6);return;}
         const olds=[];let refunded=0,result=null,info=null;
         for(let guard=0;guard<8&&group.length>1;guard++) {
           for(const g of group)if(!g.tmp)olds.push({f:g.f,x:g.x,z:g.z,w:g.w,d:g.d,mask:g.mask});
           for(const g of group){const at=islands.indexOf(g);if(at>=0)islands.splice(at,1);}
-          const r=mergeGroup(group,nu.f);refunded+=r.refunded;result=r.M;info=r;
+          const pooled=[...new Set(group.flatMap(g=>g.ch||[]))].sort((a,b)=>a-b);
+          const r=mergeGroup(group,nu.f);refunded+=r.refunded;result=r.M;info=r;result.ch=pooled;
           group=[result,...islands.filter(o=>touches(result,o))];
           result.tmp=group.length>1;
         }
         delete result.tmp;
-        islands.push(result);
+        islands.push(result);assignChapters();
         mergeFx={f:result.f,olds,to:result,k:info.s,c:info.c,t:0};
         say(refunded?`Islands merged. ${refunded} item${refunded>1?'s':''} returned to your inventory.`:'The islands merged into one.',6);
       }
@@ -2733,11 +2748,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const TAPE_COLORS=[['#d9534f','#f08a5d'],['#2f9e8f','#6fd3c0'],['#e0a526','#f6d56a'],['#6a5acd','#a79bf0'],['#d65f98','#f3a1c9']];
       let tapeKey='',tapeEls=[];
       // the chapters an island carries: its own, and (on the last island) any owned chapters that have no island of their own
-      function islandChapters(k){
-        const n=islands.length,count=chapterCount(),list=[k];
-        if(k===n-1)for(let c=k+1;c<count;c++)list.push(c);
-        return list;
-      }
+      function islandChapters(k){return (islands[k]&&islands[k].ch)||[];}
       function tapeSvg(level,c,locked){
         const [body,accent]=TAPE_COLORS[c%TAPE_COLORS.length];
         return `<svg viewBox="0 0 120 80" aria-hidden="true"><rect x="2" y="2" width="116" height="76" rx="8" fill="${locked?'#6b7684':body}" stroke="#14202c" stroke-width="3"/>
@@ -2802,7 +2813,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         if(typeof rebuildShop==='function')rebuildShop();
       }
       function exportData() {
-        return {game:'trillion-aloha',version:6,savedAt:new Date().toISOString(),expandedSizes:[...(saved.expandedSizes||[])],passed,coins,totalShapes,food,ocean:ocean.map(t=>({...t})),earnedMax,inv:{...inv},islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),items:s.items.map(t=>({...t}))}))};
+        return {game:'trillion-aloha',version:6,savedAt:new Date().toISOString(),expandedSizes:[...(saved.expandedSizes||[])],passed,coins,totalShapes,food,ocean:ocean.map(t=>({...t})),earnedMax,inv:{...inv},islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),ch:s.ch||[],items:s.items.map(t=>({...t}))}))};
       }
       function recordLevel(n){n=Math.floor(Number(n));if(Number.isFinite(n)&&n>passed&&n<=15){passed=n;save();}}
       function importData(raw) {
@@ -2893,11 +2904,8 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
             inv['expand_'+tier.size]=1;
             // Grant a bigger island item
             inv.island=(inv.island||0)+1;
-            // Store the size override for the next island placement
-            if(!saved.expandedSizes)saved.expandedSizes=[];
-            saved.expandedSizes.push(tier.size);
             T('aloha_buy_expand',{tier:i+1,size:tier.size});
-            save();updateCoins(false);rebuildShop();rebuild();
+            assignChapters();save();updateCoins(false);rebuildShop();rebuild();
             say(`${tier.label} unlocked! Place your new island. Its cassettes appear as you pass each level.`,7);
           });
           shopList.append(btn);
@@ -3332,7 +3340,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         drag=null;planet.classList.remove('dragging');
       });
       window.addEventListener('pagehide',save);
-      rebuild();updateCoins();
+      assignChapters();rebuild();updateCoins();
       return {
         start() {if(running)return;running=true;time=0;last=0;nextRipple=5;rippleCount=0;ripples=[];angle=0;kick=0;pitch=pitchPlanet=.38;zoomK=zoomTarget=0;zoomIsland=-1;hold=null;fallHeld=false;tip=null;mergeFx=null;rebuild();frame=requestAnimationFrame(draw);},
         stop() {save();running=false;cancelAnimationFrame(frame);hold=null;fallHeld=false;},
@@ -4405,7 +4413,8 @@ window.TrillionCloud=(()=>{
       'Zoom in on an island and floating cassette tapes appear. Each one is earned by placing that chapter\u2019s island and passing the level. Click a cassette to jump straight to that level. Cassettes are free.',
       'The Island Chapters panel and the title-screen island picker are gone. The cassettes replace them.',
       'Every animal now wanders on its own: a few quiet steps, then a long rest.',
-      'The Coral Crab can go in the water as well as on land, just like the Sea Turtle.'
+      'The Coral Crab can go in the water as well as on land, just like the Sea Turtle.',
+      'Every new island now comes in the standard size and brings its own chapter\u2019s cassettes. Merged islands pool their cassettes.'
     ]},
     {id:'2026-10-22b',date:'Oct 22, 2026',title:'A gentler award sound',items:[
       'The award chime is now a soft singing bowl, tuned to the key of the music. It swells in and slowly fades out.',
