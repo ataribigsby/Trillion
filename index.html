@@ -1223,7 +1223,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       this.boards=FACES.map(()=>Array(this.area).fill(null));
       this.tiles=FACES.map((_,face)=>Array(this.area).fill(face));
       this.bag=[];this.introCount=0;this.introBag=[];this.placed=0;this.lines=0;this.clearedBlocks=0;this.lastChain=0;
-      this.score=0;this.triggeredLines=0;this.chainPoints=0;this.lastAward=0;
+      this.score=0;this.triggeredLines=0;this.chainPoints=0;this.lastAward=0;this.chainEvents=0;
       this.inventory=Object.fromEntries(Object.keys(POWER_UPS).map(kind=>[kind,0]));this.tutorialSeen={};this.tutorialQueue=[];this.tutorial=null;this.tutorialRefund=null;this.savedPiece=null;this.bloomAwarded=false;this.powerUpsUsed=0;
       this.paused=false;this.gameOver=false;this.lossFace=null;this.resolution=null;this.spawn();
     }
@@ -1497,7 +1497,8 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       for(let i=0;i<lines;i++)points+=chain===1?10:10*(++this.triggeredLines+1);
       this.lastAward=points;this.chainPoints+=points;this.score+=points;this.playerScores[this.currentPlayer]+=points;
       this.grantPowerUp('bomb',Math.floor(this.score/100)-previousMilestone);
-      if(lines>0&&chain>=2&&!this.bloomAwarded){this.grantPowerUp('bloom');this.bloomAwarded=true;}
+      // The first Bloom arrives with the player's second chain, so a first chain isn't too much at once.
+      if(lines>0&&chain>=2&&!this.bloomAwarded){this.bloomAwarded=true;this.chainEvents=(this.chainEvents||0)+1;if(this.chainEvents>=2)this.grantPowerUp('bloom');}
     }
     applyTwist(twist) {
       if(this.terrain){this.applyTerrainTwist(twist);return;}
@@ -4287,7 +4288,8 @@ window.TrillionCloud=(()=>{
     {id:'2026-10-21c',date:'Oct 21, 2026',title:'Guided first chain',items:[
       'New games now start with a short guided opening. Glowing squares show where to place your first three blocks, and flashing arrows show when to tip the cube.',
       'The game waits for you at each tip. Skip it any time with Esc, or just play your own way and the guide steps aside.',
-      'Follow it to the end and your first chain takes you straight to Level 2.'
+      'Follow it to the end and your first chain takes you straight to Level 2.',
+      'Your first Bloom power-up now arrives with your second chain, so the first one stays simple.'
     ]},
     {id:'2026-10-21b',date:'Oct 21, 2026',title:'Player accounts & a fresh start',items:[
       'Pick your own password when you create a player. No more recovery codes to copy and paste.',
