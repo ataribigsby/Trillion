@@ -412,6 +412,17 @@ button:focus-visible { outline:3px solid #f1b94d;outline-offset:5px; }
 </style>
 <style>#fortune-cookie .cookie-art{width:260px;height:180px}#fortune-cookie .cookie-half img{display:block;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none}#fortune-cookie .cookie-left img{clip-path:inset(0 50% 0 0)}#fortune-cookie .cookie-right img{clip-path:inset(0 0 0 50%)}#fortune-cookie .fortune-slip{bottom:190px}#fortune-cookie:focus-visible{outline:2px solid #f3cf98;outline-offset:8px;border-radius:12px}@media(max-width:650px){#fortune-cookie .cookie-art{width:180px;height:124px}#fortune-cookie .fortune-slip{bottom:134px;left:0;transform:none;min-width:170px;max-width:200px;animation:none}}</style></head>
 <body class="at-title">
+<script>
+// Testing shortcut: open the page with ?reset=1 to wipe this browser's saved game before anything loads.
+// Keeps the anonymous stats id so analytics aren't skewed; the cloud save is untouched.
+(()=>{try{
+  const q=new URLSearchParams(location.search);
+  if(q.get('reset')!=='1')return;
+  Object.keys(localStorage).filter(k=>/^trillion/i.test(k)&&k!=='trillion-anon-v1'&&k!=='trillion-visits-v1').forEach(k=>localStorage.removeItem(k));
+  q.delete('reset');const rest=q.toString();
+  history.replaceState(null,'',location.pathname+(rest?'?'+rest:'')+location.hash);
+}catch(e){}})();
+</script>
   <section id="title-screen" aria-labelledby="game-title">
     <div class="console-shell">
       <div class="cartridge">
