@@ -3950,7 +3950,7 @@ window.TrillionCloud=(()=>{
     cubeStartButton.hidden=!cubeStartUnlocked;
   }
   refreshChapterChoices();
-  cubeStartButton.addEventListener('click',()=>{if(cubeStartUnlocked){selectedChapter=3;startGame(true);}});
+  cubeStartButton.addEventListener('click',()=>{if(cubeStartUnlocked){selectedChapter=3;hideFortune();_origStartGame(true);}});
   alohaRoot.addEventListener('aloha-start-chapter',async event=>{
     const level=Number(event.detail?.level);
     if(alohaBusy||!Number.isInteger(level)||level<1||level>aloha.chapterCount()*3)return;
