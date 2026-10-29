@@ -439,15 +439,20 @@ body.touch-ui #aloha .aloha-top{transform:scale(.8);transform-origin:top right;r
 body.touch-ui #aloha .aloha-inventory{bottom:200px!important;height:auto!important;transform:scale(.72);transform-origin:bottom center}
 body.touch-ui #aloha .aloha-hint{bottom:290px!important;font-size:11px!important;letter-spacing:1px!important;padding:0 12px}
 </style>
+<style id="playfield-focus-css">
+body.guided-opening:not(.touch-ui) #guide-hint{bottom:30px;}
+body.guided-opening:not(.touch-ui) #game-screen .readout{visibility:hidden;}
+body.touch-ui.guided-opening #game-screen #scene{height:calc(100dvh - 115px - 265px)!important;}
+</style>
 <style id="touch-css">
 /* ---- Touch layout: two control spheres (portrait first). Shown only on touch devices, or with ?touch=1 ---- */
 #touch-controls,#tc-top{display:none}
 body.touch-ui:not(.at-title) #touch-controls,body.touch-ui:not(.at-title) #tc-top{display:block}
 body.touch-ui{overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-body.touch-ui #touch-controls{position:fixed;left:0;right:0;bottom:0;height:200px;z-index:40;pointer-events:none;padding-bottom:env(safe-area-inset-bottom)}
-.sphere-wrap{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 30px);display:flex;flex-direction:column;align-items:center;gap:7px;pointer-events:none}
+body.touch-ui #touch-controls{position:fixed;left:0;right:0;bottom:0;height:170px;z-index:40;pointer-events:none;padding-bottom:env(safe-area-inset-bottom)}
+.sphere-wrap{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 24px);display:flex;flex-direction:column;align-items:center;gap:7px;pointer-events:none}
 .sphere-wrap.left{left:14px}.sphere-wrap.right{right:14px}
-.sphere{--c:#35d6ff;--g:#35d6ff99;position:relative;width:116px;height:116px;border-radius:50%;pointer-events:auto;touch-action:none;cursor:pointer;
+.sphere{--c:#35d6ff;--g:#35d6ff99;position:relative;width:96px;height:96px;border-radius:50%;pointer-events:auto;touch-action:none;cursor:pointer;
   border:2px solid #ffffff40;outline:none;
   background:radial-gradient(circle at 33% 27%,#ffffffd9 0 5%,color-mix(in srgb,var(--c) 45%,#fff) 13%,var(--c) 42%,color-mix(in srgb,var(--c) 40%,#050b16) 78%,#050b16 100%);
   box-shadow:0 0 26px var(--g),0 8px 18px #000b,inset -10px -14px 22px #0008,inset 6px 8px 14px #ffffff55;transition:box-shadow .2s,transform .12s,filter .2s}
@@ -486,20 +491,20 @@ body.touch-ui .readout .eyebrow,body.touch-ui .readout > span,body.touch-ui .rea
 body.touch-ui .score-details .game-best{display:none!important}
 body.touch-ui #game-screen .scoreboard{top:max(8px,env(safe-area-inset-top));min-width:0;width:calc(100% - 190px)}
 body.touch-ui #game-screen .scoreboard .eyebrow{font-size:9px}
-body.touch-ui #game-screen #score{font-size:40px;margin:2px 0}
+body.touch-ui #game-screen #score{font-size:32px;margin:2px 0}
 body.touch-ui .score-details{font-size:10px}
-body.touch-ui #begin-prompt{position:fixed;left:50%;top:calc(max(8px,env(safe-area-inset-top)) + 130px);transform:translateX(-50%);width:max-content;max-width:calc(100vw - 30px);box-sizing:border-box;font-size:12px;margin:0;padding:7px 12px;z-index:5;text-align:center}
+body.touch-ui #begin-prompt{position:fixed;left:50%;top:calc(max(8px,env(safe-area-inset-top)) + 102px);transform:translateX(-50%);width:max-content;max-width:calc(100vw - 30px);box-sizing:border-box;font-size:12px;margin:0;padding:7px 12px;z-index:5;text-align:center}
 body.touch-ui .scoreboard #score-label{display:none}
-body.touch-ui #game-screen .readout{display:block;position:fixed;top:calc(max(8px,env(safe-area-inset-top)) + 96px);left:50%;bottom:auto;transform:translateX(-50%);padding:5px 14px;white-space:nowrap}
+body.touch-ui #game-screen .readout{display:block;position:fixed;top:calc(max(8px,env(safe-area-inset-top)) + 72px);left:50%;bottom:auto;transform:translateX(-50%);padding:5px 14px;white-space:nowrap}
 body.touch-ui #game-screen .readout h1{font-size:14px;margin:0}
-body.touch-ui #game-screen #scene{top:150px;height:calc(100dvh - 150px - 210px);min-height:200px}
+body.touch-ui #game-screen #scene{top:115px;height:calc(100dvh - 115px - 175px);min-height:200px}
 body.touch-ui:not(.at-title) .music-player{top:max(10px,env(safe-area-inset-top));left:10px;bottom:auto;right:auto;flex-direction:row;padding:0}
 body.touch-ui.at-title .music-player{top:auto;left:10px;right:auto;bottom:12px;flex-direction:row;padding:0;width:auto;height:auto}
 body.touch-ui .music-player input{display:none}
 body.touch-ui .music-player button{min-width:0;width:42px;height:38px;padding:0;font-size:0;border-radius:10px}
 body.touch-ui .music-player button::before{content:'♫';font-size:17px}
 body.touch-ui .music-player button[aria-pressed="false"]{opacity:.55}
-body.touch-ui #guide-hint{bottom:calc(env(safe-area-inset-bottom) + 190px);font-size:12px;padding:8px 10px;max-width:calc(100vw - 20px)}
+body.touch-ui #guide-hint{bottom:calc(env(safe-area-inset-bottom) + 150px);font-size:12px;padding:8px 10px;max-width:calc(100vw - 20px)}
 body.touch-ui #gift-progress{max-width:120px}
 </style>
 <style>#fortune-cookie .cookie-art{width:260px;height:180px}#fortune-cookie .cookie-half img{display:block;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none}#fortune-cookie .cookie-left img{clip-path:inset(0 50% 0 0)}#fortune-cookie .cookie-right img{clip-path:inset(0 0 0 50%)}#fortune-cookie .fortune-slip{bottom:190px}#fortune-cookie:focus-visible{outline:2px solid #f3cf98;outline-offset:8px;border-radius:12px}@media(max-width:650px){#fortune-cookie .cookie-art{width:180px;height:124px}#fortune-cookie .fortune-slip{bottom:134px;left:0;transform:none;min-width:170px;max-width:200px;animation:none}}</style></head>
@@ -532,7 +537,7 @@ body.touch-ui #gift-progress{max-width:120px}
             <button id="start-game" class="start-button">START GAME <span aria-hidden="true">▶</span></button>
             <button id="continue-game" hidden>Continue current game</button>
             <p class="keyboard-hint">PRESS ENTER TO START</p>
-            <p class="title-description">A little order.<br>A whole new dimension.</p>
+            <p class="title-description">One plane. A corner. A cube.<br>A whole new dimension.</p>
           </div>
         </div>
         <div class="label-bottom"><span class="eight-bit">8<span>BIT<br>SPIRIT</span></span><span>A KEYBOARD, A CUBE &amp; ONE MORE TRY.</span><span class="tape-mark" aria-hidden="true">▥ ▥</span></div>
@@ -564,7 +569,7 @@ body.touch-ui #gift-progress{max-width:120px}
     </section>
     <aside class="control-panel piece-controls" aria-label="Tetromino controls">
       <div class="panel-heading"><div><span class="panel-number">01 / THE PIECE</span><h2>Tetromino</h2></div><div class="piece-label"><strong id="piece">T</strong><span id="posture">FLAT</span></div></div>
-      <div class="direction-control"><div class="key-grid"><kbd class="key-up">W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><p>Move across the face</p></div>
+      <div class="direction-control"><div class="key-grid"><kbd class="key-up">W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><p>Follow the W A S D markers</p></div>
       <div class="control-row"><span class="key-pair"><kbd>Q</kbd><kbd>E</kbd></span><span>Rotate piece</span></div>
       <div class="control-row"><kbd>F</kbd><span>Stand / flatten</span></div>
       <div class="control-row"><kbd>R</kbd><span>Roll upright piece<small>Choose which edge is down</small></span></div>
@@ -640,7 +645,7 @@ body.touch-ui #gift-progress{max-width:120px}
     <span class="cookie-label">☞ click for fortune</span>
     <div class="fortune-slip">✨ You will soon go skiing in your Formal wear ✨</div>
   </div>
-  <div id="aloha-intro" hidden><div class="intro-text">The present moment is constantly expiring and being created<br>(or is it?)<br><br>Hello and Goodbye.<br><br><strong>Aloha.</strong><br><br><button class="intro-dismiss">CONTINUE</button></div></div>
+  <div id="aloha-intro" hidden><div class="intro-text"><strong>A small beginning.</strong><br><br>Start on one plane. Score to unfold a corner, then a complete cube.<br><br>Your first piece waits while you try the controls.<br><br><button class="intro-dismiss">CONTINUE</button></div></div>
   <script>
 (function(root) {
   'use strict';
@@ -1086,14 +1091,14 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
   const SIZE=6, AREA=SIZE*SIZE, CELL=2/SIZE, TURN_DURATION=.5, SOFT_DROP_MULTIPLIER=10;
   const CLEAR_DURATION=.35, TWIST_DURATION=.8, SETTLE_DURATION=.45;
   const MAX_LAYERS=8;
-  // Ten levels. `faces`: 'all' = full cube, 'plane' = one face, 'corner' = three faces meeting at a corner.
+  // Fifteen levels. `faces`: 'all' = full cube, 'plane' = one face, 'corner' = three faces meeting at a corner.
   // `pieces`: 'intro' = single/double/triple, 'classic' = I T J L O, 'big' = classic + six-block, cube, tripod.
   const LEVELS=[
-    {level:1,score:0,size:3,faces:'all',pieces:'intro'},
-    {level:2,score:30,size:4,faces:'all',pieces:'classic',caption:'4 × 4  •  ROOM TO GROW'},
-    {level:3,score:60,size:5,faces:'all',pieces:'big',caption:'5 × 5  •  ROOM TO GROW'},
+    {level:1,score:0,size:3,faces:'plane',pieces:'intro'},
+    {level:2,score:30,size:4,faces:'corner',pieces:'classic',caption:'TWO NEW SIDES • TRY TIPPING THE CORNER'},
+    {level:3,score:60,size:5,faces:'all',pieces:'classic',caption:'YOUR FIRST CUBE • CUBE START UNLOCKED'},
     {level:4,score:100,size:6,faces:'all',pieces:'big',caption:'6 × 6  •  ROOM TO GROW'},
-    {level:5,score:150,size:4,faces:'plane',pieces:'intro',caption:'FOLDED  •  4 × 4 PLANE'},
+    {level:5,score:150,size:4,faces:'plane',pieces:'intro',caption:'FOLDING CHALLENGE • MASTER THE PLANE'},
     {level:6,score:180,size:5,faces:'plane',pieces:'classic',caption:'5 × 5 PLANE  •  CLASSIC SHAPES'},
     {level:7,score:200,size:5,faces:'corner',pieces:'classic',caption:'TWO NEW SIDES'},
     {level:8,score:240,size:6,faces:'corner',pieces:'big',caption:'6 × 6  •  ALL SHAPES BACK'},
@@ -1192,6 +1197,8 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const f=FACES[face],[w,d]=this.faceDimensions(face,config),bias=this.progression&&config?.terrain?2:0;
       return f.n.map((n,i)=>n*(this.faceRadius(face,config)+(layer-bias)*this.cell)+f.u[i]*(x+.5-w/2)*this.cell+f.v[i]*(z+.5-d/2)*this.cell);
     }
+    stackHeight(face,x,z){return this.columnHeight(face,x,z)-this.floorLevel(face,x,z);}
+    limitLayer(face,x,z){return this.floorLevel(face,x,z)+MAX_LAYERS;}
     worldDimensions(){
       const face=this.topFace(),[w,d]=this.faceDimensions(face),u=transform(this.orientation,FACES[face].u);
       return Math.abs(u[0])>.5?[w,d]:[d,w];
@@ -1282,8 +1289,11 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       if(next.terrain)this.beginTerrain(prev,next);
       else if(next.faces===prev.faces&&next.size>this.size)this.growBoards(next.size);
       else if(next.faces==='plane'&&prev.faces==='all')this.beginFold(next.size);
-      else if(next.faces==='corner'&&prev.faces==='plane')this.beginUnfold(true);
-      else if(next.faces==='all'&&prev.faces==='corner')this.beginUnfold(false);
+      else if((next.faces==='corner'&&prev.faces==='plane')||(next.faces==='all'&&prev.faces==='corner')){
+        const toCorner=next.faces==='corner';
+        if(next.size>this.size){this.growBoards(next.size);this.growth.unfoldAfter=toCorner;}
+        else this.beginUnfold(toCorner);
+      }
     }
     // Level 5: the cube opens out flat, its sides tuck under the top face, then that face shrinks to 4×4.
     beginFold(shrinkTo) {
@@ -1330,7 +1340,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const entry=this.progression&&Number.isInteger(this.startLevel)&&this.startLevel>=1&&this.startLevel<=LEVELS.length?this.startLevel:1;
       const config=LEVELS[entry-1];this.chapterOffset=entry>1?config.score:0;
       this.size=entry>1?config.size:this.startSize;this.growth=null;this.celebration=null;this.awaitingStart=this.waitForStart;
-      this.level=entry;this.terrainRoot=0;this.live=FACES.map((_,f)=>config.faces==='corner'?[0,2,4].includes(f):config.faces==='plane'?f===0:true);
+      this.level=entry;this.terrainRoot=0;this.live=FACES.map((_,f)=>!this.progression?true:config.faces==='corner'?[0,2,4].includes(f):config.faces==='plane'?f===0:true);
       this.orientation=identity();this.turn=null;this.turnQueue=[];this.softDrop=false;
       this.boards=FACES.map(()=>Array(this.area).fill(null));
       this.tiles=FACES.map((_,face)=>Array(this.area).fill(face));
@@ -1713,6 +1723,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         const offset=Math.floor((this.size-g.shrinkTo)/2);
         this.growth={kind:'shrink',from:g.shrinkTo,to:this.size,offset,elapsed:0,duration:GROW_DURATION,reverse:true,root:g.root};
       } else if(g.kind==='shrink')this.cropToPlane(g);
+      else if(g.unfoldAfter!==undefined)this.beginUnfold(g.unfoldAfter);
     }
     // Keep the centre of the kept face; the outer ring (and everything on it) is discarded.
     cropToPlane(g) {
@@ -2993,7 +3004,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         reader.readAsText(f);
       });
       const carePanel=document.createElement('section');carePanel.className='aloha-care';carePanel.setAttribute('aria-label','Living world');
-      const careTitle=document.createElement('strong');careTitle.textContent='LIVING ALOHA';
+      const careTitle=document.createElement('strong');careTitle.textContent='YOUR ISLAND LIFE';
       const careClock=document.createElement('div'),careFood=document.createElement('div'),careInfo=document.createElement('p'),careButton=document.createElement('button');
       careButton.className='aloha-file-btn';careButton.hidden=true;
       careButton.addEventListener('click',()=>{if(selectedCare)interactCare(selectedCare);});
@@ -3001,7 +3012,8 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
       moveButton.addEventListener('click',()=>{if(selectedCare)pickUp(selectedCare);});
       const buyButton=document.createElement('button');buyButton.className='aloha-file-btn';
       buyButton.addEventListener('click',()=>buyFood());
-      carePanel.append(careTitle,careClock,careFood,buyButton,careInfo,careButton,moveButton);
+      const purpose=document.createElement('p');purpose.textContent='Your puzzle rewards live here. Place gifts and make an island your own. Island cassettes let you revisit levels you have passed. Visits and gardening are optional.';
+      carePanel.append(careTitle,purpose,careClock,careFood,buyButton,careInfo,careButton,moveButton);
       function buyFood(){
         if(coins<FOOD_PRICE){say(`Animal food costs ${FOOD_PRICE} coins. Earn a coin for every 10 points.`,4);return;}
         coins-=FOOD_PRICE;food++;T('aloha_buy_food');save();updateCoins(false);updateCare();say('Bought 1 animal food.',3);
@@ -3789,11 +3801,11 @@ window.TrillionCloud=(()=>{
   if (!gl) { document.querySelector('#error').hidden=false; document.querySelector('#error').textContent='WebGL could not start. Enable hardware acceleration and reload.'; return; }
   const vertexSource = `
     attribute vec3 aPosition; attribute vec3 aNormal; attribute vec3 aColor;
-    uniform float uAspect; uniform float uDistance; uniform vec2 uView; varying vec3 vColor;
+    uniform float uAspect; uniform float uDistance; uniform float uFocus; uniform vec2 uView; varying vec3 vColor;
     void main() {
       float cx=cos(uView.x), sx=sin(uView.x), cy=cos(uView.y), sy=sin(uView.y);
       mat3 camera=mat3(1.,0.,0.,0.,cx,sx,0.,-sx,cx)*mat3(cy,0.,-sy,0.,1.,0.,sy,0.,cy);
-      vec3 p=camera*(aPosition-vec3(0.,.85,0.)); p.z-=uDistance;
+      vec3 p=camera*(aPosition-vec3(0.,uFocus,0.)); p.z-=uDistance;
       float f=2.7*min(uAspect,1.);
       gl_Position=vec4(p.x*f/uAspect,p.y*f,-1.002002*p.z-.2002002,-p.z);
       float light=.48+.52*max(dot(aNormal,normalize(vec3(-.4,1.,.7))),0.);
@@ -3809,7 +3821,7 @@ window.TrillionCloud=(()=>{
   const buffer=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
   for(const [name,offset] of [['aPosition',0],['aNormal',12],['aColor',24]]) { const a=gl.getAttribLocation(program,name); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a,3,gl.FLOAT,false,36,offset); }
   const aspect=gl.getUniformLocation(program,'uAspect'), distance=gl.getUniformLocation(program,'uDistance');
-  const viewUniform=gl.getUniformLocation(program,'uView');
+  const viewUniform=gl.getUniformLocation(program,'uView'),focusUniform=gl.getUniformLocation(program,'uFocus');
   gl.enable(gl.DEPTH_TEST); gl.clearColor(0,0,0,0);
   const celebrationFX=new TrillionCelebration.Celebration(document.querySelector('#celebration'));
   let lastCelebration=null,celebrationNote=0;
@@ -3933,8 +3945,17 @@ window.TrillionCloud=(()=>{
   let alohaOpen=false,alohaBusy=false,alohaWasPaused=false,alohaCoin=0,lastAlohaScore=0;
   const awardNotices=new TrillionMusic.AwardQueue();
   let lastAlohaDispensed=game.totalDispensed||0;
-  let selectedChapter=1;
-  function refreshChapterChoices(){}
+  let selectedChapter=1,cubeStartUnlocked=false;
+  try{cubeStartUnlocked=storage?.getItem('trillion-cube-start')==='1';}catch{}
+  const cubeStartButton=document.createElement('button');cubeStartButton.id='start-cube';cubeStartButton.textContent='START FROM CUBE · LEVEL 3';
+  cubeStartButton.title='Fresh board and zero score. Your Aloha world stays with you.';
+  document.querySelector('#start-game').after(cubeStartButton);
+  function refreshChapterChoices(){
+    if(!cubeStartUnlocked&&aloha?.exportData().passed>=2)cubeStartUnlocked=true;
+    cubeStartButton.hidden=!cubeStartUnlocked;
+  }
+  refreshChapterChoices();
+  cubeStartButton.addEventListener('click',()=>{if(cubeStartUnlocked){selectedChapter=3;hideFortune();_origStartGame(true);}});
   alohaRoot.addEventListener('aloha-start-chapter',async event=>{
     const level=Number(event.detail?.level);
     if(alohaBusy||!Number.isInteger(level)||level<1||level>aloha.chapterCount()*3)return;
@@ -4024,10 +4045,10 @@ window.TrillionCloud=(()=>{
   },true);
   window.addEventListener('keyup',event=>{if(event.target.closest?.('#acct-overlay,#log-overlay'))return;if(alohaOpen||alohaBusy){event.stopImmediatePropagation();if(alohaOpen)aloha.keyup(event);}},true);
 
-  document.querySelector('#restart').addEventListener('click',()=>{guide.end('restart');updateHighScore();game.reset();setPaused(false);canvas.focus();});
+  document.querySelector('#restart').addEventListener('click',()=>{guide.end('restart');updateHighScore();game.reset();cameraReady=false;setPaused(false);canvas.focus();});
   // ---- Guided opening ----
-  // Walks a new player through the classic first chain: 1-block in the corner, tip left twice, 2-block up the left edge,
-  // tip right once, 3-block across the middle. Tips wait for the player; any step off the script ends the guide.
+  // The plane tutorial teaches sliding, spinning, and dropping without requiring absent faces.
+  // Its first two shapes complete a column; the third completes a row. Off-script play stays free.
   const GUIDE_EVERY_TIME=true; // TEMP: show on every new game (set false to show once per browser)
   const GUIDE_KEY='trillion-guide-v1';
   const guide=(()=>{
@@ -4035,9 +4056,9 @@ window.TrillionCloud=(()=>{
     const piece=(cells,x,z)=>({type:'GUIDE',solid:false,upright:false,rotation:0,roll:0,height:0,cells,x,z});
     const STEPS=[
       {kind:'place',mark:'①',text:'Slide the 1-block into the glowing corner (A / S), then press Space to begin and hold it to drop.',touch:'Drag the gold left sphere to slide the block into the glowing corner, then hold the sphere to begin and drop it.',mode:'slide',piece:piece([[0,0]],0,2)},
-      {kind:'tip',mark:'②',text:'Tip the cube LEFT with the ← key.',touch:'Drag the right sphere LEFT to tip the cube.',axis:'z',d:1,count:2,arrow:'left'},
-      {kind:'place',mark:'③',text:'Turn the 2-block (Q or E), slide it into the glow (W A S D), then hold Space to drop.',touch:'Drag the blue left sphere sideways to turn the 2-block. Tap the sphere to slide it into the glow, then hold to drop.',mode:'turn',piece:piece([[0,0],[0,1]],0,0)},
-      {kind:'tip',mark:'④',text:'Now tip the cube RIGHT with the → key.',touch:'Now drag the right sphere RIGHT.',axis:'z',d:-1,count:1,arrow:'right'},
+      {kind:'tip',mark:'②',text:'Spin the plane clockwise with /.',touch:'Tap the purple right sphere to spin the plane clockwise.',axis:'y',d:-1,count:1},
+      {kind:'place',mark:'③',text:'Turn the 2-block (Q or E), slide it into the glow (W A S D), then hold Space to drop.',touch:'Drag the blue left sphere sideways to turn the 2-block. Tap the sphere to slide it into the glow, then hold to drop.',mode:'turn',piece:piece([[0,0],[0,1]],0,1)},
+      {kind:'tip',mark:'④',text:'Spin the plane once more with /.',touch:'Tap the purple right sphere once more to spin the plane.',axis:'y',d:-1,count:1},
       {kind:'place',mark:'⑤',text:'Hold Space to drop the 3-block across the glowing middle.',touch:'Hold the left sphere to drop the 3-block across the glowing middle.',mode:'slide',piece:piece([[0,0],[1,0],[2,0]],0,1)}
     ];
     const keyOf=list=>list.map(t=>`${t.face}:${t.x}:${t.z}:${t.y||0}`).sort().join('|');
@@ -4063,7 +4084,7 @@ window.TrillionCloud=(()=>{
         stepEl.textContent=st.mark;
         const words=TOUCH_UI&&st.touch?st.touch:st.text;
         textEl.textContent=st.kind==='tip'&&st.count>1?`${words} (${Math.min(g.tips+1,st.count)} of ${st.count})`:words;
-        hint.hidden=false;
+        hint.hidden=false;document.body.classList.add('guided-opening');
       },
       // Called every frame: a tip step is finished once its turns have fully played out.
       update(){
@@ -4088,7 +4109,7 @@ window.TrillionCloud=(()=>{
       },
       end(reason,quiet){
         if(g.active&&reason==='done'){try{localStorage.setItem(GUIDE_KEY,'1');}catch(e){}}
-        g.active=false;g.targets=null;g.arrow=null;g.key='';game.guideHold=false;hint.hidden=true;
+        g.active=false;g.targets=null;g.arrow=null;g.key='';game.guideHold=false;hint.hidden=true;document.body.classList.remove('guided-opening');
       }
     };
     // Watch the player's moves without changing how the game plays.
@@ -4115,7 +4136,7 @@ window.TrillionCloud=(()=>{
     if(gameOverDialog.open)gameOverDialog.close();
     music.start();
     updateHighScore();
-    if(fresh){refreshChapterChoices();game.startLevel=selectedChapter;game.playerCount=Number(document.querySelector('input[name=players]:checked').value);game.reset();alohaCoin=0;lastAlohaScore=0;}
+    if(fresh){cameraReady=false;refreshChapterChoices();game.startLevel=selectedChapter;game.playerCount=Number(document.querySelector('input[name=players]:checked').value);game.reset();alohaCoin=0;lastAlohaScore=0;}
     onTitle=false;started=true;statGameStart(fresh);
     if(fresh)guide.begin();
     titleScreen.hidden=true;gameScreen.inert=false;gameScreen.removeAttribute('aria-hidden');
@@ -4155,7 +4176,7 @@ window.TrillionCloud=(()=>{
     if(fresh)await showAlohaIntro(); // TEMP: show intro every new game (was: only if !alohaIntroSeen)
     _origStartGame(fresh);
   };
-  document.querySelector('#start-game').addEventListener('click',()=>startGame());
+  document.querySelector('#start-game').addEventListener('click',()=>{selectedChapter=1;startGame();});
   document.querySelector('#continue-game').addEventListener('click',()=>startGame(false));
   function showTitle() {
     selectedChapter=1;
@@ -4322,7 +4343,7 @@ window.TrillionCloud=(()=>{
     tcPause.addEventListener('click',()=>setPaused(!game.paused));
     menuBtn.addEventListener('click',()=>{menu.hidden=!menu.hidden;menuBtn.setAttribute('aria-expanded',String(!menu.hidden));});
     menu.addEventListener('click',e=>{const b=e.target.closest('button[data-do]');if(!b)return;menu.hidden=true;menuBtn.setAttribute('aria-expanded','false');document.querySelector('#'+b.dataset.do).click();});
-    document.querySelector('#begin-prompt').textContent='hold the left sphere to begin';
+    if(TOUCH_UI)document.querySelector('#begin-prompt').textContent='hold the left sphere to begin';
     // keep the spheres in step with the game
     let lastSig='';
     (function sync(){
@@ -4343,7 +4364,7 @@ window.TrillionCloud=(()=>{
   const faceLabel=document.querySelector('#face'), countLabel=document.querySelector('#count'), stateLabel=document.querySelector('#state'), pieceLabel=document.querySelector('#piece'), facesLabel=document.querySelector('#faces');
   const scoreLabel=document.querySelector('#score');
   const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
-  let previous, cameraDistance=8.5,scoreHue=42,powerTime=0;
+  let previous, cameraDistance=6,cameraFocus=2,cameraReady=false,scoreHue=42,powerTime=0;
   let glowSnap=null,landFx=null,lastPlaced=0;
   const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
   function terrainPowerOutline(area,color,m,kind){
@@ -4381,10 +4402,71 @@ window.TrillionCloud=(()=>{
       quad([a,b,c,e],normal,color.map(v=>v*.72),m);
     }
   }
+  function fitPlayCamera(geometry,width,height,pitch,yaw){
+    if(!geometry.length)return {distance:6,focus:2};
+    let lo=Infinity,hi=-Infinity;
+    for(let i=0;i<geometry.length;i+=9){lo=Math.min(lo,geometry[i+1]);hi=Math.max(hi,geometry[i+1]);}
+    const focus=(lo+hi)/2,aspect=width/height,f=2.7*Math.min(aspect,1);
+    const cy=Math.cos(yaw),sy=Math.sin(yaw),cx=Math.cos(pitch),sx=Math.sin(pitch);
+    let distance=4.4;
+    for(let i=0;i<geometry.length;i+=9){
+      const x=geometry[i],y=geometry[i+1]-focus,z=geometry[i+2];
+      const xx=cy*x+sy*z,zz=-sy*x+cy*z,py=cx*y-sx*zz,pz=sx*y+cx*zz;
+      distance=Math.max(distance,pz+Math.max(Math.abs(xx)*f/aspect/.76,Math.abs(py)*f/.76)+.18);
+    }
+    return {distance,focus};
+  }
+  const guideCanvas=document.createElement('canvas');guideCanvas.id='play-guides';guideCanvas.setAttribute('aria-hidden','true');canvas.after(guideCanvas);
+  const guideCtx=guideCanvas.getContext('2d');
+  function drawPlayGuides(time,width,height,dpr){
+    const rect=canvas.getBoundingClientRect();
+    guideCanvas.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;pointer-events:none`;
+    if(guideCanvas.width!==width||guideCanvas.height!==height){guideCanvas.width=width;guideCanvas.height=height;}
+    guideCtx.clearRect(0,0,width,height);
+    if(game.growth||game.celebration||game.turn||game.resolution)return;
+    const face=game.topFace(),m=game.orientation,[w,d]=game.faceDimensions(face);
+    const project=p=>{
+      const [x,y,z]=p,cy=Math.cos(viewYaw),sy=Math.sin(viewYaw),cx=Math.cos(viewPitch),sx=Math.sin(viewPitch);
+      const xx=cy*x+sy*z,zz=-sy*x+cy*z,yy=y-cameraFocus;
+      const py=cx*yy-sx*zz,pz=sx*yy+cx*zz-cameraDistance,f=2.7*Math.min(width/height,1);
+      return [width/2+xx*f/(width/height)/(-pz)*width/2,height/2-py*f/(-pz)*height/2];
+    };
+    const local=(x,z,l)=>project(transform(m,game.surfacePoint(face,x,z,l)));
+    const line=(a,b,color,weight=1,dash=[])=>{guideCtx.beginPath();guideCtx.strokeStyle=color;guideCtx.lineWidth=weight*dpr;guideCtx.setLineDash(dash.map(v=>v*dpr));guideCtx.moveTo(...a);guideCtx.lineTo(...b);guideCtx.stroke();};
+    // Danger belongs to an actual high stack, never to an empty ceiling.
+    const pulse=reducedMotion.matches?1:.82+.18*Math.sin(time*.003);
+    for(let z=0;z<d;z++)for(let x=0;x<w;x++){
+      const h=game.stackHeight(face,x,z);if(h<6)continue;
+      const color=h>=7?`rgba(255,113,99,${pulse})`:'rgba(255,205,112,.9)';
+      const points=[[-.46,-.46],[.46,-.46],[.46,.46],[-.46,.46]].map(([dx,dz])=>local(x+dx,z+dz,game.floorLevel(face,x,z)+h+.015));
+      guideCtx.save();guideCtx.shadowColor=color;guideCtx.shadowBlur=8*dpr;
+      for(let i=0;i<4;i++)line(points[i],points[(i+1)%4],color,2);
+      guideCtx.restore();
+    }
+    guideCtx.setLineDash([]);
+    // The diamond stays attached to this face's original corner through every rotation.
+    const corner=local(-.36,-.36,game.floorLevel(face,0,0)+.025);
+    guideCtx.fillStyle='#fff0b8';guideCtx.strokeStyle='#16313d';guideCtx.lineWidth=2*dpr;guideCtx.beginPath();
+    for(const [i,[dx,dy]] of [[0,[0,-5]],[1,[5,0]],[2,[0,5]],[3,[-5,0]]]){const p=[corner[0]+dx*dpr,corner[1]+dy*dpr];i?guideCtx.lineTo(...p):guideCtx.moveTo(...p);}guideCtx.closePath();guideCtx.fill();guideCtx.stroke();
+    const [ww,wd]=game.worldDimensions();
+    // World axes match move(dx,dz); camera projection changes the displayed arrows automatically.
+    for(const [key,dx,dz,color] of [['W',0,-1,'#83f0e2'],['S',0,1,'#83f0e2'],['A',-1,0,'#ffda91'],['D',1,0,'#ffda91']]){
+      const y=game.faceRadius(face)+.08;
+      const a=project([dx*(ww*CELL/2+.08),y,dz*(wd*CELL/2+.08)]);
+      const b=project([dx*(ww*CELL/2+.42),y,dz*(wd*CELL/2+.42)]);
+      line(a,b,color,2);
+      const angle=Math.atan2(b[1]-a[1],b[0]-a[0]);
+      for(const sign of [-1,1])line(b,[b[0]-7*dpr*Math.cos(angle+sign*.5),b[1]-7*dpr*Math.sin(angle+sign*.5)],color,2);
+      const tx=b[0]+Math.cos(angle)*15*dpr,ty=b[1]+Math.sin(angle)*15*dpr;
+      guideCtx.fillStyle='#12202fee';guideCtx.beginPath();guideCtx.arc(tx,ty,11*dpr,0,Math.PI*2);guideCtx.fill();
+      guideCtx.fillStyle=color;guideCtx.font=`bold ${12*dpr}px system-ui`;guideCtx.textAlign='center';guideCtx.textBaseline='middle';guideCtx.fillText(TOUCH_UI?({W:'↑',S:'↓',A:'←',D:'→'}[key]):key,tx,ty);
+    }
+  }
   function render(time) {
     const dt=previous===undefined?0:Math.min((time-previous)/1000,.05); previous=time;
     if(onTitle){requestAnimationFrame(render);return;}
     game.tick(dt);guide.update();updateHighScore();
+    if(game.level>=3&&!cubeStartUnlocked){cubeStartUnlocked=true;try{storage?.setItem('trillion-cube-start','1');}catch{}refreshChapterChoices();}
     // Aloha Items are earned silently as the score passes 10, 30, 60, 100 and 150 in a run.
     if(game.score<lastAlohaScore){alohaCoin=0;}
     lastAlohaScore=game.score;
@@ -4402,7 +4484,7 @@ window.TrillionCloud=(()=>{
         const message=document.createElement('span');message.textContent=gift.msg;
         toast.replaceChildren(heading,message);
         if(gift.id!=='island'){
-          const invitation=document.createElement('span');invitation.className='gift-invitation';invitation.textContent=document.body.classList.contains('touch-ui')?'Tap 🌴 to go to Aloha.':'Press 7 to go to Aloha.';toast.append(invitation);
+          const invitation=document.createElement('span');invitation.className='gift-invitation';invitation.textContent=TOUCH_UI?'A gift for your island. Tap 🌴 to visit Aloha whenever you like.':'A gift for your island. Press 7 to visit Aloha whenever you like.';toast.append(invitation);
         }
         for(let i=0;i<24;i++){
           const sparkle=document.createElement('i');sparkle.className='gift-sparkle';sparkle.setAttribute('aria-hidden','true');
@@ -4641,14 +4723,19 @@ window.TrillionCloud=(()=>{
         }
       }
     }
-    const targetDistance=8.5+Math.max(0,extent-2.8)*3+Math.max(0,pieceExtent-3.4)*2.2;
-    cameraDistance+=(targetDistance-cameraDistance)*Math.min(1,dt*5);
     const viewBlend=1-Math.exp(-dt*14);
     viewPitch+=(targetPitch-viewPitch)*viewBlend;viewYaw+=(targetYaw-viewYaw)*viewBlend;
+    const framing=fitPlayCamera(vertices,width,height,viewPitch,viewYaw);
+    if(!cameraReady){cameraDistance=framing.distance;cameraFocus=framing.focus;cameraReady=true;}
+    else {
+      cameraDistance+=(framing.distance-cameraDistance)*Math.min(1,dt*5);
+      cameraFocus+=(framing.focus-cameraFocus)*Math.min(1,dt*5);
+    }
     gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([...vertices,...outlines]),gl.DYNAMIC_DRAW);
     gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform1f(aspect,width/height);gl.uniform1f(distance,cameraDistance);
-    gl.uniform2f(viewUniform,viewPitch,viewYaw);
+    gl.uniform2f(viewUniform,viewPitch,viewYaw);gl.uniform1f(focusUniform,cameraFocus);
     gl.drawArrays(gl.TRIANGLES,0,vertices.length/9);gl.drawArrays(gl.LINES,vertices.length/9,outlines.length/9);
+    drawPlayGuides(time,width,height,dpr);
     faceLabel.textContent='Level '+game.level+' · '+FACES[top].name+' · '+game.faceDimensions(top).join('×')+(game.echo?' · ECHO':'');
     const nextLevel=LEVELS[game.level];
     const count=game.boards[top].filter(Boolean).length;
@@ -4695,6 +4782,15 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-10-28-focus',date:'Oct 28, 2026',title:'The playfield takes center stage',items:[
+      'The plane, cube and falling piece now fill the playable space. Touch controls leave more room for the board.',
+      'Removed the permanent dotted height rim. A high stack glows amber at six layers and softly pulses red at seven.'
+    ]},
+    {id:'2026-10-28-merge',date:'Oct 28, 2026',title:'A clearer beginning, on desktop and touch',items:[
+      'Start on a plane, unfold a corner at 30 points, and reach a full cube at 60. Reaching the cube unlocks a fresh level-three start from the title.',
+      'Surface arrows clarify movement. High stacks glow before overflowing.',
+      'Touch spheres, cassette level selection, growing planets, and the Aloha shop drawer are preserved. The opening tutorial now teaches spinning the plane.'
+    ]},
     {id:'2026-10-22i',date:'Oct 22, 2026',title:'Shop drawer clears the spheres',items:[
       'On phones, opening the Aloha shop and care drawer hides the control spheres so the whole panel is visible. The button turns into ✕ CLOSE, and the spheres return when you close it.'
     ]},
