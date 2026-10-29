@@ -107,24 +107,37 @@ for(const level of [1,11,12,13,14,15]){
 console.log('PASS: plane/corner/cube progression, block conservation, free cube entry, sandbox faces and terrain-relative warning heights');
 // Rendering smoke checks use the real guide function and camera-fit calculation, with a recording canvas.
 const guideSource=html.match(/  function drawPlayGuides\(time,width,height,dpr\)\{[\s\S]*?\n  \}\n  function render/)[0].replace(/\n  function render$/,'');
-const cameraSource=html.match(/    let limitDistance=0;[\s\S]*?    const targetDistance=Math.max\([^\n]+/)[0];
-for(const level of [1,3,11,14,15])for(const [width,height] of [[1200,580],[390,334]])for(const yaw of [-1.43,-.48,.47])for(const pitch of [.25,.62,1.35])for(const touch of [false,true]){
- const view=level===1?new Game():game(level);if(level===3){view.size=5;view.boards=FACES.map(()=>[]);view.tiles=FACES.map((_,f)=>Array(25).fill(f));}
- const labels=[],coords=[];
- const guideCtx=new Proxy({fillText:(k,x,y)=>{labels.push(k);coords.push([x,y]);},moveTo:(x,y)=>coords.push([x,y]),lineTo:(x,y)=>coords.push([x,y]),arc:(x,y)=>coords.push([x,y])},{get:(o,k)=>k in o?o[k]:(()=>{}),set:(o,k,v)=>{o[k]=v;return true;}});
- const c={game:view,guideCanvas:{width,height,style:{}},canvas:{getBoundingClientRect:()=>({left:0,top:150,width,height})},guideCtx,TOUCH_UI:touch,reducedMotion:{matches:true},viewPitch:pitch,viewYaw:yaw,width,height,dpr:1,CELL:view.cell,transform:ctx.module.exports.transform,m:view.orientation,top:0,extent:2.8,pieceExtent:4};
- vm.createContext(c);vm.runInContext(cameraSource+'\ncameraDistance=targetDistance;'+guideSource+'\ndrawPlayGuides(0,width,height,1);',c);
- assert.equal(labels.sort().join(''),touch?['↑','↓','←','→'].sort().join(''):'ADSW');assert(coords.every(p=>p.every(Number.isFinite)));
- assert(coords.every(([x,y])=>x>=0&&x<=width&&y>=0&&y<=height),`guide bounds level ${level}, width ${width}, yaw ${yaw}`);
+const cameraSource=html.match(/  function fitPlayCamera\(geometry,width,height,pitch,yaw\)\{[\s\S]*?\n  \}/)[0];
+function geometryFor(view){
+ const data=[];const add=p=>data.push(...p,0,1,0,1,1,1);
+ for(const face of view.activeFaces()){
+  const [w,d]=view.faceDimensions(face);
+  for(let z=0;z<d;z++)for(let x=0;x<w;x++)for(const [dx,dz] of [[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]])add(view.surfacePoint(face,x+dx,z+dz,view.floorLevel(face,x,z)));
+ }
+ for(const x of [-.33,.33])for(const z of [-.33,.33])for(const y of [4,4.67])add([x,y,z]);
+ return data;
 }
-console.log('PASS: guide rendering and height-limit framing at desktop/mobile dimensions and camera yaw extremes');
+for(const level of [1,3,11,14,15])for(const [width,height] of [[1200,500],[390,320],[390,410]])for(const yaw of [-1.43,-.48,.47])for(const pitch of [.25,.62,1.35])for(const touch of [false,true]){
+ const view=level===1?new Game():game(level);if(level===3){view.size=5;view.boards=FACES.map(()=>[]);view.tiles=FACES.map((_,f)=>Array(25).fill(f));}
+ const labels=[],coords=[],dashes=[];let strokes=0;
+ const guideCtx=new Proxy({stroke:()=>strokes++,setLineDash:a=>dashes.push(a),fillText:(k,x,y)=>{labels.push(k);coords.push([x,y]);},moveTo:(x,y)=>coords.push([x,y]),lineTo:(x,y)=>coords.push([x,y]),arc:(x,y)=>coords.push([x,y])},{get:(o,k)=>k in o?o[k]:(()=>{}),set:(o,k,v)=>{o[k]=v;return true;}});
+ const c={game:view,geometry:geometryFor(view),guideCanvas:{width,height,style:{}},canvas:{getBoundingClientRect:()=>({left:0,top:115,width,height})},guideCtx,TOUCH_UI:touch,reducedMotion:{matches:true},viewPitch:pitch,viewYaw:yaw,width,height,dpr:1,CELL:view.cell,transform:ctx.module.exports.transform};
+ vm.createContext(c);vm.runInContext(cameraSource+'\nconst framing=fitPlayCamera(geometry,width,height,viewPitch,viewYaw);cameraDistance=framing.distance;cameraFocus=framing.focus;'+guideSource+'\ndrawPlayGuides(0,width,height,1);',c);
+ assert.equal(labels.sort().join(''),touch?['↑','↓','←','→'].sort().join(''):'ADSW');assert(coords.every(p=>p.every(Number.isFinite)));
+ assert(dashes.every(a=>a.length===0),'no dotted warning geometry');
+ const baseline=strokes,floor=view.floorLevel(0,0,0);
+ view.boards[0][view.index(0,0,floor+4)]='I';vm.runInContext('drawPlayGuides(0,width,height,1)',c);assert.equal(strokes,baseline*2,'five layers show no warning');
+ view.boards[0][view.index(0,0,floor+5)]='I';vm.runInContext('drawPlayGuides(0,width,height,1)',c);assert.equal(strokes,baseline*3+4,'six layers add only four cap edges');
+ if(level===1&&pitch===.62&&yaw===-.48)assert(c.cameraDistance<8.5,'opening stays close instead of zooming to a height limit');
+}
+console.log('PASS: camera frames visible geometry; no permanent rim; warnings appear only at six layers; desktop and touch markers render');
 // Exercise the repository tutorial controller against the merged plane rules.
 const uiScript=scripts.find(s=>s.includes('const GUIDE_EVERY_TIME='));
 const tutorialCode=uiScript.slice(uiScript.indexOf('  const guide=(()=>{'),uiScript.indexOf('  function startGame(',uiScript.indexOf('  const guide=(()=>{')));
 for(const touch of [false,true]){
  const tutorGame=new Game(()=>.3),elements=new Map();
  const element=()=>({hidden:false,textContent:'',querySelector(){return element();},addEventListener(){}});
- const tc={game:tutorGame,document:{querySelector:s=>{if(!elements.has(s))elements.set(s,element());return elements.get(s);}},window:{addEventListener(){}},localStorage:{getItem(){return null},setItem(){}},canvas:{focus(){}},onTitle:false,TOUCH_UI:touch,GUIDE_EVERY_TIME:true,GUIDE_KEY:'test'};
+ const tc={game:tutorGame,document:{body:{classList:{add(){},remove(){}}},querySelector:s=>{if(!elements.has(s))elements.set(s,element());return elements.get(s);}},window:{addEventListener(){}},localStorage:{getItem(){return null},setItem(){}},canvas:{focus(){}},onTitle:false,TOUCH_UI:touch,GUIDE_EVERY_TIME:true,GUIDE_KEY:'test'};
  vm.createContext(tc);vm.runInContext(tutorialCode+'\nglobalThis.tutor=guide;',tc);tc.tutor.begin();assert(tc.tutor.active);
  tutorGame.active.x=0;tutorGame.active.z=2;tutorGame.active.height=0;assert(tutorGame.land());assert.equal(tc.tutor.i,1);
  tutorGame.rotateCube('y',-1);tutorGame.tick(.6);tc.tutor.update();assert.equal(tc.tutor.i,2);assert.equal(tutorGame.activeFaces().length,1);

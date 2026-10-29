@@ -439,15 +439,20 @@ body.touch-ui #aloha .aloha-top{transform:scale(.8);transform-origin:top right;r
 body.touch-ui #aloha .aloha-inventory{bottom:200px!important;height:auto!important;transform:scale(.72);transform-origin:bottom center}
 body.touch-ui #aloha .aloha-hint{bottom:290px!important;font-size:11px!important;letter-spacing:1px!important;padding:0 12px}
 </style>
+<style id="playfield-focus-css">
+body.guided-opening:not(.touch-ui) #guide-hint{bottom:30px;}
+body.guided-opening:not(.touch-ui) #game-screen .readout{visibility:hidden;}
+body.touch-ui.guided-opening #game-screen #scene{height:calc(100dvh - 115px - 265px)!important;}
+</style>
 <style id="touch-css">
 /* ---- Touch layout: two control spheres (portrait first). Shown only on touch devices, or with ?touch=1 ---- */
 #touch-controls,#tc-top{display:none}
 body.touch-ui:not(.at-title) #touch-controls,body.touch-ui:not(.at-title) #tc-top{display:block}
 body.touch-ui{overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-body.touch-ui #touch-controls{position:fixed;left:0;right:0;bottom:0;height:200px;z-index:40;pointer-events:none;padding-bottom:env(safe-area-inset-bottom)}
-.sphere-wrap{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 30px);display:flex;flex-direction:column;align-items:center;gap:7px;pointer-events:none}
+body.touch-ui #touch-controls{position:fixed;left:0;right:0;bottom:0;height:170px;z-index:40;pointer-events:none;padding-bottom:env(safe-area-inset-bottom)}
+.sphere-wrap{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 24px);display:flex;flex-direction:column;align-items:center;gap:7px;pointer-events:none}
 .sphere-wrap.left{left:14px}.sphere-wrap.right{right:14px}
-.sphere{--c:#35d6ff;--g:#35d6ff99;position:relative;width:116px;height:116px;border-radius:50%;pointer-events:auto;touch-action:none;cursor:pointer;
+.sphere{--c:#35d6ff;--g:#35d6ff99;position:relative;width:96px;height:96px;border-radius:50%;pointer-events:auto;touch-action:none;cursor:pointer;
   border:2px solid #ffffff40;outline:none;
   background:radial-gradient(circle at 33% 27%,#ffffffd9 0 5%,color-mix(in srgb,var(--c) 45%,#fff) 13%,var(--c) 42%,color-mix(in srgb,var(--c) 40%,#050b16) 78%,#050b16 100%);
   box-shadow:0 0 26px var(--g),0 8px 18px #000b,inset -10px -14px 22px #0008,inset 6px 8px 14px #ffffff55;transition:box-shadow .2s,transform .12s,filter .2s}
@@ -486,20 +491,20 @@ body.touch-ui .readout .eyebrow,body.touch-ui .readout > span,body.touch-ui .rea
 body.touch-ui .score-details .game-best{display:none!important}
 body.touch-ui #game-screen .scoreboard{top:max(8px,env(safe-area-inset-top));min-width:0;width:calc(100% - 190px)}
 body.touch-ui #game-screen .scoreboard .eyebrow{font-size:9px}
-body.touch-ui #game-screen #score{font-size:40px;margin:2px 0}
+body.touch-ui #game-screen #score{font-size:32px;margin:2px 0}
 body.touch-ui .score-details{font-size:10px}
-body.touch-ui #begin-prompt{position:fixed;left:50%;top:calc(max(8px,env(safe-area-inset-top)) + 130px);transform:translateX(-50%);width:max-content;max-width:calc(100vw - 30px);box-sizing:border-box;font-size:12px;margin:0;padding:7px 12px;z-index:5;text-align:center}
+body.touch-ui #begin-prompt{position:fixed;left:50%;top:calc(max(8px,env(safe-area-inset-top)) + 102px);transform:translateX(-50%);width:max-content;max-width:calc(100vw - 30px);box-sizing:border-box;font-size:12px;margin:0;padding:7px 12px;z-index:5;text-align:center}
 body.touch-ui .scoreboard #score-label{display:none}
-body.touch-ui #game-screen .readout{display:block;position:fixed;top:calc(max(8px,env(safe-area-inset-top)) + 96px);left:50%;bottom:auto;transform:translateX(-50%);padding:5px 14px;white-space:nowrap}
+body.touch-ui #game-screen .readout{display:block;position:fixed;top:calc(max(8px,env(safe-area-inset-top)) + 72px);left:50%;bottom:auto;transform:translateX(-50%);padding:5px 14px;white-space:nowrap}
 body.touch-ui #game-screen .readout h1{font-size:14px;margin:0}
-body.touch-ui #game-screen #scene{top:150px;height:calc(100dvh - 150px - 210px);min-height:200px}
+body.touch-ui #game-screen #scene{top:115px;height:calc(100dvh - 115px - 175px);min-height:200px}
 body.touch-ui:not(.at-title) .music-player{top:max(10px,env(safe-area-inset-top));left:10px;bottom:auto;right:auto;flex-direction:row;padding:0}
 body.touch-ui.at-title .music-player{top:auto;left:10px;right:auto;bottom:12px;flex-direction:row;padding:0;width:auto;height:auto}
 body.touch-ui .music-player input{display:none}
 body.touch-ui .music-player button{min-width:0;width:42px;height:38px;padding:0;font-size:0;border-radius:10px}
 body.touch-ui .music-player button::before{content:'♫';font-size:17px}
 body.touch-ui .music-player button[aria-pressed="false"]{opacity:.55}
-body.touch-ui #guide-hint{bottom:calc(env(safe-area-inset-bottom) + 190px);font-size:12px;padding:8px 10px;max-width:calc(100vw - 20px)}
+body.touch-ui #guide-hint{bottom:calc(env(safe-area-inset-bottom) + 150px);font-size:12px;padding:8px 10px;max-width:calc(100vw - 20px)}
 body.touch-ui #gift-progress{max-width:120px}
 </style>
 <style>#fortune-cookie .cookie-art{width:260px;height:180px}#fortune-cookie .cookie-half img{display:block;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none}#fortune-cookie .cookie-left img{clip-path:inset(0 50% 0 0)}#fortune-cookie .cookie-right img{clip-path:inset(0 0 0 50%)}#fortune-cookie .fortune-slip{bottom:190px}#fortune-cookie:focus-visible{outline:2px solid #f3cf98;outline-offset:8px;border-radius:12px}@media(max-width:650px){#fortune-cookie .cookie-art{width:180px;height:124px}#fortune-cookie .fortune-slip{bottom:134px;left:0;transform:none;min-width:170px;max-width:200px;animation:none}}</style></head>
@@ -3796,11 +3801,11 @@ window.TrillionCloud=(()=>{
   if (!gl) { document.querySelector('#error').hidden=false; document.querySelector('#error').textContent='WebGL could not start. Enable hardware acceleration and reload.'; return; }
   const vertexSource = `
     attribute vec3 aPosition; attribute vec3 aNormal; attribute vec3 aColor;
-    uniform float uAspect; uniform float uDistance; uniform vec2 uView; varying vec3 vColor;
+    uniform float uAspect; uniform float uDistance; uniform float uFocus; uniform vec2 uView; varying vec3 vColor;
     void main() {
       float cx=cos(uView.x), sx=sin(uView.x), cy=cos(uView.y), sy=sin(uView.y);
       mat3 camera=mat3(1.,0.,0.,0.,cx,sx,0.,-sx,cx)*mat3(cy,0.,-sy,0.,1.,0.,sy,0.,cy);
-      vec3 p=camera*(aPosition-vec3(0.,.85,0.)); p.z-=uDistance;
+      vec3 p=camera*(aPosition-vec3(0.,uFocus,0.)); p.z-=uDistance;
       float f=2.7*min(uAspect,1.);
       gl_Position=vec4(p.x*f/uAspect,p.y*f,-1.002002*p.z-.2002002,-p.z);
       float light=.48+.52*max(dot(aNormal,normalize(vec3(-.4,1.,.7))),0.);
@@ -3816,7 +3821,7 @@ window.TrillionCloud=(()=>{
   const buffer=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
   for(const [name,offset] of [['aPosition',0],['aNormal',12],['aColor',24]]) { const a=gl.getAttribLocation(program,name); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a,3,gl.FLOAT,false,36,offset); }
   const aspect=gl.getUniformLocation(program,'uAspect'), distance=gl.getUniformLocation(program,'uDistance');
-  const viewUniform=gl.getUniformLocation(program,'uView');
+  const viewUniform=gl.getUniformLocation(program,'uView'),focusUniform=gl.getUniformLocation(program,'uFocus');
   gl.enable(gl.DEPTH_TEST); gl.clearColor(0,0,0,0);
   const celebrationFX=new TrillionCelebration.Celebration(document.querySelector('#celebration'));
   let lastCelebration=null,celebrationNote=0;
@@ -4040,7 +4045,7 @@ window.TrillionCloud=(()=>{
   },true);
   window.addEventListener('keyup',event=>{if(event.target.closest?.('#acct-overlay,#log-overlay'))return;if(alohaOpen||alohaBusy){event.stopImmediatePropagation();if(alohaOpen)aloha.keyup(event);}},true);
 
-  document.querySelector('#restart').addEventListener('click',()=>{guide.end('restart');updateHighScore();game.reset();setPaused(false);canvas.focus();});
+  document.querySelector('#restart').addEventListener('click',()=>{guide.end('restart');updateHighScore();game.reset();cameraReady=false;setPaused(false);canvas.focus();});
   // ---- Guided opening ----
   // The plane tutorial teaches sliding, spinning, and dropping without requiring absent faces.
   // Its first two shapes complete a column; the third completes a row. Off-script play stays free.
@@ -4079,7 +4084,7 @@ window.TrillionCloud=(()=>{
         stepEl.textContent=st.mark;
         const words=TOUCH_UI&&st.touch?st.touch:st.text;
         textEl.textContent=st.kind==='tip'&&st.count>1?`${words} (${Math.min(g.tips+1,st.count)} of ${st.count})`:words;
-        hint.hidden=false;
+        hint.hidden=false;document.body.classList.add('guided-opening');
       },
       // Called every frame: a tip step is finished once its turns have fully played out.
       update(){
@@ -4104,7 +4109,7 @@ window.TrillionCloud=(()=>{
       },
       end(reason,quiet){
         if(g.active&&reason==='done'){try{localStorage.setItem(GUIDE_KEY,'1');}catch(e){}}
-        g.active=false;g.targets=null;g.arrow=null;g.key='';game.guideHold=false;hint.hidden=true;
+        g.active=false;g.targets=null;g.arrow=null;g.key='';game.guideHold=false;hint.hidden=true;document.body.classList.remove('guided-opening');
       }
     };
     // Watch the player's moves without changing how the game plays.
@@ -4131,7 +4136,7 @@ window.TrillionCloud=(()=>{
     if(gameOverDialog.open)gameOverDialog.close();
     music.start();
     updateHighScore();
-    if(fresh){refreshChapterChoices();game.startLevel=selectedChapter;game.playerCount=Number(document.querySelector('input[name=players]:checked').value);game.reset();alohaCoin=0;lastAlohaScore=0;}
+    if(fresh){cameraReady=false;refreshChapterChoices();game.startLevel=selectedChapter;game.playerCount=Number(document.querySelector('input[name=players]:checked').value);game.reset();alohaCoin=0;lastAlohaScore=0;}
     onTitle=false;started=true;statGameStart(fresh);
     if(fresh)guide.begin();
     titleScreen.hidden=true;gameScreen.inert=false;gameScreen.removeAttribute('aria-hidden');
@@ -4359,7 +4364,7 @@ window.TrillionCloud=(()=>{
   const faceLabel=document.querySelector('#face'), countLabel=document.querySelector('#count'), stateLabel=document.querySelector('#state'), pieceLabel=document.querySelector('#piece'), facesLabel=document.querySelector('#faces');
   const scoreLabel=document.querySelector('#score');
   const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
-  let previous, cameraDistance=8.5,scoreHue=42,powerTime=0;
+  let previous, cameraDistance=6,cameraFocus=2,cameraReady=false,scoreHue=42,powerTime=0;
   let glowSnap=null,landFx=null,lastPlaced=0;
   const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
   function terrainPowerOutline(area,color,m,kind){
@@ -4397,6 +4402,20 @@ window.TrillionCloud=(()=>{
       quad([a,b,c,e],normal,color.map(v=>v*.72),m);
     }
   }
+  function fitPlayCamera(geometry,width,height,pitch,yaw){
+    if(!geometry.length)return {distance:6,focus:2};
+    let lo=Infinity,hi=-Infinity;
+    for(let i=0;i<geometry.length;i+=9){lo=Math.min(lo,geometry[i+1]);hi=Math.max(hi,geometry[i+1]);}
+    const focus=(lo+hi)/2,aspect=width/height,f=2.7*Math.min(aspect,1);
+    const cy=Math.cos(yaw),sy=Math.sin(yaw),cx=Math.cos(pitch),sx=Math.sin(pitch);
+    let distance=4.4;
+    for(let i=0;i<geometry.length;i+=9){
+      const x=geometry[i],y=geometry[i+1]-focus,z=geometry[i+2];
+      const xx=cy*x+sy*z,zz=-sy*x+cy*z,py=cx*y-sx*zz,pz=sx*y+cx*zz;
+      distance=Math.max(distance,pz+Math.max(Math.abs(xx)*f/aspect/.76,Math.abs(py)*f/.76)+.18);
+    }
+    return {distance,focus};
+  }
   const guideCanvas=document.createElement('canvas');guideCanvas.id='play-guides';guideCanvas.setAttribute('aria-hidden','true');canvas.after(guideCanvas);
   const guideCtx=guideCanvas.getContext('2d');
   function drawPlayGuides(time,width,height,dpr){
@@ -4408,32 +4427,21 @@ window.TrillionCloud=(()=>{
     const face=game.topFace(),m=game.orientation,[w,d]=game.faceDimensions(face);
     const project=p=>{
       const [x,y,z]=p,cy=Math.cos(viewYaw),sy=Math.sin(viewYaw),cx=Math.cos(viewPitch),sx=Math.sin(viewPitch);
-      const xx=cy*x+sy*z,zz=-sy*x+cy*z,yy=y-.85;
+      const xx=cy*x+sy*z,zz=-sy*x+cy*z,yy=y-cameraFocus;
       const py=cx*yy-sx*zz,pz=sx*yy+cx*zz-cameraDistance,f=2.7*Math.min(width/height,1);
       return [width/2+xx*f/(width/height)/(-pz)*width/2,height/2-py*f/(-pz)*height/2];
     };
     const local=(x,z,l)=>project(transform(m,game.surfacePoint(face,x,z,l)));
     const line=(a,b,color,weight=1,dash=[])=>{guideCtx.beginPath();guideCtx.strokeStyle=color;guideCtx.lineWidth=weight*dpr;guideCtx.setLineDash(dash.map(v=>v*dpr));guideCtx.moveTo(...a);guideCtx.lineTo(...b);guideCtx.stroke();};
-    let tallest=0;for(let z=0;z<d;z++)for(let x=0;x<w;x++)tallest=Math.max(tallest,game.stackHeight(face,x,z));
-    const pulse=reducedMotion.matches?1:.75+.25*Math.sin(time*.003);
-    const limitColor=tallest>=7?`rgba(255,165,104,${pulse})`:tallest>=6?'rgba(255,210,115,.8)':'rgba(154,224,230,.25)';
-    // A dashed rim, not a wall. Each segment sits eight layers above its own ground.
+    // Danger belongs to an actual high stack, never to an empty ceiling.
+    const pulse=reducedMotion.matches?1:.82+.18*Math.sin(time*.003);
     for(let z=0;z<d;z++)for(let x=0;x<w;x++){
-      const limit=game.limitLayer(face,x,z),h=game.stackHeight(face,x,z);
-      for(const [dx,dz] of [[-1,0],[1,0],[0,-1],[0,1]]){
-        const nx=x+dx,nz=z+dz;
-        if(game.validCell(face,nx,nz)&&game.limitLayer(face,nx,nz)===limit)continue;
-        const a=local(x+dx*.5-(dz? .5:0),z+dz*.5-(dx? .5:0),limit);
-        const b=local(x+dx*.5+(dz? .5:0),z+dz*.5+(dx? .5:0),limit);
-        line(a,b,limitColor,tallest>=7?2:1,[4,5]);
-      }
-      if(h>=6){
-        const color=h>=7?`rgba(255,161,105,${pulse})`:'rgba(255,220,135,.9)';
-        const points=[[-.46,-.46],[.46,-.46],[.46,.46],[-.46,.46]].map(([dx,dz])=>local(x+dx,z+dz,game.floorLevel(face,x,z)+h+.015));
-        for(let i=0;i<4;i++)line(points[i],points[(i+1)%4],color,2);
-        // Short dashed column tether makes the remaining headroom visible.
-        line(local(x,z,game.floorLevel(face,x,z)+h),local(x,z,limit),color,1,[2,4]);
-      }
+      const h=game.stackHeight(face,x,z);if(h<6)continue;
+      const color=h>=7?`rgba(255,113,99,${pulse})`:'rgba(255,205,112,.9)';
+      const points=[[-.46,-.46],[.46,-.46],[.46,.46],[-.46,.46]].map(([dx,dz])=>local(x+dx,z+dz,game.floorLevel(face,x,z)+h+.015));
+      guideCtx.save();guideCtx.shadowColor=color;guideCtx.shadowBlur=8*dpr;
+      for(let i=0;i<4;i++)line(points[i],points[(i+1)%4],color,2);
+      guideCtx.restore();
     }
     guideCtx.setLineDash([]);
     // The diamond stays attached to this face's original corner through every rotation.
@@ -4715,24 +4723,17 @@ window.TrillionCloud=(()=>{
         }
       }
     }
-    // Keep the physical height limit in view, including the taller 3×3 cells.
-    let limitDistance=0;
-    if(!game.growth&&!game.celebration){
-      const [w,d]=game.faceDimensions(top),f=2.7*Math.min(width/height,1);
-      for(let z=0;z<d;z++)for(let x=0;x<w;x++)for(const [dx,dz] of [[-.5,-.5],[.5,.5]]){
-        const p=transform(m,game.surfacePoint(top,x+dx,z+dz,game.limitLayer(top,x,z)));
-        const zz=-Math.sin(viewYaw)*p[0]+Math.cos(viewYaw)*p[2],yy=p[1]-.85;
-        const py=Math.cos(viewPitch)*yy-Math.sin(viewPitch)*zz,pz=Math.sin(viewPitch)*yy+Math.cos(viewPitch)*zz;
-        limitDistance=Math.max(limitDistance,pz+Math.abs(py)*f/.86);
-      }
-    }
-    const targetDistance=Math.max(limitDistance,8.5+Math.max(0,extent-2.8)*3+Math.max(0,pieceExtent-3.4)*2.2);
-    cameraDistance+=(targetDistance-cameraDistance)*Math.min(1,dt*5);
     const viewBlend=1-Math.exp(-dt*14);
     viewPitch+=(targetPitch-viewPitch)*viewBlend;viewYaw+=(targetYaw-viewYaw)*viewBlend;
+    const framing=fitPlayCamera(vertices,width,height,viewPitch,viewYaw);
+    if(!cameraReady){cameraDistance=framing.distance;cameraFocus=framing.focus;cameraReady=true;}
+    else {
+      cameraDistance+=(framing.distance-cameraDistance)*Math.min(1,dt*5);
+      cameraFocus+=(framing.focus-cameraFocus)*Math.min(1,dt*5);
+    }
     gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([...vertices,...outlines]),gl.DYNAMIC_DRAW);
     gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform1f(aspect,width/height);gl.uniform1f(distance,cameraDistance);
-    gl.uniform2f(viewUniform,viewPitch,viewYaw);
+    gl.uniform2f(viewUniform,viewPitch,viewYaw);gl.uniform1f(focusUniform,cameraFocus);
     gl.drawArrays(gl.TRIANGLES,0,vertices.length/9);gl.drawArrays(gl.LINES,vertices.length/9,outlines.length/9);
     drawPlayGuides(time,width,height,dpr);
     faceLabel.textContent='Level '+game.level+' · '+FACES[top].name+' · '+game.faceDimensions(top).join('×')+(game.echo?' · ECHO':'');
@@ -4743,7 +4744,7 @@ window.TrillionCloud=(()=>{
     pieceLabel.textContent=kind==='bomb'?'B':kind==='bloom'?'G':(game.active?.type==='SINGLE'?'1':game.active?.type==='DOUBLE'?'2':game.active?.type==='TRIPLE'?'3':game.active?.type==='SIX'?'6':game.active?.type==='CUBE'?'8':game.active?.type==='CORNER'?'C':game.active?.type)??'—';
     pieceLabel.style.color=game.active?`rgb(${(kind?powerColor:COLORS[game.active.type]).map(c=>Math.round(c*255)).join(',')})`:'#91a0b8';
     document.querySelector('#posture').textContent=game.gameOver?'FINISHED':kind?kind.toUpperCase():game.active?(game.active.type==='CUBE'?'SOLID':game.active.type==='CORNER'?'TIP UP':game.active.upright?'UPRIGHT':'FLAT'):r?.phase==='power'?'ACTIVATED':r?.phase==='twist'?'TWISTING':r?.phase==='fall'?'SETTLING':'CLEARING';
-    const state=game.gameOver?'Stack limit reached':game.paused?'Paused · P to resume':game.awaitingStart?(game.level===1?'Follow the surface arrows · dashed rim = stack limit · / spins the plane':'Try the controls · dashed rim = stack limit'):game.celebration?`Level ${game.celebration.level} unlocked!`:game.growth?({fold:'Folding the cube…',shrink:'Shrinking to the plane…',unfold:'Unfolding new sides…',terrain:'Sculpting the next world…'}[game.growth.kind]||`Unfolding ${game.growth.from}×${game.growth.from} → ${SIZE}×${SIZE}…`):game.turn?'Turning cube…':overflow?'Too high! Move the piece or tip to another face.':r?
+    const state=game.gameOver?'Stack limit reached':game.paused?'Paused · P to resume':game.awaitingStart?'Try the controls · your first block will wait':game.celebration?`Level ${game.celebration.level} unlocked!`:game.growth?({fold:'Folding the cube…',shrink:'Shrinking to the plane…',unfold:'Unfolding new sides…',terrain:'Sculpting the next world…'}[game.growth.kind]||`Unfolding ${game.growth.from}×${game.growth.from} → ${SIZE}×${SIZE}…`):game.turn?'Turning cube…':overflow?'Too high! Move the piece or tip to another face.':r?
       (r.phase==='power'?(r.kind==='bomb'?'Bomb detonating…':'Bloom growing…'):r.phase==='clear'?`${r.lines} ${r.lines===1?'line':'lines'} clearing · Chain ${r.chain}`:r.phase==='twist'?`Split twist ${r.twistIndex+1} / ${r.twists.length} · +${game.lastAward} points`:'Blocks settling across all faces…'):
       kind?`${kind==='bomb'?'Bomb armed · 4×4×5 blast':`Bloom armed · ${SIZE-2}×${SIZE-2} · grows up to 3 layers`} · WASD to aim`:
       game.softDrop?'Fast fall · release Space to slow down':game.active.height-game.landingLevel()*CELL<.35?'Landing…':game.manualDrop?(game.echo?'Pink outline = twin · Hold Space to drop':game.terrain?'Stepped terrain · Hold Space to drop':'Hold Space to drop'):'Drifting toward the surface';
@@ -4781,9 +4782,13 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-10-28-focus',date:'Oct 28, 2026',title:'The playfield takes center stage',items:[
+      'The plane, cube and falling piece now fill the playable space. Touch controls leave more room for the board.',
+      'Removed the permanent dotted height rim. A high stack glows amber at six layers and softly pulses red at seven.'
+    ]},
     {id:'2026-10-28-merge',date:'Oct 28, 2026',title:'A clearer beginning, on desktop and touch',items:[
       'Start on a plane, unfold a corner at 30 points, and reach a full cube at 60. Reaching the cube unlocks a fresh level-three start from the title.',
-      'Surface arrows clarify movement. A dashed rim marks the height limit; high stacks glow before overflowing.',
+      'Surface arrows clarify movement. High stacks glow before overflowing.',
       'Touch spheres, cassette level selection, growing planets, and the Aloha shop drawer are preserved. The opening tutorial now teaches spinning the plane.'
     ]},
     {id:'2026-10-22i',date:'Oct 22, 2026',title:'Shop drawer clears the spheres',items:[
