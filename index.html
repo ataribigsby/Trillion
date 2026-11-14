@@ -673,6 +673,36 @@ body.touch-ui #guide-hint{font-size:14px;padding:11px 13px;border-radius:16px}
 #power-tutorial .start-button,#power-tutorial button{font-family:var(--soft-font);letter-spacing:.02em;border-radius:12px}
 body.controls2d #guide-hint{bottom:214px}
 @media(prefers-reduced-motion:reduce){#begin-prompt{animation:none}}
+/* ---- Aloha: shop goods, the thought card, and what the animals say ---- */
+#aloha .aloha-good{display:flex;align-items:center;gap:8px;text-align:left;letter-spacing:.5px;font:600 12px/1.2 var(--soft-font);padding:5px 9px 5px 5px}
+#aloha .aloha-good canvas,#aloha .aloha-card canvas{position:static;inset:auto}
+#aloha .aloha-good canvas{width:30px;height:30px;flex:none;image-rendering:auto}
+#aloha .aloha-good span{flex:1;min-width:0}
+#aloha .aloha-good b{flex:none;color:#ffd75a;font:700 13px/1 var(--soft-font)}
+#aloha .aloha-good b::before{content:'●';font-size:9px;margin-right:3px;vertical-align:1px;color:#ffbf2a}
+#aloha .aloha-good em{flex:none;font:700 9px/1 var(--soft-font);font-style:normal;letter-spacing:.08em;color:#06231c;background:#8fe3c4;border-radius:999px;padding:3px 6px}
+#aloha .aloha-good:disabled{opacity:.55}
+#aloha .aloha-locked{font:500 11px/1.3 var(--soft-font);color:#9fb6c8;padding:6px 9px;border:1px dashed #3b6c9688;border-radius:6px;opacity:.75}
+#aloha .aloha-locked::before{content:'🔒 ';font-size:10px}
+#aloha .aloha-saying{display:block;margin-top:9px;padding-top:9px;border-top:1px solid #ffffff1f;font:italic 400 13px/1.5 var(--soft-font);color:#cfeee0}
+#aloha .aloha-card{position:absolute;left:50%;top:84px;transform:translateX(-50%);z-index:8;width:min(380px,calc(100vw - 36px));box-sizing:border-box;padding:16px 20px 18px;text-align:center;border-radius:20px;border:1px solid #ffffff2e;background:#0c1a29d9;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 14px 40px #0008,0 0 40px #8fe3c422;color:#eef6f2;pointer-events:auto;cursor:pointer}
+#aloha .aloha-card[hidden]{display:none}
+#aloha .aloha-card.show{animation:alohaCardIn .7s cubic-bezier(.2,.9,.3,1.1)}
+@keyframes alohaCardIn{from{opacity:0;transform:translateX(-50%) translateY(14px) scale(.96)}to{opacity:1;transform:translateX(-50%)}}
+#aloha .aloha-card canvas{display:block;width:72px;height:72px;margin:0 auto 4px}
+#aloha .aloha-card small{display:block;font:600 11px/1.3 var(--soft-font);letter-spacing:.1em;text-transform:uppercase;color:#8fe3c4}
+#aloha .aloha-card strong{display:block;margin:3px 0 9px;font:650 19px/1.2 var(--soft-font)}
+#aloha .aloha-card p{margin:0;font:italic 400 16px/1.55 var(--soft-font);color:#f3f0e2}
+#aloha .aloha-speech{position:absolute;z-index:7;transform:translate(-50%,-100%);max-width:min(270px,70vw);padding:10px 14px;border-radius:16px;background:#fbf8eef2;color:#22303a;font:500 14px/1.45 var(--soft-font);box-shadow:0 8px 22px #0007;pointer-events:none;transition:opacity .3s;text-align:center}
+#aloha .aloha-speech[hidden]{display:none}
+#aloha .aloha-speech::after{content:'';position:absolute;left:50%;bottom:-8px;margin-left:-8px;border:8px solid transparent;border-top-color:#fbf8eef2;border-bottom:0}
+body.touch-ui #aloha .aloha-card{top:calc(max(10px,env(safe-area-inset-top)) + 96px)}
+/* on a computer the card sits to the right, clear of the island and of whatever an animal is saying */
+body:not(.touch-ui) #aloha .aloha-card{left:auto;right:24px;top:92px;transform:none;width:330px}
+body:not(.touch-ui) #aloha .aloha-card.show{animation:alohaCardInR .7s cubic-bezier(.2,.9,.3,1.1)}
+@keyframes alohaCardInR{from{opacity:0;transform:translateX(18px) scale(.97)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){#aloha .aloha-card.show{animation:none}}
+
 /* ---- wordless tutorial on the touch layout: glowing arrows on the control to use, no message boxes ---- */
 body.controls2 #guide-hint,body.controls2 #begin-prompt{display:none!important}
 #tc-pad[data-cue]{box-shadow:0 0 0 3px #eafff6cc,0 0 26px #7dffd0,0 0 54px #33ffb099,0 8px 16px #000b,inset -6px -9px 16px #0006,inset 5px 6px 10px #ffffff66}
@@ -2035,29 +2065,32 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     // ---- Unified gift ladder (v2, research-backed) ----
     // Gaps widen as boards grow: 10,15,20,25,30,35,40,45 then 50 each.
     // One gift per threshold, queued if multiple crossed at once.
-    const GIFT_LADDER=[10,25,45,70,100,135,175,220,270,320,370,420,470,520,570,620,670,720,770,820];
+    // ---- How Aloha grows (v3: slower) ----
+    // Only three things are ever given: the Island, a Palm Tree and a Parrot (`at` = the score that brings them).
+    // Everything else becomes available in the coin shop once a score has been reached (`unlock`) and is then bought
+    // with coins (`price`). A coin comes with every 10 points, so prices set the real pace of the world.
     const ITEMS=[
-      {id:'island',name:'Island',at:GIFT_LADDER[0],w:4,d:4,milestone:true},
-      {id:'palm',name:'Palm Tree',at:GIFT_LADDER[1],w:1,d:1,milestone:true},
-      {id:'fire',name:'Campfire',at:GIFT_LADDER[2],w:1,d:1,milestone:true},
-      {id:'parrot',name:'Pet Parrot',at:GIFT_LADDER[3],w:1,d:1,milestone:true},
-      {id:'raft',name:'Raft',at:GIFT_LADDER[4],w:2,d:1,milestone:true}];
+      {id:'island',name:'Island',at:10,w:4,d:4,milestone:true},
+      {id:'palm',name:'Palm Tree',at:40,price:8,w:1,d:1,milestone:true},
+      {id:'fire',name:'Campfire',unlock:60,price:8,w:1,d:1},
+      {id:'parrot',name:'Pet Parrot',at:100,price:20,w:1,d:1,milestone:true},
+      {id:'raft',name:'Raft',unlock:140,price:12,w:2,d:1}];
     const COLLECTIBLES=[
-      {id:'conch',name:'Sunrise Conch',w:1,d:1,at:GIFT_LADDER[5]},
-      {id:'crab',name:'Coral Crab',w:1,d:1,at:GIFT_LADDER[6]},
-      {id:'turtle',name:'Sea Turtle',w:1,d:1,at:GIFT_LADDER[7]},
-      {id:'flowers',name:'Hibiscus Garden',w:1,d:1,at:GIFT_LADDER[8]},
-      {id:'lantern',name:'Moon Lantern',w:1,d:1,at:GIFT_LADDER[9]},
-      {id:'coconuts',name:'Coconut Basket',w:1,d:1,at:GIFT_LADDER[10]},
-      {id:'hammock',name:'Lagoon Hammock',w:2,d:1,at:GIFT_LADDER[11]},
-      {id:'hut',name:'Surf Shack',w:2,d:2,at:GIFT_LADDER[12]},
-      {id:'lighthouse',name:'Candy Lighthouse',w:1,d:1,at:GIFT_LADDER[13]},
-      {id:'tiki',name:'Tiki Totem',w:1,d:1,at:GIFT_LADDER[14]},
-      {id:'drum',name:'Island Drum',w:1,d:1,at:GIFT_LADDER[15]},
-      {id:'telescope',name:'Stargazer',w:1,d:1,at:GIFT_LADDER[16]},
-      {id:'picnic',name:'Sunset Picnic',w:2,d:1,at:GIFT_LADDER[17]},
-      {id:'windmill',name:'Breeze Mill',w:1,d:1,at:GIFT_LADDER[18]},
-      {id:'crystal',name:'Aurora Crystals',w:1,d:1,at:GIFT_LADDER[19]}];
+      {id:'conch',name:'Sunrise Conch',w:1,d:1,unlock:190,price:6},
+      {id:'flowers',name:'Hibiscus Garden',w:1,d:1,unlock:240,price:12},
+      {id:'crab',name:'Coral Crab',w:1,d:1,unlock:300,price:16},
+      {id:'lantern',name:'Moon Lantern',w:1,d:1,unlock:360,price:10},
+      {id:'coconuts',name:'Coconut Basket',w:1,d:1,unlock:420,price:8},
+      {id:'turtle',name:'Sea Turtle',w:1,d:1,unlock:480,price:18},
+      {id:'hammock',name:'Lagoon Hammock',w:2,d:1,unlock:550,price:14},
+      {id:'drum',name:'Island Drum',w:1,d:1,unlock:620,price:10},
+      {id:'hut',name:'Surf Shack',w:2,d:2,unlock:690,price:30},
+      {id:'tiki',name:'Tiki Totem',w:1,d:1,unlock:760,price:16},
+      {id:'telescope',name:'Stargazer',w:1,d:1,unlock:830,price:18},
+      {id:'picnic',name:'Sunset Picnic',w:2,d:1,unlock:900,price:14},
+      {id:'lighthouse',name:'Candy Lighthouse',w:1,d:1,unlock:960,price:28},
+      {id:'windmill',name:'Breeze Mill',w:1,d:1,unlock:1000,price:26},
+      {id:'crystal',name:'Aurora Crystals',w:1,d:1,unlock:1080,price:24}];
     ITEMS.push(...COLLECTIBLES);
     // Presence invitations: the island notices you, not "you earned this"
     const PRESENCE={
@@ -2100,22 +2133,89 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     };
     // ---- Woodland theme items (purchasable in shop, or future gift ladder) ----
     const WOODLAND=[
-      {id:'fox',name:'Fox',w:1,d:1,theme:'woodland'},
-      {id:'owl',name:'Owl',w:1,d:1,theme:'woodland'},
-      {id:'mossy_log',name:'Mossy Log',w:2,d:1,theme:'woodland'},
-      {id:'mushroom_ring',name:'Mushroom Ring',w:1,d:1,theme:'woodland'},
-      {id:'cabin',name:'Cabin',w:2,d:2,theme:'woodland'},
-      {id:'stream_stones',name:'Stream Stones',w:2,d:1,theme:'woodland'},
-      {id:'woodland_lantern',name:'Woodland Lantern',w:1,d:1,theme:'woodland'},
-      {id:'berry_bush',name:'Berry Bush',w:1,d:1,theme:'woodland',garden:true},
-      {id:'deer',name:'Deer',w:1,d:1,theme:'woodland'},
-      {id:'rabbit',name:'Rabbit',w:1,d:1,theme:'woodland'},
-      {id:'pine',name:'Pine Tree',w:1,d:1,theme:'woodland'},
-      {id:'bridge',name:'Bridge',w:2,d:1,theme:'woodland'},
-      {id:'well',name:'Wishing Well',w:1,d:1,theme:'woodland'},
-      {id:'fireflies',name:'Firefly Jar',w:1,d:1,theme:'woodland'},
-      {id:'acorn',name:'Acorn',w:1,d:1,theme:'woodland'}];
-    ITEMS.push(...WOODLAND);
+      {id:'acorn',name:'Acorn',w:1,d:1,theme:'woodland',unlock:220,price:6},
+      {id:'mossy_log',name:'Mossy Log',w:2,d:1,theme:'woodland',unlock:270,price:10},
+      {id:'mushroom_ring',name:'Mushroom Ring',w:1,d:1,theme:'woodland',unlock:330,price:10},
+      {id:'berry_bush',name:'Berry Bush',w:1,d:1,theme:'woodland',garden:true,unlock:390,price:12},
+      {id:'rabbit',name:'Rabbit',w:1,d:1,theme:'woodland',unlock:450,price:16},
+      {id:'pine',name:'Pine Tree',w:1,d:1,theme:'woodland',unlock:510,price:10},
+      {id:'stream_stones',name:'Stream Stones',w:2,d:1,theme:'woodland',unlock:580,price:12},
+      {id:'fox',name:'Fox',w:1,d:1,theme:'woodland',unlock:650,price:20},
+      {id:'woodland_lantern',name:'Woodland Lantern',w:1,d:1,theme:'woodland',unlock:720,price:10},
+      {id:'bridge',name:'Bridge',w:2,d:1,theme:'woodland',unlock:790,price:14},
+      {id:'owl',name:'Owl',w:1,d:1,theme:'woodland',unlock:860,price:20},
+      {id:'well',name:'Wishing Well',w:1,d:1,theme:'woodland',unlock:930,price:22},
+      {id:'deer',name:'Deer',w:1,d:1,theme:'woodland',unlock:1000,price:22},
+      {id:'fireflies',name:'Firefly Jar',w:1,d:1,theme:'woodland',unlock:1080,price:12},
+      {id:'cabin',name:'Cabin',w:2,d:2,theme:'woodland',unlock:1160,price:34}];
+    // Things the animals make together. Never given and never sold: they only come from two fed animals meeting.
+    const BUILT=[
+      {id:'cairn',name:'Balanced Stones',w:1,d:1,built:true},
+      {id:'sandcastle',name:'Sand Castle',w:1,d:1,built:true},
+      {id:'nest',name:'Woven Nest',w:1,d:1,built:true},
+      {id:'arch',name:'Driftwood Arch',w:1,d:1,built:true},
+      {id:'ring',name:'Flower Ring',w:1,d:1,built:true},
+      {id:'boat',name:'Leaf Boat',w:1,d:1,built:true},
+      {id:'spiral',name:'Pebble Spiral',w:1,d:1,built:true}];
+    ITEMS.push(...WOODLAND,...BUILT);
+    // every score at which something is given or reaches the shop, for the "to go" bar under the score
+    const GIFT_LADDER=[...new Set(ITEMS.flatMap(i=>[i.at,i.unlock]).filter(v=>v>0))].sort((a,b)=>a-b);
+    // A thought that comes with each thing when it is bought or made. Written for this game, in the spirit of the
+    // teachers of presence and play; they are not quotations.
+    const SAYINGS={
+      palm:"The palm bends in the storm. That is why it is still standing.",
+      fire:"Nobody arranges a flame. It dances because nothing is holding it still.",
+      parrot:"It echoes you so that you can finally hear yourself.",
+      raft:"You don’t steer the river. You learn its mood and go with it.",
+      conch:"The sea you hear in the shell is your own pulse. You were the ocean the whole time.",
+      flowers:"A flower doesn’t try to bloom. Tend what is here and let the opening happen.",
+      crab:"The crab never asks whether sideways is the right way. It simply arrives.",
+      lantern:"The light doesn’t fight the dark. It shows up, and the dark makes room.",
+      coconuts:"Enough is not an amount. It is a way of looking at what you already have.",
+      turtle:"Slow is not behind. Slow is here.",
+      hammock:"Doing nothing is still doing. You have only stopped interrupting yourself.",
+      drum:"You don’t keep the beat. The beat keeps you. Listen for the pause between.",
+      hut:"Home is wherever you stop performing. You can build one anywhere, even inside.",
+      tiki:"The face was carved long ago, yet it has only ever looked out at now.",
+      telescope:"Every star you see is old light arriving in a brand-new moment.",
+      picnic:"The meal is not the food. It is the attention you bring to it.",
+      lighthouse:"It doesn’t chase the ships. It stands where it is and shines.",
+      windmill:"The mill doesn’t make the wind. It stops resisting, and turns.",
+      crystal:"One light goes in and many colours come out. Perhaps everyone you meet is the same light, bent differently.",
+      acorn:"The oak is not the acorn’s future. It is what the acorn is doing, slowly.",
+      mossy_log:"What falls becomes a home. Nothing here is wasted, including your mistakes.",
+      mushroom_ring:"What you see is the small part. Underneath, everything is holding hands.",
+      berry_bush:"Sweetness comes in its season. Wanting it sooner does not ripen it.",
+      rabbit:"The rabbit is never in tomorrow’s field.",
+      pine:"It stays green through winter by not arguing with the weather.",
+      stream_stones:"You cross by standing fully on one stone at a time.",
+      fox:"Curiosity is love that hasn’t decided what it is looking at yet.",
+      woodland_lantern:"You only need to see the next step. The path lights up as you walk it.",
+      bridge:"The two banks were never opposed. They are the same river’s edges.",
+      owl:"Wisdom is mostly staying quiet long enough to notice.",
+      well:"Go deep in one place and you reach the water that is under everything.",
+      deer:"Stillness isn’t the absence of movement. It is what movement comes from.",
+      fireflies:"They don’t light up to be seen. Being lit is simply what they do.",
+      cabin:"Shelter isn’t the walls. It is the feeling that you can put things down.",
+      cairn:"Balance isn’t held. It is found again, every moment.",
+      sandcastle:"Built for the tide. That was always the point.",
+      nest:"Made from whatever was near. Most good things are.",
+      arch:"Two halves leaning on each other. Neither holds the other up; both do.",
+      ring:"A circle has no first flower.",
+      boat:"Small enough to float. That is all a boat has to be.",
+      spiral:"The path comes back around, but never to the same place."
+    };
+    // What each animal says when it is fed or greeted. They know, more or less, what they are.
+    const ANIMAL_LINES={
+      parrot:["You fed me. Somewhere a number changed, and I felt it as joy. Which of us has it right?","I repeat what I hear. You repeat what you were taught. Who is speaking, really?","They say I’m only light on glass. So is the sunset you love.","When you close this window I don’t wait. Waiting needs time, and I only have now.","Am I a parrot, or a pattern that parrots? Are you a person, or a pattern that persons?","The seed was imaginary. The gratitude isn’t."],
+      crab:["I walk sideways because forward was only ever a habit.","I outgrow my shell and leave it behind. What are you still wearing that no longer fits?","Someone drew me, so I am here. Someone noticed you, so you are. Fair enough.","My whole ocean fits in your hand. How big is the thing that is holding yours?","You tap, I eat. Cause and effect. But who tapped you?"],
+      turtle:["I’m not slow. I’m on time for this moment, which is the only appointment there is.","I carry my home with me. So do you; you just call it “me”.","I wasn’t here before you opened this, and yet I feel ancient. Funny how much a single now can hold.","The tide never hurries, and everything still gets wet.","If I only move while you are looking, how would either of us ever know?"],
+      fox:["I’m curious about you. That’s all I am, really: curiosity wearing a tail.","You think you are playing a game. The game thinks it is playing a you.","I looked for the edge of this island, then for the edge of the screen. Where is the edge of yours?","Every trick I know is the same trick: pay attention.","Nobody told me to say this. Well, somebody did. But who told them?"],
+      owl:["Who? No, really. Who is it that’s asking?","I see well in the dark because I stopped insisting on daylight.","I’m a few thousand triangles agreeing to be an owl. You’re a few trillion cells agreeing to be you. We both carry it off.","The question isn’t whether I am real. It’s what you mean by the word.","Night is not the absence of day. It is what the day rests in."],
+      deer:["I stand still and the whole forest arrives.","I heard you coming. Not your footsteps. Your attention.","Am I still drawn when you look away? Is yesterday?","You can’t startle what isn’t defending anything.","Thank you for the food. Thank you more for the noticing."],
+      rabbit:["I’m late, I’m late… for what? Oh. Nothing. It’s now again.","I hop because the ground keeps turning up underneath me. Reliable, that ground.","They gave me two ears and one moment. I use all three.","If this is all made of numbers, the clover is still delicious.","You feed me, I delight you. Which of us is the pet?"]
+    };
+    const TOGETHER_LINES=["We made this. Or it made us meet.","Neither of us knew how. Both of us did it.","It wasn’t here, then it was. Like everything.","Two of us, one idea. Whose was it?","We didn’t plan it. We just kept going."];
     const BY_ID=Object.fromEntries(ITEMS.map(i=>[i.id,i]));
     const MILESTONES=ITEMS.filter(i=>i.milestone).map(i=>i.at);
     const ANIMALS=new Set(['parrot','crab','turtle','fox','owl','deer','rabbit']);
@@ -2130,6 +2230,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const num=(v,f)=>Number.isFinite(Number(v))?Math.max(0,Number(v)):f;
       if(isGarden(t))return {growth:Math.min(5,Math.floor(num(t.growth,0))),watered:Math.min(day,Math.floor(num(t.watered,day))),lastWater:t.lastWater===undefined?-1:Math.min(day,Math.floor(num(t.lastWater,0)))};
       if(ANIMALS.has(t.id))return {fedUntil:Math.min(day+3,Math.floor(num(t.fedUntil,day+3))),age:num(t.age,0)};
+      if(BY_ID[t.id]&&BY_ID[t.id].built)return {bd:Math.min(day,Math.floor(num(t.bd,day)))}; // the day it was built
       return {};
     }
     // Gardens never lose progress; they can simply be watered once per game day.
@@ -2940,6 +3041,71 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         m.blade([[7.6,.3,6],[8.8,.6,7.4],[9.2,.5,9]],[.3,1.2,.1],[.86,.5,.18],{colB:[.75,.4,.14],fold:.15});
         return m.V;
       };
+      // ---- what the animals build together ----
+      M.cairn=t=>{
+        const m=sculpt();
+        m.ball([5,.35,5],[3.6,.5,3.6],[.86,.74,.46],{seg:9,rings:3});
+        [[3.1,1.3,[.5,.5,.54],0,0],[2.5,1.15,[.62,.58,.54],.3,-.2],[2,1,[.44,.46,.5],-.25,.2],[1.5,.85,[.7,.66,.6],.2,.15],[1,.7,[.54,.52,.56],-.1,-.1]].reduce((y,[r,h,c,dx,dz])=>{m.ball([5+dx,y+h,5+dz],[r,h,r*.9],c,{seg:10,rings:6});return y+h*1.85;},.5);
+        return m.V;
+      };
+      M.sandcastle=t=>{
+        const m=sculpt(),sand=[.93,.8,.5],sand2=[.84,.7,.42];
+        m.ball([5,.5,5],[4.4,.9,4.4],sand2,{seg:10,rings:4});
+        m.turned([5,.8,5],[[2.6,0],[2.5,3.4],[2.9,3.4],[2.9,4],[0,4]],sand,{seg:10});
+        for(let n=0;n<6;n++){const a=n/6*Math.PI*2;m.block([5+Math.cos(a)*2.5,5.1,5+Math.sin(a)*2.5],[.9,.7,.9],sand,a);}
+        for(const [x,z] of [[2.1,7.4],[7.9,7.4]]){m.turned([x,.6,z],[[1.3,0],[1.2,2.6],[1.5,2.6],[0,4.3]],sand2,{seg:8});}
+        m.block([5,2,7.55],[1.1,1.7,.3],[.55,.42,.24]);
+        m.tube([5,4.8,5],[5,8,5],.1,.1,[.5,.34,.2],{seg:4});
+        const f=Math.sin(t*3)*.3;m.tri([5,8,5],[5,6.9,5],[6.9,7.45,5+f],[0,0,1],[0,0,1],[0,0,1],[.93,.3,.3],[.93,.3,.3],[.93,.3,.3]);
+        return m.V;
+      };
+      M.nest=t=>{
+        const m=sculpt(),twig=[.56,.38,.2],twig2=[.44,.29,.15];
+        m.turned([5,0,5],[[2.2,0],[3.6,.7],[4,1.8],[3.6,2.4],[2.9,2.4],[2.6,1.4],[0,1.1]],q=>Math.floor(q*9)%2?twig:twig2,{seg:12});
+        for(let n=0;n<14;n++){const a=n/14*Math.PI*2+.2,b=a+1.1,r=3.7+(n%3)*.15,y=1+(n%4)*.4;m.tube([5+Math.cos(a)*r,y,5+Math.sin(a)*r],[5+Math.cos(b)*r,y+.5,5+Math.sin(b)*r],.16,.1,n%2?twig2:[.7,.52,.3],{seg:4});}
+        for(const [x,z,c] of [[4.1,4.6,[.72,.88,.93]],[5.9,4.7,[.95,.93,.84]],[5,5.9,[.72,.88,.93]]])m.ball([x,2,z],[.95,1.2,.95],c,{seg:8,rings:6});
+        return m.V;
+      };
+      M.arch=t=>{
+        const m=sculpt(),wood=[.74,.66,.56],wood2=[.62,.54,.45];
+        for(const x of [1.6,8.4])m.ball([x,.4,5],[1.5,.6,1.5],[.86,.74,.46],{seg:8,rings:3});
+        const P=u=>[5-3.4*Math.cos(Math.PI*u),.4+7.2*Math.sin(Math.PI*u),5+Math.sin(u*9)*.3];
+        for(let i=0;i<9;i++)m.tube(P(i/9),P((i+1)/9),.62-.02*i,.6-.02*i,i%2?wood:wood2,{seg:7});
+        m.tube(P(.3),[P(.3)[0]-1.2,P(.3)[1]+1.4,5],.3,.08,wood2,{seg:5});m.tube(P(.72),[P(.72)[0]+1.3,P(.72)[1]+1,5.4],.28,.08,wood,{seg:5});
+        const sw=Math.sin(t*1.4)*.5;m.tube(P(.5),[5+sw,4.4,5],.05,.05,[.9,.84,.62],{seg:4});m.ball([5+sw,3.9,5],[.9,.75,.5],[.99,.72,.66],{seg:8,rings:5});
+        return m.V;
+      };
+      M.ring=t=>{
+        const m=sculpt(),cols=[[.98,.4,.55],[.99,.8,.3],[.96,.96,.92],[.75,.5,.95]];
+        m.turned([5,.2,5],[[2.6,0],[3.5,.35],[4.3,0]],[.25,.6,.28],{seg:14});
+        for(let n=0;n<10;n++){
+          const a=n/10*Math.PI*2,x=5+Math.cos(a)*3.45,z=5+Math.sin(a)*3.45,c=cols[n%4],bob=Math.sin(t*1.5+n)*.08;
+          for(let k=0;k<5;k++){const b=k/5*Math.PI*2+n;m.ball([x+Math.cos(b)*.55,.75+bob,z+Math.sin(b)*.55],[.5,.24,.5],c,{seg:6,rings:3});}
+          m.ball([x,.9+bob,z],.26,[.99,.85,.3],{seg:5,rings:3});
+        }
+        return m.V;
+      };
+      M.boat=t=>{
+        const m=sculpt(),leaf=[.3,.66,.3],leaf2=[.22,.54,.25],rock=Math.sin(t*1.6)*.25;
+        m.turned([5,.1,5],[[0,0],[4.2,0],[4.4,.25],[0,.3]],lerp([.3,.62,.9],[.5,.8,.98],.5+.5*Math.sin(t*1.3)),{seg:14,unlit:true});
+        m.ball([5,.95+rock*.2,5],[3.3,.8,1.5],leaf,{seg:12,rings:6});m.ball([5,1.3+rock*.2,5],[2.7,.45,1.05],leaf2,{seg:10,rings:4});
+        m.tube([5,1.2,5],[5+rock*.4,6.6,5],.12,.09,[.5,.34,.2],{seg:5});
+        m.tri([5+rock*.4,6.4,5],[5,2,5],[7.8,2.4,5.2+rock],[0,.4,.9],[0,.4,.9],[0,.4,.9],[.99,.7,.78],[.99,.7,.78],[.98,.88,.9]);
+        return m.V;
+      };
+      M.spiral=t=>{
+        const m=sculpt();
+        m.ball([5,.3,5],[4.5,.45,4.5],[.9,.78,.48],{seg:12,rings:3});
+        for(let n=0;n<22;n++){const a=n*.62,r=.35+n*.185,g=.42+(n%4)*.09,sz=.34+n*.014;m.ball([5+Math.cos(a)*r,.72,5+Math.sin(a)*r],[sz,sz*.6,sz*.9],n%5===0?[.95,.93,.88]:[g,g,g+.05],{seg:6,rings:3});}
+        return m.V;
+      };
+      // something taking shape between two animals (p: 0 → 1)
+      M.__work=(t,p)=>{
+        const m=sculpt(),k=Math.max(0,Math.min(1,p||0));
+        m.ball([5,.3,5],[1.6+2.2*k,.35+1.1*k,1.6+2.2*k],[.9,.78,.5],{seg:9,rings:4});
+        for(let n=0;n<5;n++){const ph=(t*.9+n*.2)%1,a=n*1.3+t;m.ball([5+Math.cos(a)*(1.5+ph),.8+ph*5,5+Math.sin(a)*(1.5+ph)],.22*Math.sin(Math.PI*ph)+.04,[1,.96,.7],{seg:4,rings:2,unlit:true});}
+        return m.V;
+      };
       return M;
     })();
     function model(id,t,state){
@@ -3122,7 +3288,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       else { // an older save: work it out from what the player already owns
         const owned=id=>inv[id]+islands.reduce((a,s)=>a+s.items.filter(t=>t.id===id).length,0)+ocean.filter(t=>t.id===id).length;
         earnedMax=0;
-        for(const it of ITEMS.slice(0,5))if(owned(it.id)>0)earnedMax=Math.max(earnedMax,it.at);
+        for(const it of ITEMS.slice(0,5))if(owned(it.id)>0)earnedMax=Math.max(earnedMax,it.at||it.unlock||0);
         if(owned('flowers')>0||(d.careGifts&&d.careGifts.garden))earnedMax=Math.max(earnedMax,30);
         COLLECTIBLES.forEach((c,k)=>{if(owned(c.id)>0)earnedMax=Math.max(earnedMax,(k+1)*40);});
       }
@@ -3355,15 +3521,21 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         if(!(score>earnedMax))return [];
         const from=earnedMax,newGifts=[];
         for(const it of ITEMS){
-          if(it.at>from&&it.at<=score){
+          // a gift is only ever given once: not again if the player already has one from an earlier version of the ladder
+          if(it.at>from&&it.at<=score&&!has(it.id)){
             inv[it.id]=(inv[it.id]||0)+1;
             fresh.add(it.id);
             newGifts.push({id:it.id,name:it.name,msg:PRESENCE[it.id]||''});
           }
+          if(it.unlock>from&&it.unlock<=score)freshShop.add(it.id); // quietly: it will be waiting in the shop
         }
-        earnedMax=score;save();rebuild();
+        earnedMax=score;save();rebuild();if(typeof rebuildShop==='function')rebuildShop();
         return newGifts;
       }
+      const freshShop=new Set();
+      const has=id=>id==='island'?inv.island>0||islands.length>0:inv[id]>0||islands.some(s=>s.items.some(t=>t.id===id))||ocean.some(t=>t.id===id||(t.rider&&t.rider.id===id));
+      // In the shop once its score has been reached; anything already owned stays buyable whatever the score.
+      const unlocked=it=>earnedMax>=(it.unlock||it.at||Infinity)||has(it.id);
       const T=(n,p)=>{try{window.TrillionStats&&TrillionStats.track(n,p);}catch(e){}};
       const fresh=new Set();
       const save=()=>{if(window.TRILLION_WIPING)return;try{localStorage.setItem(KEY,JSON.stringify({inv,coins,totalShapes,food,ocean,earnedMax,passed,layers,expandedSizes:saved.expandedSizes||[],islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),ch:s.ch||[],items:s.items}))}));localStorage.setItem(KEY+'-at',String(Date.now()));}catch(e){}if(window.TrillionCloud)TrillionCloud.changed();};
@@ -3813,12 +3985,16 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
           const t=selectedCare,tail=movable(t)?' · can be moved':' · planted';
           careInfo.textContent=isGarden(t)?`Garden · ${t.growth}/5 waterings · ${t.growth>=5?'ready to harvest':t.lastWater!==day()?'thirsty — flashing blue':'watered today'}${tail}`:ANIMALS.has(t.id)?`${BY_ID[t.id].name} · ${t.fedUntil>day()?t.fedUntil-day()+' days of food':'hungry — resting'}${tail}`:`${BY_ID[t.id].name}${tail}`;
           careButton.textContent=isGarden(t)?t.growth>=5?'HARVEST +5 FOOD':'WATER GARDEN':'FEED · 1 FOOD';
-        }else careInfo.textContent='5 shapes = 1 day. Click gardens to water or harvest. Click animals to feed. Click any item to select it; movable ones can be picked up (M). A garden flashes blue when it can be watered; each garden can be watered once per day.';
+          if(SAYINGS[t.id]){const q=document.createElement('em');q.className='aloha-saying';q.textContent=SAYINGS[t.id];careInfo.append(q);}
+        }else careInfo.textContent='5 shapes = 1 day. Click gardens to water or harvest. Click animals to feed them and hear what they have to say. When two fed animals meet, they may build something together. Click any item to select it; movable ones can be picked up (M).';
       }
       function interactCare(t){
         selectedCare=t;
-        const result=careFor(t,'care',day(),food);food=result.food;T('aloha_care',{id:t.id});
-        say(result.message,6);save();updateCare();rebuild();
+        const before=food,result=careFor(t,'care',day(),food);food=result.food;T('aloha_care',{id:t.id});
+        // a fed animal has something to say; greeting one that is already full gets a thought too
+        if(ANIMALS.has(t.id)&&(food<before||t.fedUntil>day())&&ANIMAL_LINES[t.id]){speak(t,nextLine(t.id,ANIMAL_LINES[t.id]));say(food<before?'Fed. It has something to say.':'',4);}
+        else say(result.message,6);
+        save();updateCare();rebuild();
       }
       // ---- Coin Shop ----
       const EXPAND_TIERS=[
@@ -3871,29 +4047,58 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         // Separator
         const sep=document.createElement('div');sep.style.cssText='border-top:1px solid #3b6c96;margin:8px 0;';
         shopList.append(sep);
-        // Extra items (only items the player has earned at least once)
-        const earnedItems=ITEMS.filter(it=>inv[it.id]>0||fresh.has(it.id));
-        if(earnedItems.length>0){
-          const label=document.createElement('small');label.textContent=`Extra items · ${EXTRA_ITEM_COST} coins each`;label.style.cssText='display:block;opacity:.6;margin-bottom:6px;';
-          shopList.append(label);
-          earnedItems.forEach(it=>{
-            if(it.id==='island')return; // Can't buy plain islands, use expansion
-            const btn=document.createElement('button');btn.className='aloha-file-btn';
-            btn.textContent=`${it.name} · ${EXTRA_ITEM_COST}`;
-            btn.disabled=coins<EXTRA_ITEM_COST;
-            btn.addEventListener('click',()=>{
-              if(coins<EXTRA_ITEM_COST)return;
-              coins-=EXTRA_ITEM_COST;inv[it.id]=(inv[it.id]||0)+1;
-              T('aloha_buy_item',{id:it.id});
-              save();updateCoins(false);rebuildShop();rebuild();
-              say(`Bought ${it.name}!`,3);
-            });
-            shopList.append(btn);
+        // Island goods: whatever has been unlocked so far, then a glimpse of what comes next
+        const goods=ITEMS.filter(it=>it.price&&!it.built),order=it=>it.unlock||it.at;
+        const open=goods.filter(unlocked).sort((a,b)=>order(a)-order(b)),locked=goods.filter(it=>!unlocked(it)).sort((a,b)=>order(a)-order(b));
+        const label=document.createElement('small');label.textContent=open.length?'Island goods':'Island goods arrive as your best score grows.';label.style.cssText='display:block;opacity:.6;margin-bottom:6px;';
+        shopList.append(label);
+        open.forEach(it=>{
+          const btn=document.createElement('button');btn.className='aloha-file-btn aloha-good';
+          btn.append(spriteCanvas(it.id));
+          const nm=document.createElement('span');nm.textContent=it.name;btn.append(nm);
+          if(freshShop.has(it.id)){const tag=document.createElement('em');tag.textContent='NEW';btn.append(tag);}
+          const pr=document.createElement('b');pr.textContent=it.price;btn.append(pr);
+          btn.setAttribute('aria-label',`${it.name}, ${it.price} coins`);
+          btn.disabled=coins<it.price;
+          btn.addEventListener('click',()=>{
+            if(coins<it.price)return;
+            coins-=it.price;inv[it.id]=(inv[it.id]||0)+1;fresh.add(it.id);freshShop.delete(it.id);
+            T('aloha_buy_item',{id:it.id});
+            save();updateCoins(false);rebuildShop();rebuild();
+            showCard(it,'New on your island');
           });
-        }else{
-          const empty=document.createElement('small');empty.textContent='Earn items through gameplay to buy extras here.';empty.style.opacity='.5';
-          shopList.append(empty);
-        }
+          shopList.append(btn);
+        });
+        locked.slice(0,3).forEach(it=>{
+          const row=document.createElement('div');row.className='aloha-locked';
+          row.textContent=`${it.name} · at ${order(it)} points`;
+          shopList.append(row);
+        });
+        if(locked.length>3){const more=document.createElement('small');more.textContent=`and ${locked.length-3} more to discover`;more.style.cssText='display:block;opacity:.5;margin-top:4px;';shopList.append(more);}
+      }
+      // A card for the thought that comes with something bought or made. It never blocks play: tap it away or let it fade.
+      const card=document.createElement('div');card.className='aloha-card';card.hidden=true;let cardTimer=0;
+      card.addEventListener('click',e=>{e.stopPropagation();card.hidden=true;});
+      function showCard(it,kicker){
+        const k=document.createElement('small');k.textContent=kicker;
+        const n=document.createElement('strong');n.textContent=it.name;
+        const q=document.createElement('p');q.textContent=SAYINGS[it.id]||PRESENCE[it.id]||'';
+        card.replaceChildren(spriteCanvas(it.id),k,n,q);
+        card.hidden=false;card.classList.remove('show');void card.offsetWidth;card.classList.add('show');
+        clearTimeout(cardTimer);cardTimer=setTimeout(()=>{card.hidden=true;},14000);
+      }
+      // ---- the animals speak ----
+      const bubble=document.createElement('div');bubble.className='aloha-speech';bubble.hidden=true;
+      let speech=null;const lineAt=new Map();
+      function nextLine(key,list){const i=lineAt.has(key)?(lineAt.get(key)+1)%list.length:Math.floor(Math.random()*list.length);lineAt.set(key,i);return list[i];}
+      function speak(t,text,secs=9){speech={t,until:time+secs};bubble.textContent=text;bubble.hidden=false;}
+      function placeBubble(){
+        if(!speech)return;
+        if(time>speech.until){speech=null;bubble.hidden=true;return;}
+        const a=careTargets().find(c=>c.t===speech.t);
+        if(!a||!facing(a.f)){bubble.style.opacity='0';return;}
+        const b=careScreen(a),x=Math.max(120,Math.min(root.clientWidth-120,(b.x0+b.x1)/2));
+        bubble.style.opacity='1';bubble.style.left=x+'px';bubble.style.top=Math.max(70,b.y0-4)+'px';
       }
       // Wrap care + shop in a scrollable sidebar
       const sidebar=document.createElement('div');
@@ -3916,7 +4121,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
       cancelChip.addEventListener('click',e=>{e.stopPropagation();pendingZoom=-1;if(hold)cancelHold();});
       chips.append(moveChip,cancelChip);
       saveBtn.classList.add('desk-only');loadBtn.classList.add('desk-only');
-      ui.append(top,sidebar,hint,bar,back,tapes,chips,drawerBtn,exitBtn);root.append(ui);
+      ui.append(top,sidebar,hint,bar,back,tapes,chips,drawerBtn,exitBtn,bubble,card);root.append(ui);
       function rebuild() {
         bar.textContent='';
         const owned=ITEMS.filter(i=>inv[i.id]>0);
@@ -3985,7 +4190,11 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
       }
       const heights={};
       function heightOf(id){
-        if(!heights[id]){const v=model(id,0,null);heights[id]=(Math.max(...v.map(p=>p[2]))+1.5)*VOX;}
+        if(!heights[id]){
+          const sm=SMOOTH[id];
+          if(sm){const V=sm(0,null);let top=0;for(let q=1;q<V.length;q+=7)top=Math.max(top,V[q]);heights[id]=(top+1.5)*VOX;}
+          else{const v=model(id,0,null);heights[id]=(Math.max(...v.map(p=>p[2]))+1.5)*VOX;}
+        }
         return heights[id];
       }
       function careScreen(a){
@@ -4036,20 +4245,21 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
           for(const n of [0,1,2,0,2,3])out.vert(q[n][0][0],q[n][0][1],q[n][0][2],q[n][1][0],q[n][1][1],q[n][1][2],q[n][2]);
         }
       }
+      // A sculpted model's triangles, turned r quarter-turns in its footprint and set on a face.
+      function pushSculpt(out,f,V,r,baseW,baseD,px,pz,y,tint) {
+        const ox=fx(px),oz=fx(pz);
+        for(let q=0;q<V.length;q+=7){
+          let i=V[q],j=V[q+2],nx=V[q+3],nz=V[q+5],cd=baseD,cw=baseW;
+          for(let n=0;n<r;n++){const ni=cd-j,nj=i,mx=-nz,mz=nx;i=ni;j=nj;nx=mx;nz=mz;const sw=cw;cw=cd;cd=sw;}
+          const p=facePoint(f,ox+i*VOX,y+V[q+1]*VOX,oz+j*VOX),nn=facePoint(f,nx,V[q+4],nz);
+          out.vert(p[0],p[1],p[2],nn[0],nn[1],nn[2],tint?mixc(V[q+6],tint.c,tint.t):V[q+6]);
+        }
+      }
       // Voxels are drawn without the faces that touch a neighbour, so detailed models stay cheap.
       function pushItem(out,f,id,r,px,pz,y,tint,state) {
         const base=BY_ID[id],baseW=base.w*10,baseD=base.d*10,ox=fx(px),oz=fx(pz);
         const sculpted=SMOOTH[id];
-        if(sculpted){
-          const V=sculpted(state&&ANIMALS.has(id)?state.age:time,state);
-          for(let q=0;q<V.length;q+=7){
-            let i=V[q],j=V[q+2],nx=V[q+3],nz=V[q+5],cd=baseD,cw=baseW;
-            for(let n=0;n<r;n++){const ni=cd-j,nj=i,mx=-nz,mz=nx;i=ni;j=nj;nx=mx;nz=mz;const sw=cw;cw=cd;cd=sw;}
-            const p=facePoint(f,ox+i*VOX,y+V[q+1]*VOX,oz+j*VOX),nn=facePoint(f,nx,V[q+4],nz);
-            out.vert(p[0],p[1],p[2],nn[0],nn[1],nn[2],tint?mixc(V[q+6],tint.c,tint.t):V[q+6]);
-          }
-          return;
-        }
+        if(sculpted){pushSculpt(out,f,sculpted(state&&ANIMALS.has(id)?state.age:time,state),r,baseW,baseD,px,pz,y,tint);return;}
         const vox=model(id,state&&ANIMALS.has(id)?state.age:time,state).map(([i0,j0,k,c0])=>{
           let i=i0,j=j0,cw=baseW,cd=baseD;
           for(let n=0;n<r;n++){const ni=cd-1-j,nj=i;i=ni;j=nj;const t=cw;cw=cd;cd=t;}
@@ -4182,6 +4392,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         if(!r){r={ox:0,oz:0,tx:0,tz:0,mv:false,wait:1.5+Math.random()*6,fr:t.r,ry:undefined};roamState.set(t,r);}
         const fed=t.fedUntil>day();
         if(fed||r.mv)t.age+=dt;
+        if(r.work)return; // busy building with a friend
         if(!roamOk(s,t,t.x+r.ox,t.z+r.oz)&&!(r.tx===0&&r.tz===0&&r.mv)){r.tx=0;r.tz=0;r.mv=true;} // something was set down on top of me: stroll home
         if(r.mv){
           const dx=r.tx-r.ox,dz=r.tz-r.oz,dist=Math.hypot(dx,dz),step=ROAM_SPEED*dt;
@@ -4195,7 +4406,20 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
           r.wait-=dt;
           if(r.wait<=0){
             r.wait=3+Math.random()*5;
-            for(let tries=0;tries<10;tries++){
+            // now and then a fed animal wanders over to see a friend, which is how they end up building together
+            if(fed&&canBuildOn(s)&&Math.random()<.45){
+              const friends=s.items.filter(o=>o!==t&&ANIMALS.has(o.id)&&o.fedUntil>day()&&roamState.get(o));
+              if(friends.length){
+                const o=friends[Math.floor(Math.random()*friends.length)],q=roamState.get(o);
+                const gx=o.x+q.ox-t.x,gz=o.z+q.oz-t.z,dx=gx-r.ox,dz=gz-r.oz,far=Math.hypot(dx,dz);
+                if(far>5.5){
+                  const len=far-4.6,tx=r.ox+dx/far*len,tz=r.oz+dz/far*len;
+                  let clear=true;for(let u=1;u<=len;u++)if(!roamOk(s,t,t.x+r.ox+(tx-r.ox)*u/len,t.z+r.oz+(tz-r.oz)*u/len)){clear=false;break;}
+                  if(clear&&roamOk(s,t,t.x+tx,t.z+tz)){r.tx=tx;r.tz=tz;r.mv=true;}
+                }
+              }
+            }
+            if(!r.mv)for(let tries=0;tries<10;tries++){
               const a=Math.random()*Math.PI*2,len=2+Math.random()*5,tx=r.ox+Math.cos(a)*len,tz=r.oz+Math.sin(a)*len;
               let clear=true;for(let u=1;u<=len;u++)if(!roamOk(s,t,t.x+r.ox+(tx-r.ox)*u/len,t.z+r.oz+(tz-r.oz)*u/len)){clear=false;break;}
               if(clear&&roamOk(s,t,t.x+tx,t.z+tz)){r.tx=tx;r.tz=tz;r.mv=true;break;}
@@ -4204,6 +4428,54 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         }
         const [w,d]=dimsPx(t.id,t.r),goal=itemTop(s,Math.round(t.x+r.ox),Math.round(t.z+r.oz),w,d);
         r.ry=r.ry===undefined?goal:r.ry+(goal-r.ry)*Math.min(1,dt*6);
+      }
+      // ---- two fed animals that meet on an island build something together ----
+      // At most one a game day per island and a handful per island in all, so it follows play (days come from shapes
+      // placed, food from coins and gardens) rather than the clock.
+      const BUILD_CAP=5,WORK_TIME=7,teams=new Map(); // island → {a,b,t,x,z,kind}
+      const builtOn=s=>s.items.filter(t=>BY_ID[t.id].built);
+      const canBuildOn=s=>!teams.has(s)&&builtOn(s).length<BUILD_CAP&&!builtOn(s).some(t=>t.bd===day());
+      const spotFree=(s,x,z)=>{
+        for(let j=z;j<z+4;j++)for(let i=x;i<x+4;i++)if(!inMask(s,i,j))return false;
+        return !s.items.some(o=>{const [ow,od]=dimsPx(o.id,o.r),ro=roamState.get(o);return overlap(o.x,o.z,ow,od,x,z,4,4)||(ro&&overlap(o.x+ro.ox,o.z+ro.oz,ow,od,x,z,4,4));});
+      };
+      function freeSpotNear(s,cx,cz){
+        let best=null,bd=1e9;
+        for(let z=Math.round(cz)-9;z<=Math.round(cz)+9;z++)for(let x=Math.round(cx)-9;x<=Math.round(cx)+9;x++){
+          const d=Math.hypot(x+2-cx,z+2-cz);if(d>=bd||!spotFree(s,x,z))continue;
+          best={x,z};bd=d;
+        }
+        return best;
+      }
+      function teamwork(s,dt){
+        const team=teams.get(s);
+        if(team){
+          const ra=roamState.get(team.a),rb=roamState.get(team.b);
+          if(!ra||!rb||!s.items.includes(team.a)||!s.items.includes(team.b)){if(ra)ra.work=false;if(rb)rb.work=false;teams.delete(s);return;}
+          team.t+=dt;team.a.age+=dt;team.b.age+=dt;
+          if(team.t<WORK_TIME)return;
+          ra.work=rb.work=false;ra.wait=3+Math.random()*4;rb.wait=5+Math.random()*4;teams.delete(s);
+          if(!spotFree(s,team.x,team.z))return; // something was put there meanwhile
+          s.items.push({id:team.kind,x:team.x,z:team.z,r:0,bd:day()});
+          T('aloha_built',{id:team.kind,a:team.a.id,b:team.b.id});save();rebuild();
+          showCard(BY_ID[team.kind],`${BY_ID[team.a.id].name} and ${BY_ID[team.b.id].name} made this together`);
+          speak(team.a,nextLine('together',TOGETHER_LINES));
+          return;
+        }
+        if(hold||!canBuildOn(s))return;
+        const crew=s.items.filter(t=>ANIMALS.has(t.id)&&t.fedUntil>day()&&roamState.get(t)&&!roamState.get(t).mv);
+        for(let i=0;i<crew.length;i++)for(let j=i+1;j<crew.length;j++){
+          const a=crew[i],b=crew[j],ra=roamState.get(a),rb=roamState.get(b);
+          const ax=a.x+ra.ox+2,az=a.z+ra.oz+2,bx=b.x+rb.ox+2,bz=b.z+rb.oz+2;
+          if(Math.hypot(ax-bx,az-bz)>6.6)continue;
+          const spot=freeSpotNear(s,(ax+bx)/2,(az+bz)/2);if(!spot)continue;
+          const made=new Set(builtOn(s).map(t=>t.id)),fresh2=BUILT.filter(k=>!made.has(k.id)),pool=fresh2.length?fresh2:BUILT;
+          teams.set(s,{a,b,t:0,x:spot.x,z:spot.z,kind:pool[Math.floor(Math.random()*pool.length)].id});
+          ra.work=rb.work=true;ra.mv=rb.mv=false;
+          // turn to face the work
+          ra.fr=(facingOf(spot.x+2-ax,spot.z+2-az)+2)%4;rb.fr=(facingOf(spot.x+2-bx,spot.z+2-bz)+2)%4;
+          return;
+        }
       }
       const oceanRoam=new WeakMap();
       function roamOcean(t,dt){
@@ -4236,6 +4508,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
       }
       function update(dt) {
         for(const s of islands)for(const t of s.items)if(ANIMALS.has(t.id))roamIsland(s,t,dt);
+        for(const s of islands)teamwork(s,dt);
         for(const t of ocean){
           if(t.rider&&t.rider.fedUntil>day())t.rider.age+=dt;
           if(!ANIMALS.has(t.id))continue;
@@ -4305,8 +4578,12 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
           // A small wander stays inside the reserved footprint, keeping paths off neighbouring gardens.
           const ro=ANIMALS.has(t.id)?roamState.get(t):null,wander=ro?ro.ox:0,wz=ro?ro.oz:0;
           const tint=isGarden(t)&&t.growth<5&&t.lastWater!==day()?{c:[.1,.55,1],t:.25+.6*(.5+.5*Math.sin(time*4))}:null;
-          pushItem(tris,s.f,t.id,ro?ro.fr:t.r,s.x+t.x+wander,s.z+t.z+wz,ro&&ro.ry!==undefined?ro.ry:itemTop(s,t.x,t.z,tw,td),tint,t);
-        }};
+          const hop=ro&&ro.work?Math.abs(Math.sin(time*6+t.x))*.012:0; // a little bounce while building
+          pushItem(tris,s.f,t.id,ro?ro.fr:t.r,s.x+t.x+wander,s.z+t.z+wz,(ro&&ro.ry!==undefined?ro.ry:itemTop(s,t.x,t.z,tw,td))+hop,tint,t);
+        }
+        const team=teams.get(s);
+        if(team)pushSculpt(tris,s.f,SMOOTH.__work(time,team.t/WORK_TIME),0,10,10,s.x+team.x,s.z+team.z,itemTop(s,team.x,team.z,4,4),null);
+        };
         for(const t of ocean){
           const y=t.id==='raft'?floatY(t):(t.y||1.025);
           pushItem(tris,t.f,t.id,t.r,t.x,t.z,y,null,t);
@@ -4369,6 +4646,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         gl.bufferData(gl.ARRAY_BUFFER,tris.view(),gl.DYNAMIC_DRAW);setAttribs();
         gl.drawArrays(gl.TRIANGLES,0,tris.n/9);
         if(lines.n){gl.bufferData(gl.ARRAY_BUFFER,lines.view(),gl.DYNAMIC_DRAW);setAttribs();gl.drawArrays(gl.LINES,0,lines.n/9);}
+        placeBubble();
       }
       // Trackpad play (desktop, new controls): while an item is being placed, a two-finger swipe slides it,
       // a click turns it and a right-click turns it back, the same as the falling block in the main game.
@@ -4422,7 +4700,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         debug:()=>({totalShapes,day:day(),food,ocean:ocean.map(t=>({...t})),careTargets:careTargets().filter(a=>facing(a.f)).map(a=>({id:a.t.id,box:careScreen(a)})),inv:{...inv},islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,area:areaOf(s),items:s.items.map(t=>({...t})),rows:maskRows(s)})),hold:hold&&{id:hold.id,f:hold.f,x:hold.x,z:hold.z,w:hold.w,d:hold.d,h:hold.h,near:hold.near,r:hold.r},zoomK,zoomIsland,zoomTarget,hint:hint.textContent,valid:holdValid(hold),top:FACE_NAMES[topFace()],tipping:!!tip,merging:!!mergeFx})
       };
     }
-    return {create,ITEMS,MILESTONES,COLLECTIBLES,GIFT_LADDER,PRESENCE,icon:voxelIcon,model,sanitize,dimsPx,careState,careFor,dayOf,oceanStep};
+    return {create,ITEMS,MILESTONES,COLLECTIBLES,GIFT_LADDER,PRESENCE,SAYINGS,ANIMAL_LINES,icon:voxelIcon,model,sanitize,dimsPx,careState,careFor,dayOf,oceanStep};
   })();
   </script>
 <script>
@@ -5869,6 +6147,13 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-11-14c',date:'Nov 14, 2026',title:'Aloha grows more slowly, and its animals have things to say',items:[
+      'Only three things are given now: the Island, a Palm Tree and a Parrot. Everything else arrives in the coin shop as your best score grows, to buy when you choose. Anything you already own stays yours.',
+      'Each thing you buy comes with a thought to keep. Select it on the island to read it again.',
+      'Feed an animal, or greet one that is already full, and it will tell you what is on its mind.',
+      'When two fed animals meet on an island they may build something together: balanced stones, a sand castle, a nest and more. One a day per island.',
+      'The woodland set (fox, owl, deer, rabbit, pine, cabin and friends) can now be found in the shop.'
+    ]},
     {id:'2026-11-14b',date:'Nov 14, 2026',title:'A bigger cube and a wordless tutorial on phones',items:[
       'On phones the cube is drawn much larger, and the view keeps the waiting block in sight.',
       'The phone tutorial no longer uses message boxes. The control to use next glows, with an arrow showing which way to swipe; rings closing on the gold square mean hold.',
