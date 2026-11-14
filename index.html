@@ -2057,7 +2057,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
   // and items on an island. Islands are made of small "pixels" (4 per planet cell, so 32×32 per side).
   const TrillionAloha=(()=>{
     // The planet grows a cell at a time: CELLS, and everything measured in cells, follow the number of layers bought.
-    const GRID=48,FINE=4,MERGE_KEEP=.7,MERGE_GAP=2,BASE_CELLS=8,MAX_GROW=8,LAYER_COST=100;
+    const GRID=48,FINE=4,MERGE_KEEP=1,MERGE_GAP=2,BASE_CELLS=8,MAX_GROW=8,LAYER_COST=30,CROWDED=.42,ISLAND_COST=15;
     let CELLS=BASE_CELLS,CELL=2/CELLS,PX=CELLS*FINE,PIX=2/PX,VOX=CELL/10;
     const setPlanetLayers=n=>{CELLS=BASE_CELLS+Math.max(0,Math.min(MAX_GROW,Math.floor(n)||0));CELL=2/CELLS;PX=CELLS*FINE;PIX=2/PX;VOX=CELL/10;};
     const RIPPLE_SMALL=.02,RIPPLE_LARGE=.034,RIPPLE_LIFE=20,RIPPLE_SPEED=.55/3;
@@ -3639,20 +3639,34 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       function zoomIn(k) {T('aloha_zoom',{island:k});zoomIsland=k;zoomTarget=1;cancelHoldQuiet();rebuild();}
       function zoomOut() {zoomTarget=0;cancelHoldQuiet();rebuild();}
       function cancelHoldQuiet() {restoreMoving();hold=null;fallHeld=false;}
-      // Melt a group of touching islands into one blob that is 70% of their combined area.
+      // Melt a group of touching islands into one blob that keeps all of their land (an island dropped on top of another still adds its full area).
       function mergeGroup(group,f) {
         const key=(x,z)=>x*64+z,cells=new Set();let A=0;
         for(const g of group)for(let j=0;j<g.d;j++)for(let i=0;i<g.w;i++)if(g.mask[j*g.w+i]){A++;cells.add(key(g.x+i,g.z+j));}
         const U=cells.size;let cx=0,cz=0,x0=99,x1=-1,z0=99,z1=-1;
         for(const k of cells){const x=Math.floor(k/64),z=k%64;cx+=x;cz+=z;x0=Math.min(x0,x);x1=Math.max(x1,x);z0=Math.min(z0,z);z1=Math.max(z1,z);}
         cx=cx/U+.5;cz=cz/U+.5;
-        const target=Math.max(16,Math.round(A*MERGE_KEEP)),s=Math.sqrt(target/U);
-        const qx0=Math.max(0,Math.floor(cx+(x0-cx)*s)-1),qx1=Math.min(PX-1,Math.ceil(cx+(x1+1-cx)*s)+1);
-        const qz0=Math.max(0,Math.floor(cz+(z0-cz)*s)-1),qz1=Math.min(PX-1,Math.ceil(cz+(z1+1-cz)*s)+1);
+        const target=Math.max(16,Math.round(A*MERGE_KEEP)),s=target>U?Math.sqrt(target/U)*1.03:1; // a touch generous, so rounding never costs land
+        const qx0=Math.max(0,Math.floor(cx+(x0-cx)*s)-3),qx1=Math.min(PX-1,Math.ceil(cx+(x1+1-cx)*s)+3);
+        const qz0=Math.max(0,Math.floor(cz+(z0-cz)*s)-3),qz1=Math.min(PX-1,Math.ceil(cz+(z1+1-cz)*s)+3);
         const w=qx1-qx0+1,d=qz1-qz0+1,mask=new Uint8Array(w*d);
         for(let qz=qz0;qz<=qz1;qz++)for(let qx=qx0;qx<=qx1;qx++) {
           const sx=Math.floor(cx+(qx+.5-cx)/s),sz=Math.floor(cz+(qz+.5-cz)/s);
           if(cells.has(key(sx,sz)))mask[(qz-qz0)*w+(qx-qx0)]=1;
+        }
+        // Islands that only sat close together get the strait between them filled in, so nothing is cut off and lost.
+        for(const grow of [1,1,0,0]){
+          const src=mask.slice(),on=(i,j)=>i<0||j<0||i>=w||j>=d?!grow:src[j*w+i]===1;
+          for(let j=0;j<d;j++)for(let i=0;i<w;i++){
+            let any=false,all=true;
+            for(let b=-1;b<=1;b++)for(let a=-1;a<=1;a++){if(on(i+a,j+b))any=true;else all=false;}
+            mask[j*w+i]=(grow?any:all)?1:0;
+          }
+        }
+        // where two pieces meet only corner to corner, square the joint off so they count as one piece of land
+        for(let j=0;j<d-1;j++)for(let i=0;i<w-1;i++){
+          const a=mask[j*w+i],b=mask[j*w+i+1],c=mask[(j+1)*w+i],e=mask[(j+1)*w+i+1];
+          if(a&&e&&!b&&!c||b&&c&&!a&&!e)mask[j*w+i]=mask[j*w+i+1]=mask[(j+1)*w+i]=mask[(j+1)*w+i+1]=1;
         }
         const r=finishMask(mask,w,d,qx0,qz0)||{x:Math.floor(cx),z:Math.floor(cz),w:1,d:1,mask:new Uint8Array([1])};
         const M={f,x:r.x,z:r.z,w:r.w,d:r.d,mask:r.mask,items:[]};
@@ -3670,18 +3684,34 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       }
       // ---- growing the planet: one more cell on every face, so the same islands sit in more ocean ----
       function refreshScale(){DECK=3*VOX;for(const k of Object.keys(heights))delete heights[k];}
-      function growPlanet(){
-        if(layers>=MAX_GROW||coins<LAYER_COST||hold||tip)return false;
-        coins-=LAYER_COST;layers++;
+      function addLayer(){
+        layers++;
         const before=PX;setPlanetLayers(layers);
         const shift=(PX-before)/2; // keep everything centred on its face
         for(const s of islands){s.x+=shift;s.z+=shift;}
         for(const t of ocean){t.x+=shift;t.z+=shift;}
-        mergeFx=null;pendingZoom=-1;refreshScale();
+        if(mergeFx){for(const o of mergeFx.olds){o.x+=shift;o.z+=shift;}mergeFx.c=[mergeFx.c[0]+shift,mergeFx.c[1]+shift];}
+        refreshScale();
+      }
+      function growPlanet(){
+        if(layers>=MAX_GROW||coins<LAYER_COST||hold||tip)return false;
+        coins-=LAYER_COST;mergeFx=null;pendingZoom=-1;addLayer();
         T('aloha_grow',{layers});
         save();updateCoins(false);rebuildShop();rebuild();
         say(`The planet grew by a layer (${CELLS}×${CELLS} cells). More ocean to fill.`,6);
         return true;
+      }
+      // Room is never something to worry about: when the land on any one face crowds its sea, the planet quietly grows by itself.
+      function crowding(){
+        const land=[0,0,0,0,0,0];
+        for(const s of islands){let n=0;for(let k=0;k<s.mask.length;k++)n+=s.mask[k];land[s.f]+=n;}
+        return Math.max(...land)/(PX*PX);
+      }
+      function makeRoom(){
+        let grew=0;
+        while(layers<MAX_GROW&&grew<4&&crowding()>=CROWDED){addLayer();grew++;}
+        if(grew){T('aloha_grow',{layers,auto:1});rebuildShop();}
+        return grew;
       }
       // Each island carries chapters (island.ch). A new island takes the next owned chapter nobody has; merging pools them.
       function assignChapters(){
@@ -3714,6 +3744,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         const h=hold;hold=null;fallHeld=false;
         if(h.id==='island'){
           inv.island--;addIsland(h);
+          if(makeRoom())say('The sea widened to make room.',6);
         }
         else if(h.ride){
           const raft=raftUnder(h);
@@ -4039,10 +4070,25 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
           const grow=document.createElement('button');grow.className='aloha-file-btn';
           const full=layers>=MAX_GROW;
           grow.textContent=full?'Planet fully grown ✓':`Grow planet +1 layer · ${LAYER_COST} COINS`;
-          grow.title=full?'The planet cannot grow any further':`Adds a cell of ocean to every face (now ${CELLS}×${CELLS})`;
+          grow.title=full?'The planet cannot grow any further':`Adds a cell of ocean to every face (now ${CELLS}×${CELLS}). The planet also grows by itself whenever its islands crowd the sea.`;
           grow.disabled=full||coins<LAYER_COST;
           grow.addEventListener('click',()=>growPlanet());
           shopList.append(grow);
+        }
+        // More land: a plain island, to set in open sea or to drop onto an island and make it bigger
+        if(islands.length||inv.island>0){
+          const land=document.createElement('button');land.className='aloha-file-btn';
+          land.textContent=`More land · ${ISLAND_COST} COINS`;
+          land.title='A new island. Set it in open sea, or lower it onto an island you have and the two become one bigger island.';
+          land.disabled=coins<ISLAND_COST;
+          land.addEventListener('click',()=>{
+            if(coins<ISLAND_COST)return;
+            coins-=ISLAND_COST;inv.island=(inv.island||0)+1;
+            T('aloha_buy_island',{});
+            save();updateCoins(false);rebuildShop();rebuild();
+            say('New land is waiting below. Set it in open sea, or lower it onto an island to make that island bigger.',8);
+          });
+          shopList.append(land);
         }
         // Separator
         const sep=document.createElement('div');sep.style.cssText='border-top:1px solid #3b6c96;margin:8px 0;';
@@ -4690,7 +4736,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
       window.addEventListener('pagehide',save);
       assignChapters();rebuild();updateCoins();
       return {
-        start() {if(running)return;running=true;time=0;last=0;nextRipple=5;rippleCount=0;ripples=[];angle=0;kick=0;pitch=pitchPlanet=.38;zoomK=zoomTarget=0;zoomIsland=-1;hold=null;fallHeld=false;tip=null;mergeFx=null;rebuild();frame=requestAnimationFrame(draw);},
+        start() {if(running)return;running=true;time=0;last=0;nextRipple=5;rippleCount=0;ripples=[];angle=0;kick=0;pitch=pitchPlanet=.38;zoomK=zoomTarget=0;zoomIsland=-1;hold=null;fallHeld=false;tip=null;mergeFx=null;if(makeRoom())save();rebuild();frame=requestAnimationFrame(draw);},
         stop() {save();running=false;cancelAnimationFrame(frame);hold=null;fallHeld=false;},
         key,keyup,award,advanceShapes,processScore,giftQueue,addCoins,exportData,importData,chapterCount,recordLevel,milestones:MILESTONES,get coins(){return coins;},get earnedMax(){return earnedMax;},
         get time(){return time;},
@@ -5445,19 +5491,23 @@ window.TrillionCloud=(()=>{
   canvas.addEventListener('pointerleave',()=>{flick.s=null;clearTimeout(flick.timer);});
   // A two-finger swipe slides the block one cell per stretch of travel. The trackpad keeps sending movement after the
   // fingers lift (the coast); that tail is ignored so a swipe never carries the block further than the fingers did.
-  const swipe={ax:0,ay:0,last:0,mag:0,fall:0,coast:false};
+  // One swipe, one cell: once a swipe has moved the block it is spent, however long the fingers keep going. The next
+  // move takes a new swipe, which shows up as a pause or as the movement picking up again after it had been dying away.
+  const swipe={ax:0,ay:0,last:0,mag:0,fall:0,coast:false,done:false,low:0};
   function swipeSlide(dx,dy) {
     const T=48,now=performance.now(),mag=Math.hypot(dx,dy);
-    if(now-swipe.last>300){swipe.ax=swipe.ay=0;swipe.fall=0;swipe.coast=false;}
-    else if(mag>swipe.mag*1.3+2){swipe.fall=0;swipe.coast=false;}
+    if(now-swipe.last>300){swipe.ax=swipe.ay=0;swipe.fall=0;swipe.coast=swipe.done=false;}
+    else if(swipe.coast&&mag>swipe.low*1.8+4){swipe.ax=swipe.ay=0;swipe.fall=0;swipe.coast=swipe.done=false;}
     else if(mag<swipe.mag)swipe.fall++;
-    if(swipe.fall>=3)swipe.coast=true;
+    else if(!swipe.coast&&mag>swipe.mag*1.3+2)swipe.fall=0;
+    if(swipe.fall>=3&&!swipe.coast){swipe.coast=true;swipe.low=mag;}
+    if(swipe.coast)swipe.low=Math.min(swipe.low,mag);
     swipe.last=now;swipe.mag=mag;
-    if(swipe.coast||!canPlay()){swipe.ax=swipe.ay=0;return;}
+    if(swipe.done||swipe.coast||!canPlay()){swipe.ax=swipe.ay=0;return;}
     swipe.ax=clamp(swipe.ax+dx,-T,T);swipe.ay=clamp(swipe.ay+dy,-T,T);
     // With macOS natural scrolling the block follows the fingers: the scroll delta runs opposite to them.
-    if(Math.abs(swipe.ax)>=T&&Math.abs(swipe.ax)>=Math.abs(swipe.ay)){game.move(swipe.ax>0?-1:1,0);swipe.ax=swipe.ay=0;}
-    else if(Math.abs(swipe.ay)>=T){game.move(0,swipe.ay>0?-1:1);swipe.ax=swipe.ay=0;}
+    if(Math.abs(swipe.ax)>=T&&Math.abs(swipe.ax)>=Math.abs(swipe.ay)){game.move(swipe.ax>0?-1:1,0);swipe.ax=swipe.ay=0;swipe.done=true;}
+    else if(Math.abs(swipe.ay)>=T){game.move(0,swipe.ay>0?-1:1);swipe.ax=swipe.ay=0;swipe.done=true;}
   }
   for(const name of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(name,event=>{
     if(drag?.id===event.pointerId)endDrag();
@@ -5535,12 +5585,11 @@ window.TrillionCloud=(()=>{
         if(!st.moved&&len>12){st.moved=true;if(!st.held&&st.timer){clearTimeout(st.timer);st.timer=null;}}
         const k=len>0?Math.min(len,26)/len:0;
         el.style.setProperty('--nx',(tx*k).toFixed(1)+'px');el.style.setProperty('--ny',(ty*k).toFixed(1)+'px');
+        // One swipe, one move: however far the thumb travels, the touch fires once. A second move takes a second swipe.
         const T=o.step;
-        if(Math.abs(st.ax)>=T&&Math.abs(st.ax)>=Math.abs(st.ay)){
-          const n=Math.trunc(st.ax/T);for(let i=0;i<Math.abs(n);i++)o.drag(n>0?'right':'left');st.ax-=n*T;st.ay=0;
-        }else if(Math.abs(st.ay)>=T){
-          const n=Math.trunc(st.ay/T);for(let i=0;i<Math.abs(n);i++)o.drag(n>0?'down':'up');st.ay-=n*T;st.ax=0;
-        }
+        if(st.fired&&!(o.repeat&&o.repeat())){st.ax=st.ay=0;return;}
+        if(Math.abs(st.ax)>=T&&Math.abs(st.ax)>=Math.abs(st.ay)){st.fired=true;o.drag(st.ax>0?'right':'left');st.ax=st.ay=0;}
+        else if(Math.abs(st.ay)>=T){st.fired=true;o.drag(st.ay>0?'down':'up');st.ax=st.ay=0;}
       });
       const end=e=>{
         if(!st||(e&&e.pointerId!==st.id))return;
@@ -5586,9 +5635,8 @@ window.TrillionCloud=(()=>{
         ring.addEventListener('pointermove',e=>{
           if(!st||e.pointerId!==st.id)return;
           const a=ang(e);let d=a-st.last;if(d>180)d-=360;if(d<-180)d+=360;
-          st.last=a;st.total+=d;show(rest+st.total);
-          while(st.total-st.steps*90>=55){st.steps++;turn(1);}
-          while(st.total-st.steps*90<=-55){st.steps--;turn(-1);}
+          st.last=a;st.total+=d;show(rest+clamp(st.total,-90,90));
+          if(!st.steps&&Math.abs(st.total)>=55){st.steps=st.total>0?1:-1;turn(st.steps);} // one quarter turn per touch, however far the thumb goes
         });
         const end=e=>{if(!st||(e&&e.pointerId!==st.id))return;rest+=st.steps*90;st=null;ring.classList.remove('active');show(rest);};
         ring.addEventListener('pointerup',end);ring.addEventListener('pointercancel',end);ring.addEventListener('lostpointercapture',end);
@@ -5596,6 +5644,7 @@ window.TrillionCloud=(()=>{
       };
       gesture(pad,{
         step:30,
+        repeat:()=>alohaOpen, // carrying something across the planet may keep stepping; in the game a swipe is one cell
         drag(dir){
           trace('P',dir);
           if(alohaOpen){press({left:'a',right:'d',up:'w',down:'s'}[dir]);return;}
@@ -6147,6 +6196,12 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-11-14d',date:'Nov 14, 2026',title:'A planet that makes room, and one move per swipe',items:[
+      'The Aloha planet now grows by itself whenever its islands start to crowd the sea. You never have to pay for room.',
+      'Islands that merge keep all of their land. Lower one island onto another and the result is as big as both together.',
+      'The coin shop sells more land for 15 coins: a new island to set in open sea or to drop onto one you have. Growing the planet early now costs 30 coins instead of 100.',
+      'Every swipe or flick makes exactly one move, however long it is. To slide, turn or tip twice, swipe twice.'
+    ]},
     {id:'2026-11-14c',date:'Nov 14, 2026',title:'Aloha grows more slowly, and its animals have things to say',items:[
       'Only three things are given now: the Island, a Palm Tree and a Parrot. Everything else arrives in the coin shop as your best score grows, to buy when you choose. Anything you already own stays yours.',
       'Each thing you buy comes with a thought to keep. Select it on the island to read it again.',
