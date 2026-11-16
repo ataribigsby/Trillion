@@ -5326,7 +5326,7 @@ window.TrillionCloud=(()=>{
   const gameOverDialog=document.querySelector('#game-over');
   gameOverDialog.addEventListener('cancel',event=>event.preventDefault());
   function setPaused(paused) { game.paused=onTitle||paused; if(game.paused)game.softDrop=false; pauseButton.textContent=game.paused?'Resume':'Pause'; pauseButton.setAttribute('aria-pressed',String(game.paused)); }
-  pauseButton.addEventListener('click',()=>setPaused(!game.paused));
+  pauseButton.addEventListener('click',()=>{setPaused(!game.paused);canvas.focus();}); // hand the keyboard back to the game, or Space would press this button again
   // ALOHA: press 7 to fade out of the game into a calm ocean planet, and 7 again to come back.
   const alohaRoot=document.querySelector('#aloha'),alohaFade=document.querySelector('#aloha-fade');
   const aloha=TrillionAloha.create(alohaRoot);
@@ -5700,7 +5700,8 @@ window.TrillionCloud=(()=>{
       return;
     }
     if(game.gameOver)return;
-    if (event.target.closest('button') && event.key===' ') return;
+    // Space belongs to the game. If a toolbar button still has focus (after clicking Resume, say), take the keyboard back instead of pressing it again.
+    if(event.key===' '&&event.target.closest('button')){if(event.target.closest('dialog'))return;canvas.focus();}
     const key=event.key.length===1?event.key.toLowerCase():event.key;
     if (!keys.has(key)) return;
     event.preventDefault();
@@ -5715,6 +5716,7 @@ window.TrillionCloud=(()=>{
     if(key==='ArrowUp')game.rotateCube('x',-1); if(key==='ArrowDown')game.rotateCube('x',1);
     if(key==='ArrowLeft')game.rotateCube('z',1); if(key==='ArrowRight')game.rotateCube('z',-1);
     if(key==='/')game.rotateCube('y',-1);
+    if(key===' '&&game.paused){setPaused(false);return;} // back from another tab: the first Space resumes, the next one drops
     if(key===' '&&!game.paused){if(game.awaitingStart)game.beginPlay();game.softDrop=true;} // the very first press starts play and drops in one go
   });
   window.addEventListener('keyup',event=>{if(event.code==='Space'||event.key===' ')game.softDrop=false;});
@@ -6403,6 +6405,9 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-11-16a',date:'Nov 16, 2026',title:'Space bar after a break',items:[
+      'Fixed: after leaving the game for another tab and coming back, Space could pause the game instead of dropping the block. Space now resumes a paused game, and then drops as usual.'
+    ]},
     {id:'2026-11-15c',date:'Nov 15, 2026',title:'Ten new levels: Tunnels, Chimes, Night',items:[
       'Levels 16 to 18, Tunnels: the four glowing cells in the middle of a face are an opening. What you drop into one comes out on the opposite face, so you can build on a side you are not looking at.',
       'Levels 19 to 21, Chimes: every face has its own note. Each block plays it and each cleared line plays a chord. In level 20 the twin answers a fifth higher.',
