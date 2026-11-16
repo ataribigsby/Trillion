@@ -1404,6 +1404,20 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     {level:13,score:650,size:6,faces:'all',pieces:'big',manualDrop:true,body:3,terrain:[1,-1,0,0,0,0],caption:'AS ABOVE, SO BELOW'},
     {level:14,score:800,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[-1,-1,-1,-1,-1,-1],caption:'SIX SANCTUARIES • TWO STEPS WITHIN'},
     {level:15,score:1000,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[-1,-1,-1,-1,-1,-1],echo:true,caption:'ECHO WORLD • EVERY BLOCK HAS A TWIN'},
+    // Chapter 6, Tunnels: marked cells are openings. What falls into one comes out on the opposite face.
+    {level:16,score:1200,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],tunnels:[0,1],celebration:6,caption:'TUNNELS • DROP IN, COME OUT BELOW'},
+    {level:17,score:1400,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],tunnels:[0,1,2,3,4,5],caption:'SIX DOORS • EVERY SIDE LEADS THROUGH'},
+    {level:18,score:1600,size:6,faces:'all',pieces:'intro',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],tunnels:[0,1,2,3,4,5],caption:'SMALL STONES • AN EASY BREATH'},
+    // Chapter 7, Chimes: every face has a note. Blocks play it, lines play a chord.
+    {level:19,score:1800,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],chimes:true,celebration:6,caption:'CHIMES • EVERY FACE HAS A NOTE'},
+    {level:20,score:2050,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],chimes:true,echo:true,caption:'HARMONY • THE TWIN SINGS A FIFTH ABOVE'},
+    {level:21,score:2300,size:6,faces:'all',pieces:'intro',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],chimes:true,caption:'ONE NOTE AT A TIME'},
+    // Chapter 8, Night: the cube goes dark and what you place glows.
+    {level:22,score:2500,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],night:'dark',celebration:6,caption:'NIGHT • WHAT YOU PLACE GLOWS'},
+    {level:23,score:2750,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],night:'dark',tunnels:[0,1],chimes:true,caption:'NIGHT DOORS • LISTEN FOR THE OTHER SIDE'},
+    {level:24,score:3000,size:6,faces:'all',pieces:'classic',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],night:'dawn',chimes:true,caption:'DAWN • THE LIGHT COMES BACK'},
+    // The finale has no target. Lines cleared here become land in Aloha.
+    {level:25,score:3300,size:6,faces:'all',pieces:'classic',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],night:'dawn',chimes:true,finale:true,celebration:8,caption:'ALOHA • NOWHERE LEFT TO GET TO'},
   ];
   const SPAWN_HEIGHT=3, FALL_SPEED=.17;
   const POWER_DURATION=.65, GROW_DURATION=2.2, FOLD_DURATION=3.2, UNFOLD_DURATION=2.6, CELEBRATION_DURATION=4;
@@ -1478,6 +1492,32 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     index(x,z,layer=0){return index(x,z,layer,this.size);}
     get terrain(){return this.progression?LEVELS[this.level-1]?.terrain:null;}
     get echo(){return this.progression&&!!LEVELS[this.level-1]?.echo;}
+    get config(){return this.progression?LEVELS[this.level-1]:null;}
+    // Tunnels: the four middle cells of a tunnel face are an opening while nothing stands in them.
+    // A block that falls into an opening comes out on the same four cells of the opposite face.
+    get tunnels(){return this.progression?LEVELS[this.level-1]?.tunnels||null:null;}
+    isTunnel(face,x,z){
+      const t=this.tunnels;if(!t||!t.includes(face))return false;
+      const [w,d]=this.faceDimensions(face);
+      return (x===w/2-1||x===w/2)&&(z===d/2-1||z===d/2);
+    }
+    tunnelOpen(face,x,z){return this.isTunnel(face,x,z)&&this.columnHeight(face,x,z)===this.floorLevel(face,x,z);}
+    tunnelExit(face,x,z){
+      const o=face^1,p=this.surfacePoint(face,x,z,0),[w,d]=this.faceDimensions(o),b=FACES[o];
+      return {face:o,x:Math.round(dot(p,b.u)/this.cell+w/2-.5),z:Math.round(dot(p,b.v)/this.cell+d/2-.5)};
+    }
+    // Where each block of the piece will actually come to rest.
+    restingCells(level=this.landingLevel()){
+      const out=[],through=new Map();
+      for(const t of this.placementTargets()){
+        if(this.tunnels&&this.validCell(t.face,t.x,t.z)&&this.tunnelOpen(t.face,t.x,t.z)){
+          const e=this.tunnelExit(t.face,t.x,t.z),k=e.face+':'+e.x+':'+e.z;
+          if(!through.has(k))through.set(k,{e,n:0});through.get(k).n++;
+        }else out.push({face:t.face,x:t.x,z:t.z,layer:level+t.y});
+      }
+      for(const {e,n} of through.values()){const base=this.columnHeight(e.face,e.x,e.z);for(let i=0;i<n;i++)out.push({face:e.face,x:e.x,z:e.z,layer:base+i,through:true});}
+      return out;
+    }
     get terrainBias(){return this.terrain?2:0;}
     faceDimensions(face,config=LEVELS[this.level-1]) {
       return config?.terrain&&face>=2?[this.size,config.body]:[this.size,this.size];
@@ -1721,16 +1761,22 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       if(!piece)return 0;
       const targets=this.targets(piece);
       if(this.echo&&!piece.kind)targets.push(...this.echoTargets(piece));
+      if(this.tunnels){
+        const solid=targets.filter(t=>!(this.validCell(t.face,t.x,t.z)&&this.tunnelOpen(t.face,t.x,t.z)));
+        return Math.max(0,...solid.map(t=>this.columnHeight(t.face,t.x,t.z)-t.y));
+      }
       return Math.max(0,...targets.map(t=>this.columnHeight(t.face,t.x,t.z)-t.y));
     }
     canLand() {
       if(!this.active)return false;
       const level=this.landingLevel();
+      if(this.tunnels)return this.placementTargets().every(t=>this.validCell(t.face,t.x,t.z))&&this.restingCells(level).every(t=>t.through||(t.layer>=this.floorLevel(t.face,t.x,t.z)&&!this.boards[t.face][this.index(t.x,t.z,t.layer)]));
       return this.placementTargets().every(t=>this.validCell(t.face,t.x,t.z)&&level+t.y>=this.floorLevel(t.face,t.x,t.z)&&!this.boards[t.face][this.index(t.x,t.z,level+t.y)]);
     }
     wouldOverflow() {
       if(!this.active||this.active.kind)return false;
       const level=this.landingLevel();
+      if(this.tunnels)return this.restingCells(level).some(t=>t.layer-this.floorLevel(t.face,t.x,t.z)>=MAX_LAYERS);
       return this.placementTargets().some(t=>level+t.y-this.floorLevel(t.face,t.x,t.z)>=MAX_LAYERS);
     }
     // True if any block floats above an empty cell within its own column. No piece may take such a pose.
@@ -1907,7 +1953,9 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         this.activatePowerUp();return true;
       }
       const face=this.topFace(),level=this.landingLevel(),overflow=this.wouldOverflow();
-      for(const t of this.placementTargets())this.boards[t.face][this.index(t.x,t.z,level+t.y)]=this.active.type;
+      this.lastThrough=0;
+      if(this.tunnels)for(const t of this.restingCells(level)){this.boards[t.face][this.index(t.x,t.z,t.layer)]=this.active.type;if(t.through)this.lastThrough++;}
+      else for(const t of this.placementTargets())this.boards[t.face][this.index(t.x,t.z,level+t.y)]=this.active.type;
       this.placed++;this.active=null;this.lastChain=0;
       this.triggeredLines=0;this.chainPoints=0;this.lastAward=0;
       this.bloomAwarded=false;
@@ -1915,7 +1963,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         this.gameOver=true;this.lossFace=face;this.softDrop=false;this.turnQueue=[];
         return true;
       }
-      this.beginClear(this.echo?null:face,1);return true;
+      this.beginClear(this.echo||this.tunnels?null:face,1);return true;
     }
     findLines(face) {
       const board=this.boards[face],cells=new Set(),patterns=[];
@@ -3325,7 +3373,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         COLLECTIBLES.forEach((c,k)=>{if(owned(c.id)>0)earnedMax=Math.max(earnedMax,(k+1)*40);});
       }
       { // chapters: keep each at most once; saves from before islands carried chapters get the old arrangement
-        let owned=1;for(let size=5;size<=9;size++)if(inv['expand_'+size]>0)owned=Math.max(owned,Math.min(5,size-3));
+        let owned=1;for(let size=5;size<=12;size++)if(inv['expand_'+size]>0)owned=Math.max(owned,size<=9?Math.min(5,size-3):size-4);
         const seen=new Set();
         islands.forEach((isl,k)=>{
           if(isl.ch===undefined){isl.ch=k<owned?[k]:[];if(k===islands.length-1)for(let c=k+1;c<owned;c++)isl.ch.push(c);}
@@ -3333,7 +3381,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         });
       }
       const expandedSizes=Array.isArray(d.expandedSizes)?d.expandedSizes.filter(s=>Number.isFinite(s)&&s>=4&&s<=9).slice(0,5):[];
-      return {inv,islands,ocean,totalShapes,food:n(d.food),earnedMax,coins:n(d.coins),expandedSizes,layers,passed:Math.max(0,Math.min(15,Math.floor(Number(d.passed))||0))};
+      return {inv,islands,ocean,totalShapes,food:n(d.food),earnedMax,coins:n(d.coins),expandedSizes,layers,passed:Math.max(0,Math.min(25,Math.floor(Number(d.passed))||0))};
     }
     const vertexSource=`
       attribute vec3 aPos; attribute vec3 aNormal; attribute vec3 aTangent;
@@ -3926,7 +3974,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       back.addEventListener('click',()=>zoomOut());
       // ---- cassette tapes: floating level-select over a zoomed-in island ----
       const tapes=document.createElement('div');tapes.className='aloha-tapes';
-      const TAPE_COLORS=[['#d9534f','#f08a5d'],['#2f9e8f','#6fd3c0'],['#e0a526','#f6d56a'],['#6a5acd','#a79bf0'],['#d65f98','#f3a1c9']];
+      const TAPE_COLORS=[['#d9534f','#f08a5d'],['#2f9e8f','#6fd3c0'],['#e0a526','#f6d56a'],['#6a5acd','#a79bf0'],['#d65f98','#f3a1c9'],['#1f8fa8','#7fe0ee'],['#c9a227','#ffe9a0'],['#2b3566','#8fa2ff']];
       let tapeKey='',tapeEls=[];
       // the chapters an island carries: its own, and (on the last island) any owned chapters that have no island of their own
       function islandChapters(k){return (islands[k]&&islands[k].ch)||[];}
@@ -4032,7 +4080,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
       function exportData() {
         return {game:'trillion-aloha',version:6,savedAt:new Date().toISOString(),expandedSizes:[...(saved.expandedSizes||[])],passed,layers,coins,totalShapes,food,ocean:ocean.map(t=>({...t})),earnedMax,inv:{...inv},islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,m:maskRows(s),ch:s.ch||[],items:s.items.map(t=>({...t}))}))};
       }
-      function recordLevel(n){n=Math.floor(Number(n));if(Number.isFinite(n)&&n>passed&&n<=15){passed=n;save();}}
+      function recordLevel(n){n=Math.floor(Number(n));if(Number.isFinite(n)&&n>passed&&n<=25){passed=n;save();}}
       function importData(raw) {
         const d=sanitize(raw);
         if(!d)return false;
@@ -4100,10 +4148,13 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         {size:5,cost:10,label:'Island 2 · Levels 4–6'},
         {size:6,cost:20,label:'Island 3 · Levels 7–9'},
         {size:7,cost:30,label:'Island 4 · Levels 10–12'},
-        {size:8,cost:40,label:'Island 5 · Levels 13–15'}];
+        {size:8,cost:40,label:'Island 5 · Levels 13–15'},
+        {size:10,cost:50,label:'Island 6 · Levels 16–18 · Tunnels'},
+        {size:11,cost:60,label:'Island 7 · Levels 19–21 · Chimes'},
+        {size:12,cost:70,label:'Island 8 · Levels 22–24 · Night'}];
       // Entitlements survive island placement, merging, and all existing save formats.
       function chapterCount(){
-        let count=1;for(let size=5;size<=9;size++)if(inv['expand_'+size]>0)count=Math.max(count,Math.min(5,size-3));
+        let count=1;for(let size=5;size<=12;size++)if(inv['expand_'+size]>0)count=Math.max(count,size<=9?Math.min(5,size-3):size-4); // sizes 10, 11, 12 are chapters 6, 7, 8
         return count;
       }
       const EXTRA_ITEM_COST=10;
@@ -5897,7 +5948,7 @@ window.TrillionCloud=(()=>{
   const scoreLabel=document.querySelector('#score');
   const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
   let previous, cameraDistance=8.5,scoreHue=42,powerTime=0;
-  let glowSnap=null,landFx=null,lastPlaced=0;
+  let glowSnap=null,landFx=null,lastPlaced=0,chimePlaced=0,chimeLines=0,finaleLines=0;
   // ---- Piece motion: purely visual. The rules move the piece instantly; the picture swings or glides to catch up. ----
   const PIECE_ANIM_MS=120; // how long a turn or slide takes to play out
   let poseSnap=null,poseAnim=null;
@@ -6022,6 +6073,32 @@ window.TrillionCloud=(()=>{
       }
     }
     while(aloha&&game.score>=(alohaCoin+1)*10){aloha.addCoins(1);alohaCoin++;}
+    if(game.placed!==chimePlaced){
+      if(game.placed>chimePlaced){
+        const cfg=game.config,face=game.topFace(),pan=[0,0,.45,-.45,.2,-.2][face]||0;
+        if(cfg?.chimes){
+          const midi=[60,62,64,67,69,72][face]??60;
+          music.chipVoice({midi,kind:'bell',duration:1.1,velocity:.16,pan});
+          if(cfg.echo)setTimeout(()=>music.chipVoice({midi:midi+7,kind:'bell',duration:1.1,velocity:.11,pan:-pan}),130); // the twin answers a fifth above
+        }
+        if(game.lastThrough>0){ // something went through a tunnel: a soft falling pair, heard from the far side
+          music.chipVoice({midi:55,kind:'bell',duration:.5,velocity:.13,pan:-.5});
+          setTimeout(()=>music.chipVoice({midi:48,kind:'bell',duration:.9,velocity:.13,pan:.5}),150);
+        }
+      }
+      chimePlaced=game.placed;
+    }
+    if(game.lines!==chimeLines){
+      if(game.lines>chimeLines){
+        const cfg=game.config;
+        if(cfg?.chimes)[0,4,7,12].forEach((n,i)=>setTimeout(()=>music.chipVoice({midi:60+n,kind:'bell',duration:1.6,velocity:.12,pan:(i-1.5)*.3}),i*70));
+        if(cfg?.finale&&aloha){ // the finale has no target: every eight lines cleared here becomes an island for Aloha
+          finaleLines+=game.lines-chimeLines;
+          while(finaleLines>=8){finaleLines-=8;aloha.award(0);}
+        }
+      }
+      chimeLines=game.lines;
+    }
     if(game.placed!==lastPlaced){landFx=game.placed>lastPlaced&&glowSnap?{...glowSnap,t:0}:null;glowSnap=null;lastPlaced=game.placed;}
     if(landFx){landFx.t+=dt;if(landFx.t>.6)landFx=null;}
     celebrationFX.render(game.celebration,reducedMotion.matches);
@@ -6078,6 +6155,8 @@ window.TrillionCloud=(()=>{
       patch(negative,0,0,1,-twist.cut-.002,[.12,.16,.22],b);
     }
     const flapSet=flapFaces(growth);
+    // Night levels: the cube is dim and placed blocks are lit from within. At dawn the cube is bright again and the glow stays.
+    const night=game.config?.night||null,glow=c=>night?c.map(v=>Math.min(1.3,v*1.22+.1)):c;
     const panelWarp=(f,x,z,block)=>{
       if(!growth||growth.kind==='terrain')return null;
       if(growth.kind==='fold'||growth.kind==='unfold')return flapWarp(growth,f,block);
@@ -6093,7 +6172,12 @@ window.TrillionCloud=(()=>{
         matrices[i]=cellMatrix;
         growthWarp=panelWarp(f,x,z,false);
         if(growthWarp?.hidden){growthWarp=null;continue;}
-        const tint=tileColors[game.tiles[f][i]??f],color=f===top?tint.map(c=>c+.055):tint;
+        const tint=tileColors[game.tiles[f][i]??f];let color=f===top?tint.map(c=>c+.055):tint;
+        if(night==='dark')color=color.map(c=>c*.2);
+        if(game.tunnels&&game.isTunnel(f,x,z)){ // an opening: dark with a slow teal breath; dimmer while something stands in it
+          const open=game.tunnelOpen(f,x,z),breath=reducedMotion.matches?.5:.5+.5*Math.sin(time*.0017+(x+z)*.6);
+          color=open?[.01,.10+.10*breath,.13+.12*breath]:[.05,.12,.15];
+        }
         if(game.terrain)drawTerrainTile(f,x,z,color,cellMatrix,growth);
         else {
           patch(FACES[f],u,v,CELL/2,1,[.12,.17,.24],cellMatrix);
@@ -6107,7 +6191,7 @@ window.TrillionCloud=(()=>{
         const layer=Math.floor(i/AREA),x=i%SIZE,z=Math.floor(i/SIZE)%SIZE;
         extent=Math.max(extent,1+(layer+1)*CELL);
         if(moving.has(`${f}:${i}`))continue;
-        const color=flashing.has(`${f}:${i}`)?[1,1,.9]:COLORS[type];
+        const color=flashing.has(`${f}:${i}`)?[1,1,.9]:glow(COLORS[type]);
         growthWarp=panelWarp(f,x,z,true);
         if(growthWarp?.hidden){growthWarp=null;continue;}
         box(game.surfacePoint(f,x,z,layer+.5),CELL*.465*(growthWarp?.blockScale??1),color,matrices[i%AREA]);
@@ -6119,7 +6203,7 @@ window.TrillionCloud=(()=>{
       for(const b of r.moves) {
         const layer=b.from+(b.to-b.from)*t*t;
         extent=Math.max(extent,1+(b.from+1)*CELL);
-        box(game.surfacePoint(b.face,b.x,b.z,layer+.5),CELL*.465,COLORS[b.type],m);
+        box(game.surfacePoint(b.face,b.x,b.z,layer+.5),CELL*.465,glow(COLORS[b.type]),m);
       }
     }
     if(r?.phase==='power') {
@@ -6282,7 +6366,7 @@ window.TrillionCloud=(()=>{
     const targetHue=42+game.score*.9;
     scoreHue=reducedMotion.matches?targetHue:scoreHue+(targetHue-scoreHue)*(1-Math.exp(-dt*4));
     scoreLabel.style.color=`hsl(${scoreHue%360} 88% 70%)`;
-    document.querySelector('#award').textContent=(game.chainPoints?`+${game.chainPoints} · `:'')+(nextLevel?`Level ${nextLevel.level} at ${nextLevel.score-(game.chapterOffset||0)} points`:'Final level');
+    document.querySelector('#award').textContent=(game.chainPoints?`+${game.chainPoints} · `:'')+(nextLevel?`Level ${nextLevel.level} at ${nextLevel.score-(game.chapterOffset||0)} points`:game.config?.finale?'Aloha · every 8 lines grows an island':'Final level');
     document.querySelector('#space-label').innerHTML=game.manualDrop?'Hold to<br>drop':'Hold to<br>fall faster';
     document.querySelector('#bomb-count').textContent=game.inventory.bomb;
     document.querySelector('#bloom-count').textContent=game.inventory.bloom;
@@ -6319,6 +6403,13 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-11-15c',date:'Nov 15, 2026',title:'Ten new levels: Tunnels, Chimes, Night',items:[
+      'Levels 16 to 18, Tunnels: the four glowing cells in the middle of a face are an opening. What you drop into one comes out on the opposite face, so you can build on a side you are not looking at.',
+      'Levels 19 to 21, Chimes: every face has its own note. Each block plays it and each cleared line plays a chord. In level 20 the twin answers a fifth higher.',
+      'Levels 22 to 24, Night: the cube goes dark and the blocks you place glow. At level 24 the light comes back and the glow stays.',
+      'Level 25 has no target. Every eight lines you clear there becomes an island for Aloha.',
+      'Each new chapter ends on an easier level, and each has an island in the coin shop with its own cassettes.'
+    ]},
     {id:'2026-11-15b',date:'Nov 15, 2026',title:'Shorter power-up cards',items:[
       'The card for your first Bloom or Bomb is now two lines: you earned it, try it.',
       'Fixed: on phones the Try button on that card could stop responding.'
