@@ -727,6 +727,40 @@ body.controls2 .sphere[data-hint="right"]::before{--cx:18px;--cy:0px;rotate:0deg
 body.controls2 .sphere[data-hint="left"]::before{--cx:-18px;--cy:0px;rotate:180deg}
 @media(prefers-reduced-motion:reduce){#tc-pad[data-cue]::after,#tc-pad[data-cue]::before,body.controls2 .sphere[data-cue]::before,body.controls2 .sphere[data-hint]::before{animation:none;opacity:1;transform:none}}
 </style>
+<style id="aloha-declutter">
+/* ---- Aloha, decluttered: cassettes dock behind one small tape; on phones the gold square is the only control ---- */
+#aloha .aloha-inventory.empty{display:none}
+#aloha .aloha-tape-dock{position:absolute;right:18px;bottom:146px;width:58px;padding:0;border:0;background:none;cursor:pointer;pointer-events:auto;z-index:4;transition:transform .18s ease}
+#aloha .aloha-tape-dock[hidden]{display:none}
+#aloha .aloha-tape-dock svg{display:block;width:100%;height:auto;filter:drop-shadow(0 4px 4px #0008)}
+#aloha .aloha-tape-dock:hover,#aloha .aloha-tape-dock[aria-expanded="true"]{transform:scale(1.08) rotate(-3deg)}
+#aloha .aloha-tape-dock b{position:absolute;right:-6px;top:-7px;min-width:20px;height:20px;box-sizing:border-box;padding:0 5px;border-radius:10px;background:#0b1a2b;border:1px solid #ffe27a;color:#ffe27a;font:700 12px/18px system-ui,sans-serif;text-align:center}
+#aloha .aloha-tape-dock.bump{animation:tapeDockBump .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes tapeDockBump{40%{transform:scale(1.35) rotate(-6deg);filter:drop-shadow(0 0 10px #ffe9a8)}}
+#aloha .aloha-tape-shelf{position:absolute;right:18px;bottom:200px;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;max-width:min(300px,calc(100vw - 36px));max-height:50vh;overflow-y:auto;box-sizing:border-box;padding:12px;border-radius:16px;border:1px solid #ffffff2e;background:#0c1a29e0;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 12px 30px #0008;pointer-events:auto;z-index:7}
+#aloha .aloha-tape-shelf[hidden]{display:none}
+#aloha .aloha-tape-shelf .aloha-tape{position:static;width:84px;animation:none;pointer-events:auto}
+@media(prefers-reduced-motion:reduce){#aloha .aloha-tape-dock,#aloha .aloha-tape-dock.bump{transition:none;animation:none}}
+body.touch-ui #aloha .aloha-tape-dock{right:12px;bottom:auto;top:calc(max(8px,env(safe-area-inset-top)) + 54px);width:50px}
+body.touch-ui #aloha .aloha-tape-shelf{right:10px;bottom:auto;top:calc(max(8px,env(safe-area-inset-top)) + 100px)}
+/* pinch replaces the back button on touch screens */
+body.touch-ui #aloha .aloha-back{display:none!important}
+body.touch-ui #aloha .aloha-inventory{background:none}
+body.touch-ui #aloha .acct-open.short{max-width:44vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* phones: no spheres in Aloha. The square tips the planet, or moves, turns and sets down whatever is being carried. */
+body.touch-ui.controls2.aloha-open .sphere-wrap{display:none}
+body.touch-ui.controls2.aloha-open #touch-controls{height:120px}
+body.touch-ui.controls2.aloha-open #tc-pad{transition:transform .12s,box-shadow .2s,opacity .3s}
+body.touch-ui.controls2.aloha-pad-idle #tc-pad{opacity:.38}
+body.touch-ui.controls2 #aloha .aloha-inventory{bottom:calc(env(safe-area-inset-bottom) + 116px)!important;transform:none;padding:0 12px 4px;gap:8px;justify-content:safe center}
+body.touch-ui.controls2 #aloha-ui.holding .aloha-inventory{display:none}
+body.touch-ui.controls2 #aloha .aloha-slot{flex:0 0 58px;width:58px;height:58px;border-radius:14px;border-width:2px;background:#0b1a2bd9;box-shadow:0 3px 0 #1a3550}
+body.touch-ui.controls2 #aloha .aloha-slot canvas{width:40px;height:40px;margin:auto}
+body.touch-ui.controls2 #aloha .aloha-slot .item-name,body.touch-ui.controls2 #aloha .aloha-slot .hotkey{display:none}
+body.touch-ui.controls2 #aloha .aloha-slot .count{top:auto;bottom:1px}
+body.touch-ui.controls2 #aloha .aloha-hint{top:calc(max(10px,env(safe-area-inset-top)) + 106px);bottom:auto!important;font:600 13px/1.4 var(--soft-font)!important;letter-spacing:.02em!important;padding:0 64px}
+body.touch-ui.controls2 #aloha .aloha-chips{left:calc(50% + min(44px,12vw) + 14px);transform:none;bottom:calc(env(safe-area-inset-bottom) + 40px)}
+</style>
 </head>
 <body class="at-title">
 <script>
@@ -3570,7 +3604,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       function wording(t){
         const B=document.body.classList;
         if(B.contains('controls2d'))return t.replace(/WASD to (position|move)/g,'swipe with two fingers to $1').replace(/WASD move/g,'swipe to move').replace(/Q\/E (rotate|turn it|turn)/g,'click to turn');
-        if(B.contains('controls2'))return t.replace(/WASD to (position|move)/g,'swipe the square to $1').replace(/WASD move/g,'square: move').replace(/Q\/E (rotate|turn it|turn)/g,'left sphere turns it').replace(/hold SPACE to/g,'hold the square to').replace(/ · ESC (cancel|puts it back)\.?/g,'');
+        if(B.contains('controls2'))return t.replace(/WASD to (position|move)/g,'swipe the square to $1').replace(/WASD move/g,'square: move').replace(/Q\/E (rotate|turn it|turn)/g,'tap the square to turn').replace(/hold SPACE to/g,'hold the square to').replace(/ · ESC (cancel|puts it back)\.?/g,'').replace(/Zoom out \(Esc\)/g,'Pinch out').replace(/Click it to zoom in/g,'Tap it or pinch to zoom in').replace(/\bClick/g,'Tap').replace(/\bclick/g,'tap');
         if(B.contains('touch-ui'))return t.replace(/WASD to (position|move)/g,'drag the left sphere to $1').replace(/WASD move/g,'left sphere: slide').replace(/Q\/E (rotate|turn it|turn)/g,'tap it to turn').replace(/hold SPACE to/g,'hold the left sphere to').replace(/ · ESC (cancel|puts it back)\.?/g,'');
         return t;
       }
@@ -3918,31 +3952,67 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         });
         return out;
       }
-      function buildTapes(k){
-        tapes.replaceChildren();tapeEls=[];
-        const rows=islandChapters(k).length;
-        earnedTapes(k).forEach(({c,i,level,row})=>{
-          const b=document.createElement('button');b.type='button';b.className='aloha-tape';
-          b.setAttribute('aria-label',`Start fresh at level ${level}`);
-          b.title=`Jump to Level ${level}: fresh board, zero score`;
-          b.innerHTML=tapeSvg(level,c,false);
-          b.addEventListener('pointerdown',e=>e.stopPropagation());
-          b.addEventListener('click',e=>{e.stopPropagation();root.dispatchEvent(new CustomEvent('aloha-start-chapter',{detail:{level}}));});
-          tapes.append(b);tapeEls.push({b,row,i,rows});
-        });
+      // Cassettes live behind one small tape in the corner. A newly earned one floats over the island for a moment, then tucks itself in.
+      const dock=document.createElement('button');dock.type='button';dock.className='aloha-tape-dock';dock.hidden=true;
+      dock.setAttribute('aria-label','Level cassettes');dock.setAttribute('aria-expanded','false');dock.title='Your level cassettes';
+      dock.innerHTML=`<svg viewBox="0 0 120 80" aria-hidden="true"><rect x="2" y="2" width="116" height="76" rx="8" fill="#e0a526" stroke="#14202c" stroke-width="4"/><rect x="10" y="9" width="100" height="30" rx="4" fill="#f4ead2" stroke="#14202c" stroke-width="2"/><rect x="10" y="9" width="100" height="9" rx="4" fill="#f6d56a"/><rect x="24" y="43" width="72" height="17" rx="8" fill="#1b232d"/><g fill="#e8edf1"><circle cx="40" cy="51.5" r="5.5"/><circle cx="80" cy="51.5" r="5.5"/></g><path d="M28 78 L36 63 H84 L92 78 Z" fill="#2a3340" stroke="#0d1319" stroke-width="2"/></svg><b></b>`;
+      const shelf=document.createElement('div');shelf.className='aloha-tape-shelf';shelf.hidden=true;
+      const openShelf=on=>{shelf.hidden=!on;dock.setAttribute('aria-expanded',String(!!on));};
+      dock.addEventListener('pointerdown',e=>e.stopPropagation());
+      dock.addEventListener('click',e=>{e.stopPropagation();openShelf(shelf.hidden);});
+      shelf.addEventListener('pointerdown',e=>e.stopPropagation());
+      let seenTapes=new Set();
+      try{seenTapes=new Set(JSON.parse(localStorage.getItem('trillion-tapes-seen')||'[]'));}catch(_){}
+      const markSeen=level=>{seenTapes.add(level);try{localStorage.setItem('trillion-tapes-seen',JSON.stringify([...seenTapes]));}catch(_){}};
+      function tapeButton(level,c){
+        const b=document.createElement('button');b.type='button';b.className='aloha-tape';
+        b.setAttribute('aria-label',`Start fresh at level ${level}`);
+        b.title=`Jump to Level ${level}: fresh board, zero score`;
+        b.innerHTML=tapeSvg(level,c,false);
+        b.addEventListener('pointerdown',e=>e.stopPropagation());
+        b.addEventListener('click',e=>{e.stopPropagation();openShelf(false);root.dispatchEvent(new CustomEvent('aloha-start-chapter',{detail:{level}}));});
+        return b;
       }
+      function buildTapes(k){
+        tapes.replaceChildren();shelf.replaceChildren();tapeEls=[];
+        const rows=islandChapters(k).length,list=earnedTapes(k);
+        list.forEach(({c,i,level,row})=>{
+          shelf.append(tapeButton(level,c));
+          if(!seenTapes.has(level)){const b=tapeButton(level,c);tapes.append(b);tapeEls.push({b,row,i,rows,level,t0:0});}
+        });
+        dock.querySelector('b').textContent=list.length;
+      }
+      let wasHolding=false,padHints=3,padHintOn=false;
+      try{const n=localStorage.getItem('trillion-aloha-pad-hints');if(n!==null)padHints=+n||0;}catch(_){}
       function updateTapes(){
+        if(!!hold!==wasHolding){ // the square's how-to shows for the first few things carried, then stays out of the way
+          wasHolding=!!hold;ui.classList.toggle('holding',wasHolding);
+          if(wasHolding){padHintOn=padHints>0;if(padHintOn){padHints--;try{localStorage.setItem('trillion-aloha-pad-hints',padHints);}catch(_){}}}
+          updateHint();
+        }
         const show=zoomTarget>0&&zoomK>.85&&zoomIsland>=0&&islands[zoomIsland]&&!hold&&!tip&&!mergeFx;
         tapes.classList.toggle('on',!!show);
-        if(!show)return;
+        if(!show){dock.hidden=true;if(!shelf.hidden)openShelf(false);for(const t of tapeEls)t.t0=0;return;}
         const key=`${zoomIsland}|${chapterCount()}|${islands.length}|${passed}`;
         if(key!==tapeKey){tapeKey=key;buildTapes(zoomIsland);}
+        dock.hidden=!shelf.childElementCount;
+        if(!tapeEls.length)return;
         const poly=islandPolygon(zoomIsland),top=Math.min(...poly.map(p=>p[1])),cx=(Math.min(...poly.map(p=>p[0]))+Math.max(...poly.map(p=>p[0])))/2;
-        const W=root.clientWidth,gap=Math.min(128,(W-40)/3),rowH=84;
-        for(const {b,row,i,rows} of tapeEls){
+        const W=root.clientWidth,gap=Math.min(128,(W-40)/3),rowH=84,now=performance.now();
+        const dr=dock.getBoundingClientRect(),rr=root.getBoundingClientRect(),tx=dr.left-rr.left+dr.width/2-54,ty=dr.top-rr.top+dr.height/2-36;
+        let tucked=false;
+        for(const t of tapeEls){
+          const {b,row,i,rows}=t;if(!t.t0)t.t0=now;
           const bob=Math.sin(time*1.3+i*1.7+row*.9)*6,tilt=Math.sin(time*.9+i*2.1+row)*2.5;
-          const x=clamp(cx+(i-1)*gap-54,8,W-116),y=Math.max(70,top-98-(rows-1-row)*rowH)+bob;
-          b.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${tilt.toFixed(2)}deg)`;
+          let x=clamp(cx+(i-1)*gap-54,8,W-116),y=Math.max(70,top-98-(rows-1-row)*rowH)+bob,sc=1;
+          const k=clamp((now-t.t0-2600-i*120)/650,0,1),e=k*k*(3-2*k);
+          if(e>0){x+=(tx-x)*e;y+=(ty-y)*e;sc=1-.55*e;b.style.opacity=(1-e*e*.7).toFixed(2);}
+          b.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${(tilt*(1-e)).toFixed(2)}deg) scale(${sc.toFixed(3)})`;
+          if(k>=1){t.done=true;b.remove();markSeen(t.level);tucked=true;}
+        }
+        if(tucked){
+          tapeEls=tapeEls.filter(t=>!t.done);
+          dock.classList.remove('bump');void dock.offsetWidth;dock.classList.add('bump');
         }
       }
       // coin balance, plus save / load for backing up Aloha progress
@@ -4163,15 +4233,15 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
       const chips=document.createElement('div');chips.className='aloha-chips';
       const moveChip=document.createElement('button');moveChip.className='aloha-touch-btn';moveChip.textContent='✋ PICK UP';moveChip.hidden=true;
       moveChip.addEventListener('click',e=>{e.stopPropagation();if(selectedCare&&!hold)pickUp(selectedCare);});
-      const cancelChip=document.createElement('button');cancelChip.className='aloha-touch-btn';cancelChip.textContent='✕ CANCEL';cancelChip.hidden=true;
+      const cancelChip=document.createElement('button');cancelChip.className='aloha-touch-btn';cancelChip.textContent='✕';cancelChip.setAttribute('aria-label','Cancel');cancelChip.hidden=true;
       cancelChip.addEventListener('click',e=>{e.stopPropagation();pendingZoom=-1;if(hold)cancelHold();});
       chips.append(moveChip,cancelChip);
       saveBtn.classList.add('desk-only');loadBtn.classList.add('desk-only');
-      ui.append(top,sidebar,hint,bar,back,tapes,chips,drawerBtn,exitBtn,bubble,card);root.append(ui);
+      ui.append(top,sidebar,hint,bar,back,tapes,dock,shelf,chips,drawerBtn,exitBtn,bubble,card);root.append(ui);
       function rebuild() {
         bar.textContent='';
         const owned=ITEMS.filter(i=>inv[i.id]>0);
-        bar.hidden=!owned.length&&!islands.length;
+        bar.hidden=!owned.length&&!islands.length;bar.classList.toggle('empty',!owned.length);
         const label=document.createElement('span');label.className='aloha-bar-label';label.textContent='ALOHA ITEMS';bar.append(label);
         ITEMS.forEach((it,n)=>{
           if(!(inv[it.id]>0))return;
@@ -4191,11 +4261,11 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         if(!t) {
           if(hold&&hold.moving)t='WASD move · Q/E rotate · hold SPACE to set it down · ESC puts it back';
           else if(hold)t=hold.id==='island'?`WASD move · Q/E turn it · hold SPACE to lower · arrows tip the planet · ESC cancel${hold.near?' · it will merge':''}`:'WASD move · Q/E rotate · hold SPACE to lower · ESC cancel';
-          else if(zoomTarget>0)t=(ITEMS.some(it=>it.id!=='island'&&inv[it.id]>0)?'Pick an item below · ':'')+(earnedTapes(zoomIsland).length?'click a cassette to jump to that level · ':'pass a level to earn its cassette · ')+'ESC to zoom out';
+          else if(zoomTarget>0)t=(ITEMS.some(it=>it.id!=='island'&&inv[it.id]>0)?'Pick an item below · ':'')+(earnedTapes(zoomIsland).length?'your cassettes are in the corner · ':'pass a level to earn its cassette · ')+'ESC to zoom out';
           else if(islands.length||inv.island>0)t=(inv.island>0?'Pick the island below · ':'')+'arrows tip the planet · / spins it'+(islands.length?' · click an island to zoom in':'');
         }
         if(document.body.classList.contains('controls2d'))t=wording(t);
-        if(document.body.classList.contains('controls2'))t=t.replace(/WASD move · Q\/E (rotate|turn it)/,'square: move · left sphere: turn').replace(/hold SPACE to (lower|set it down)/,'hold the square to lower').replace(/arrows tip the planet · \/ spins it/,'right sphere tips the planet · its ring spins it');
+        if(document.body.classList.contains('controls2'))t=note||(hold&&padHintOn?'swipe the square to move · tap it to turn · hold it to set down':''); // phones: the square is the only control, so the screen stays quiet
         if(document.body.classList.contains('touch-ui'))t=t.replace(/WASD move · Q\/E (rotate|turn it)/,'left sphere: slide · tap it to turn').replace(/hold SPACE to (lower|set it down)/,'hold the left sphere to $1'.replace('$1','lower')).replace(/ · ESC (cancel|puts it back)/,'').replace(/arrows tip the planet · \/ spins it/,'right sphere tips the planet · tap it to spin').replace(/click/g,'tap').replace(/ · ESC to zoom out/,'').replace(/ · arrows tip the planet/,'');
         if(hint.textContent!==t)hint.textContent=t;
         back.hidden=!(zoomTarget>0);
@@ -4716,7 +4786,48 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
       planet.addEventListener('contextmenu',e=>{if(padPlay()&&hold){e.preventDefault();padKey('q');}});
       // pointer: drag to turn the planet / tilt, tap an island to zoom in
       let drag=null;
-      planet.addEventListener('pointerdown',e=>{if(e.button!==0||!e.isPrimary)return;planet.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY};planet.classList.add('dragging');});
+      // Pinch (or a trackpad pinch) zooms: apart goes in to the island under the fingers, together comes back out to the planet.
+      function zoomGesture(dir,px,py){
+        if(tip||mergeFx)return;
+        if(dir<0){if(zoomTarget>0){pendingZoom=-1;zoomOut();}return;}
+        if(zoomTarget>0||hold)return;
+        let k=-1;
+        for(let i=islands.length-1;i>=0;i--)if(facing(islands[i].f)&&inside([px,py],islandPolygon(i))){k=i;break;}
+        if(k<0){const here=islands.map((s,i)=>i).filter(i=>islands[i].f===topFace());if(here.length)k=here[here.length-1];}
+        if(k<0){ // none under the fingers or on top: head for the nearest island in view, or failing that any island
+          let best=1e9;
+          islands.forEach((s,i)=>{if(!facing(s.f))return;const q=islandPolygon(i),d=Math.hypot(q.reduce((a,v)=>a+v[0],0)/4-px,q.reduce((a,v)=>a+v[1],0)/4-py);if(d<best){best=d;k=i;}});
+          if(k<0)k=islands.length-1;
+        }
+        if(k<0)return;
+        if(islands[k].f===topFace())zoomIn(k);else{pendingZoom=k;stepTowardIsland();}
+      }
+      const fingers=new Map();let pinch=null;
+      planet.addEventListener('pointerdown',e=>{
+        if(!shelf.hidden)openShelf(false);
+        if(e.pointerType!=='touch')return;
+        fingers.set(e.pointerId,[e.clientX,e.clientY]);
+        if(fingers.size===2){const [a,b]=[...fingers.values()];pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1]),done:false};drag=null;planet.classList.remove('dragging');}
+      });
+      planet.addEventListener('pointermove',e=>{
+        if(!fingers.has(e.pointerId))return;
+        fingers.set(e.pointerId,[e.clientX,e.clientY]);
+        if(!pinch||pinch.done||fingers.size!==2)return;
+        const [a,b]=[...fingers.values()],r=Math.hypot(a[0]-b[0],a[1]-b[1])/Math.max(pinch.d,1);
+        if(r>1.22||r<.82){pinch.done=true;const rc=planet.getBoundingClientRect();zoomGesture(r>1?1:-1,(a[0]+b[0])/2-rc.left,(a[1]+b[1])/2-rc.top);}
+      });
+      for(const n of ['pointerup','pointercancel'])planet.addEventListener(n,e=>{fingers.delete(e.pointerId);if(!fingers.size)pinch=null;});
+      const pinchWheel={sum:0,at:0,done:false};
+      planet.addEventListener('wheel',e=>{
+        if(!e.ctrlKey)return;
+        e.preventDefault();
+        const now=performance.now();
+        if(now-pinchWheel.at>350){pinchWheel.sum=0;pinchWheel.done=false;}
+        pinchWheel.at=now;if(pinchWheel.done)return;
+        pinchWheel.sum+=e.deltaY;
+        if(Math.abs(pinchWheel.sum)>=14){pinchWheel.done=true;const rc=planet.getBoundingClientRect();zoomGesture(pinchWheel.sum<0?1:-1,e.clientX-rc.left,e.clientY-rc.top);}
+      },{passive:false});
+      planet.addEventListener('pointerdown',e=>{if(e.button!==0||!e.isPrimary||pinch)return;planet.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY};planet.classList.add('dragging');});
       planet.addEventListener('pointermove',e=>{
         if(!drag||e.pointerId!==drag.id)return;
         const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
@@ -4740,6 +4851,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         stop() {save();running=false;cancelAnimationFrame(frame);hold=null;fallHeld=false;},
         key,keyup,award,advanceShapes,processScore,giftQueue,addCoins,exportData,importData,chapterCount,recordLevel,milestones:MILESTONES,get coins(){return coins;},get earnedMax(){return earnedMax;},
         get time(){return time;},
+        get holding(){return !!hold;},get zoomed(){return zoomTarget>0;},
         get rippleCount(){return rippleCount;},
         ripples:()=>ripples.length,
         islandScreen:k=>{const p=islandPolygon(k);return [p.reduce((a,q)=>a+q[0],0)/4,p.reduce((a,q)=>a+q[1],0)/4];},
@@ -5644,10 +5756,20 @@ window.TrillionCloud=(()=>{
       };
       gesture(pad,{
         step:30,
-        repeat:()=>alohaOpen, // carrying something across the planet may keep stepping; in the game a swipe is one cell
+        repeat:()=>alohaOpen&&aloha.holding, // carrying something across the planet may keep stepping; in the game a swipe is one cell
+        // In Aloha the square is the only control: carrying something, it moves it (tap turns, hold sets down); looking at the whole planet, it tips it (tap spins).
+        tap(){
+          if(!alohaOpen)return;
+          trace('P tap');
+          if(aloha.holding)press('e');else if(!aloha.zoomed)press('/');
+        },
         drag(dir){
           trace('P',dir);
-          if(alohaOpen){press({left:'a',right:'d',up:'w',down:'s'}[dir]);return;}
+          if(alohaOpen){
+            if(aloha.holding)press({left:'a',right:'d',up:'w',down:'s'}[dir]);
+            else if(!aloha.zoomed)press({left:'ArrowLeft',right:'ArrowRight',up:'ArrowUp',down:'ArrowDown'}[dir]);
+            return;
+          }
           if(!inGame())return;
           game.move(dir==='left'?-1:dir==='right'?1:0,dir==='up'?-1:dir==='down'?1:0);
         },
@@ -5751,6 +5873,7 @@ window.TrillionCloud=(()=>{
     let lastSig='';
     (function sync(){
       if(drawMinis)drawMinis();
+      if(padEl)document.body.classList.toggle('aloha-pad-idle',alohaOpen&&aloha.zoomed&&!aloha.holding); // nothing to move and no planet to tip: the square rests
       if(padEl){ // glowing arrows in place of tutorial text
         const cue=alohaOpen||alohaBusy?{}:guide.cue();
         if((padEl.dataset.cue||'')!==(cue.pad||'')){if(cue.pad)padEl.dataset.cue=cue.pad;else delete padEl.dataset.cue;}
@@ -6196,6 +6319,13 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-11-15a',date:'Nov 15, 2026',title:'A clearer view of Aloha',items:[
+      'Cassettes no longer float over the island. A newly earned one appears for a moment, then tucks itself behind a small cassette in the corner. Tap that cassette to see them all.',
+      'On phones, the two spheres are gone from Aloha. The gold square does everything: looking at the whole planet, swipe it to tip the planet and tap it to spin. Carrying something, swipe to move it, tap to turn it, hold to set it down.',
+      'Pinch to zoom in on an island and pinch back out to the planet. The Back to Planet button is gone on phones.',
+      'The item row on phones is smaller, sits just above the square, and steps aside while you are placing something.',
+      'Fixed: an empty dark bar that stayed on screen in Aloha.'
+    ]},
     {id:'2026-11-14d',date:'Nov 14, 2026',title:'A planet that makes room, and one move per swipe',items:[
       'The Aloha planet now grows by itself whenever its islands start to crowd the sea. You never have to pay for room.',
       'Islands that merge keep all of their land. Lower one island onto another and the result is as big as both together.',
