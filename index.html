@@ -857,12 +857,10 @@ body.touch-ui.controls2 #aloha .aloha-chips{left:calc(50% + min(44px,12vw) + 14p
     <p id="handoff-scores"></p><p>Five moves each. Same cube, same blocks.<br>Your next piece is ready and waiting.</p>
     <p id="ready-player" class="start-button" tabindex="-1" autofocus>PRESS ENTER TO BEGIN</p>
   </dialog>
-  <dialog id="power-tutorial" aria-labelledby="power-tutorial-title" aria-describedby="power-tutorial-description power-tutorial-instructions">
+  <dialog id="power-tutorial" aria-labelledby="power-tutorial-title" aria-describedby="power-tutorial-description">
     <span class="eyebrow">NEW POWER-UP · FREE PRACTICE</span>
     <h2 id="power-tutorial-title"></h2>
     <p id="power-tutorial-description"></p>
-    <p id="power-tutorial-instructions">Try it now: move with WASD, tip the cube to choose a face, and hold Space to drop it. Your current piece will wait.</p>
-    <p class="tutorial-refund">After it lands, we’ll put one back in your inventory. Your earned reward is yours to keep.</p>
     <div class="try-row"><button id="try-power" class="start-button" autofocus>Try power-up</button><button id="skip-power" class="skip-button" title="Skip the tutorial (Esc)">Skip</button></div>
   </dialog>
   <dialog id="game-over" aria-labelledby="game-over-title" aria-describedby="game-over-reason">
@@ -4868,7 +4866,7 @@ window.TrillionStats=(()=>{
   const API='https://hmtrwwbaellwuuqmdeyn.supabase.co',
     KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtdHJ3d2JhZWxsd3V1cW1kZXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDc5MTQsImV4cCI6MjA5MDMyMzkxNH0.SGYmVagkcx2Eddx9nDQI8fpGXd7ViVxCapbCYW8wmVk';
   let off=false;
-  try{off=navigator.doNotTrack==='1'||window.doNotTrack==='1';}catch(e){}
+  try{off=navigator.doNotTrack==='1'||window.doNotTrack==='1'||navigator.webdriver===true||location.protocol==='file:';}catch(e){} // automated test browsers and local copies are not players
   const uid=()=>{try{return crypto.randomUUID();}catch(e){return (Math.random().toString(36).slice(2)+Date.now().toString(36)+Math.random().toString(36).slice(2)).slice(0,32);}};
   let anon='',visits=1,returning=false;
   try{
@@ -5129,7 +5127,6 @@ window.TrillionCloud=(()=>{
       readout.appendChild(b);
     }
     document.querySelector('.power-inventory').remove();
-    document.querySelector('#power-tutorial-instructions').textContent='Try it now: swipe with two fingers to move it, tip the cube to choose a face, and hold Space to drop it. Your current piece will wait.';
   }
   game.paused=true;
   const titleScreen=document.querySelector('#title-screen'),gameScreen=document.querySelector('#game-screen');
@@ -5258,9 +5255,12 @@ window.TrillionCloud=(()=>{
   for(const [button,kind] of [[bombButton,'bomb'],[bloomButton,'bloom']])button.addEventListener('click',()=>{if(game.usePowerUp(kind))canvas.focus();});
   const tutorialDialog=document.querySelector('#power-tutorial');
   function tryTutorial(){
-    if(game.tutorial&&game.usePowerUp(game.tutorial)){tutorialDialog.close();canvas.focus();}
+    if(!game.tutorial)return;
+    if(game.paused)setPaused(false); // a phone can pause the game behind this card (a notification, a screenshot); the button must still work
+    if(game.usePowerUp(game.tutorial)){tutorialDialog.close();canvas.focus();}
   }
   function skipTutorial(){
+    if(game.paused)setPaused(false);
     if(game.skipTutorial()){tutorialDialog.close();canvas.focus();}
   }
   tutorialDialog.addEventListener('cancel',event=>{event.preventDefault();skipTutorial();});
@@ -6040,8 +6040,8 @@ window.TrillionCloud=(()=>{
     if(game.tutorial&&!tutorialDialog.open){
       const info=POWER_UPS[game.tutorial];
       document.querySelector('#power-tutorial-title').textContent=`You earned your first ${info.name}!`;
-      document.querySelector('#power-tutorial-description').textContent=info.description(game.size);
-      document.querySelector('#try-power').textContent=`Try ${info.name} · ${info.key}`;
+      document.querySelector('#power-tutorial-description').textContent=game.tutorial==='bomb'?'Try it and watch mistakes be forgiven.':'Try it and watch it grow.';
+      document.querySelector('#try-power').textContent=TOUCH_UI?`Try ${info.name}`:`Try ${info.name} · ${info.key}`;
       game.softDrop=false;endDrag();tutorialDialog.showModal();
     }
     if(!game.paused&&!game.gameOver&&!game.tutorial)powerTime+=dt;
@@ -6319,6 +6319,10 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-11-15b',date:'Nov 15, 2026',title:'Shorter power-up cards',items:[
+      'The card for your first Bloom or Bomb is now two lines: you earned it, try it.',
+      'Fixed: on phones the Try button on that card could stop responding.'
+    ]},
     {id:'2026-11-15a',date:'Nov 15, 2026',title:'A clearer view of Aloha',items:[
       'Cassettes no longer float over the island. A newly earned one appears for a moment, then tucks itself behind a small cassette in the corner. Tap that cassette to see them all.',
       'On phones, the two spheres are gone from Aloha. The gold square does everything: looking at the whole planet, swipe it to tip the planet and tap it to spin. Carrying something, swipe to move it, tap to turn it, hold to set it down.',
