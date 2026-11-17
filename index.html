@@ -1703,7 +1703,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       this.boards=FACES.map(()=>Array(this.area).fill(null));
       this.tiles=FACES.map((_,face)=>Array(this.area).fill(face));
       this.bag=[];this.introCount=0;this.introBag=[];this.placed=0;this.lines=0;this.clearedBlocks=0;this.lastChain=0;
-      this.score=0;this.triggeredLines=0;this.chainPoints=0;this.lastAward=0;this.chainEvents=0;
+      this.score=0;this.triggeredLines=0;this.chainPoints=0;this.lastAward=0;this.chainEvents=0;this.spins=0;
       this.inventory=Object.fromEntries(Object.keys(POWER_UPS).map(kind=>[kind,0]));this.tutorialSeen={};this.tutorialQueue=[];this.tutorial=null;this.tutorialRefund=null;this.savedPiece=null;this.bloomAwarded=false;this.powerUpsUsed=0;
       this.paused=false;this.gameOver=false;this.lossFace=null;this.resolution=null;this.spawn();
     }
@@ -1950,7 +1950,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       this.turn={axis,direction,elapsed:0,target,spinPiece:false};
       // A quarter-turn about the vertical axis is a change of viewpoint: carry the falling piece around with the cube
       // so it keeps the same place relative to the surface. (The view animation spins it back from its old pose.)
-      if(!this.terrain&&axis==='y'&&this.active&&this.carryPiece(direction))this.turn.spinPiece=true;
+      if(axis==='y'&&this.active&&(!this.terrain||this.worldDimensions().every(n=>n===this.size))&&this.carryPiece(direction))this.turn.spinPiece=true;
     }
     carryPiece(d) {
       const piece=this.active,mid=(this.size-1)/2;
@@ -5167,7 +5167,7 @@ window.TrillionCloud=(()=>{
 <script>
 (() => {
   'use strict';
-  const {Game,POWER_UPS,GROW_DURATION,LEVELS,MAX_LAYERS,POWER_DURATION,FACES,COLORS,SETTLE_DURATION,TWIST_DURATION,identity,transform,multiply,axisRotation,facePoint,twistRotation} = CubeGame;
+  const {Game,POWER_UPS,GROW_DURATION,LEVELS,MAX_LAYERS,POWER_DURATION,FACES,COLORS,SETTLE_DURATION,TWIST_DURATION,identity,transform,transpose,multiply,axisRotation,facePoint,twistRotation} = CubeGame;
   const game = new Game(Math.random,{waitForStart:true,powerTutorials:true,celebrations:true});
   let SIZE=game.size,AREA=game.area,CELL=game.cell;
   let storage;
@@ -6041,7 +6041,7 @@ window.TrillionCloud=(()=>{
   }
   // Shapeshifter: every tile and block drifts straight out from the middle, hangs apart, then gathers into the new shape.
   function burstScale(growth){const t=Math.max(0,Math.min(1,growth.elapsed/growth.duration));return 1+.55*Math.sin(Math.PI*t)**1.5;}
-  function drawTerrainTile(face,x,z,color,m,growth){
+  function drawTerrainTile(face,x,z,color,m,growth,shift){
     const f=FACES[face],floor=game.floorLevel(face,x,z),[w,d]=game.faceDimensions(face);
     let t=1,oldFloor=floor;
     if(growth?.kind==='terrain'){
@@ -6054,6 +6054,7 @@ window.TrillionCloud=(()=>{
       for(let i=0;i<3;i++)base[i]=previous[i]+(base[i]-previous[i])*t;
       if(growth.burst){const k=burstScale(growth);for(let i=0;i<3;i++)base[i]*=k;}
     }
+    if(shift)for(let i=0;i<3;i++)base[i]+=shift[i];
     const p=(u,v,h=0)=>base.map((b,i)=>b+f.u[i]*u+f.v[i]*v+f.n[i]*h);
     const half=CELL/2;
     quad([p(-half,-half),p(half,-half),p(half,half),p(-half,half)],f.n,[.09,.14,.21],m);
@@ -6200,6 +6201,13 @@ window.TrillionCloud=(()=>{
       patch(positive,0,0,1,twist.cut-.002,[.12,.16,.22],a);
       patch(negative,0,0,1,-twist.cut-.002,[.12,.16,.22],b);
     }
+    // On a stepped cube the whole slice can turn as one piece when the cube is a true cube, or when a slab turns flat about its own axis.
+    const rigidTwist=!!(twist&&game.terrain&&!reducedMotion.matches&&(game.config.body===SIZE||Math.abs(twist.axis[1])===1));
+    if(rigidTwist&&game.config.body===SIZE&&!game.terrain.some(v=>v<0)&&twist.cut>-1+1e-8&&twist.cut<1-1e-8){
+      const positive=FACES.find(f=>f.n.every((v,i)=>v===twist.axis[i])),negative=FACES.find(f=>f.n.every((v,i)=>v===-twist.axis[i]));
+      patch(positive,0,0,1,twist.cut-.002,[.12,.16,.22],multiply(m,twistRotation(twist,twist.axis.map(v=>-v),progress)));
+      patch(negative,0,0,1,-twist.cut-.002,[.12,.16,.22],multiply(m,twistRotation(twist,twist.axis,progress)));
+    }
     const flapSet=flapFaces(growth);
     // Night levels: the cube is dim and placed blocks are lit from within. At dawn the cube is bright again and the glow stays.
     const night=game.config?.night||null,glow=c=>night?c.map(v=>Math.min(1.3,v*1.22+.1)):c;
@@ -6214,7 +6222,16 @@ window.TrillionCloud=(()=>{
       const [faceWidth,faceDepth]=game.faceDimensions(f);
       for(let z=0;z<faceDepth;z++)for(let x=0;x<faceWidth;x++) {
         const i=z*SIZE+x,u=-1+(x+.5)*CELL,v=-1+(z+.5)*CELL;
-        const cellMatrix=twist&&!game.terrain?multiply(m,twistRotation(twist,facePoint(f,x,z,1,SIZE),progress)):m;
+        let cellMatrix=twist&&!game.terrain?multiply(m,twistRotation(twist,facePoint(f,x,z,1,SIZE),progress)):m,tileShift=null;
+        if(twist&&rigidTwist){
+          // The tile swings round with its slice and eases onto the step height of the place it arrives at.
+          const anchor=facePoint(f,Math.min(SIZE-1,Math.floor((x+.5)*SIZE/faceWidth)),Math.min(SIZE-1,Math.floor((z+.5)*SIZE/faceDepth)),1,SIZE);
+          const spin=twistRotation(twist,anchor,progress),full=twistRotation(twist,anchor),d=game.terrainDestination(twist,f,x,z);
+          const from=game.surfacePoint(f,x,z,game.floorLevel(f,x,z)),to=game.surfacePoint(d.face,d.x,d.z,game.floorLevel(d.face,d.x,d.z)),end=transform(full,from);
+          const e=progress*progress*(3-2*progress);
+          tileShift=transform(transpose(spin),to.map((v,k)=>(v-end[k])*e));
+          cellMatrix=multiply(m,spin);
+        }
         matrices[i]=cellMatrix;
         growthWarp=panelWarp(f,x,z,false);
         if(growthWarp?.hidden){growthWarp=null;continue;}
@@ -6224,7 +6241,7 @@ window.TrillionCloud=(()=>{
           const open=game.tunnelOpen(f,x,z),breath=reducedMotion.matches?.5:.5+.5*Math.sin(time*.0017+(x+z)*.6);
           color=open?[.01,.10+.10*breath,.13+.12*breath]:[.05,.12,.15];
         }
-        if(game.terrain)drawTerrainTile(f,x,z,color,cellMatrix,growth);
+        if(game.terrain)drawTerrainTile(f,x,z,color,cellMatrix,growth,tileShift);
         else {
           patch(FACES[f],u,v,CELL/2,1,[.12,.17,.24],cellMatrix);
           patch(FACES[f],u,v,CELL*.475,1.002,color,cellMatrix);
@@ -6458,6 +6475,10 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-11-16c',date:'Nov 16, 2026',title:'The stepped cubes spin again',items:[
+      'Fixed from level 14 on: when you clear a line, the cube itself turns again, not just the blocks on it.',
+      'Fixed from level 11 on: spinning the cube carries the waiting block round with it, so it stays over the same spot.'
+    ]},
     {id:'2026-11-16b',date:'Nov 16, 2026',title:'Fairer chains, new shapes, Shapeshifter',items:[
       'Chains are capped: a chained line is worth 20, 30, 40, then 50 at most, one drop pays 100 at most, and no drop can carry you past the next level. Every level gets played.',
       'Fixed on levels 11 to 13: two or three blocks across the thin edge of the slab no longer count as a line. Only full rows clear.',
