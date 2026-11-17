@@ -1404,7 +1404,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     {level:12,score:550,size:6,faces:'all',pieces:'big',manualDrop:true,body:2,terrain:[1,1,0,0,0,0],caption:'TWIN TEMPLES • OPPOSITE SUMMITS'},
     {level:13,score:650,size:6,faces:'all',pieces:'big',manualDrop:true,body:3,terrain:[1,-1,0,0,0,0],caption:'AS ABOVE, SO BELOW'},
     {level:14,score:800,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[-1,-1,-1,-1,-1,-1],caption:'SIX SANCTUARIES • TWO STEPS WITHIN'},
-    {level:15,score:1000,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[-1,-1,-1,-1,-1,-1],echo:true,caption:'ECHO WORLD • EVERY BLOCK HAS A TWIN'},
+    {level:15,score:1000,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[1,1,-1,-1,-1,-1],caption:'TWO SUMMITS • FOUR HOLLOWS'},
     // Chapter 6, Tunnels: marked cells are openings. What falls into one comes out on the opposite face.
     // 16-18: new shapes, then new cube shapes (every side stepped up, or peaks and hollows by turns).
     {level:16,score:1200,size:6,faces:'all',pieces:'new',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],celebration:6,caption:'NEW SHAPES • PLUS, CUP AND CORNER'},
@@ -1416,7 +1416,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       morph:[{terrain:[0,0,0,0,0,0]},{terrain:[1,1,1,1,1,1]},{terrain:[1,1,-1,-1,-1,-1]},{terrain:[-1,-1,-1,-1,-1,-1]},{terrain:[-1,-1,1,1,1,1]},{terrain:[1,-1,1,-1,1,-1]}]},
     // 20-21: chimes.
     {level:20,score:2050,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],chimes:true,celebration:6,caption:'CHIMES • EVERY FACE HAS A NOTE'},
-    {level:21,score:2300,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],chimes:true,echo:true,caption:'HARMONY • THE TWIN SINGS A FIFTH ABOVE'},
+    {level:21,score:2300,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],chimes:true,harmony:true,caption:'HARMONY • EVERY NOTE BRINGS A FIFTH'},
     // 22-24: night, then dawn.
     {level:22,score:2500,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],night:'dark',celebration:6,caption:'NIGHT • WHAT YOU PLACE GLOWS'},
     {level:23,score:2750,size:6,faces:'all',pieces:'new',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],night:'dark',chimes:true,caption:'NIGHT SONG • LISTEN IN THE DARK'},
@@ -1837,24 +1837,33 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     landingLevel(piece=this.active) {
       if(!piece)return 0;
       const targets=this.targets(piece);
-      if(this.echo&&!piece.kind)targets.push(...this.echoTargets(piece));
       if(this.tunnels){
         const solid=targets.filter(t=>!(this.validCell(t.face,t.x,t.z)&&this.tunnelOpen(t.face,t.x,t.z)));
         return Math.max(0,...solid.map(t=>this.columnHeight(t.face,t.x,t.z)-t.y));
       }
       return Math.max(0,...targets.map(t=>this.columnHeight(t.face,t.x,t.z)-t.y));
     }
+    // Echo levels: the twin comes to rest on its own side at its own height, so a tall stack on one side never holds the other up.
+    echoLevel(piece=this.active) {
+      const t=this.echoTargets(piece);
+      return t.length?Math.max(0,...t.map(c=>this.columnHeight(c.face,c.x,c.z)-c.y)):0;
+    }
+    // Every cell the piece (and its twin) will fill, each with the layer it lands on.
+    landingCells(piece=this.active) {
+      const level=this.landingLevel(piece),twin=this.echoLevel(piece);
+      return [...this.targets(piece).map(t=>({...t,layer:level+t.y})),...this.echoTargets(piece).map(t=>({...t,layer:twin+t.y}))];
+    }
     canLand() {
       if(!this.active)return false;
       const level=this.landingLevel();
       if(this.tunnels)return this.placementTargets().every(t=>this.validCell(t.face,t.x,t.z))&&this.restingCells(level).every(t=>t.through||(t.layer>=this.floorLevel(t.face,t.x,t.z)&&!this.boards[t.face][this.index(t.x,t.z,t.layer)]));
-      return this.placementTargets().every(t=>this.validCell(t.face,t.x,t.z)&&level+t.y>=this.floorLevel(t.face,t.x,t.z)&&!this.boards[t.face][this.index(t.x,t.z,level+t.y)]);
+      return this.landingCells().every(t=>this.validCell(t.face,t.x,t.z)&&t.layer>=this.floorLevel(t.face,t.x,t.z)&&!this.boards[t.face][this.index(t.x,t.z,t.layer)]);
     }
     wouldOverflow() {
       if(!this.active||this.active.kind)return false;
       const level=this.landingLevel();
       if(this.tunnels)return this.restingCells(level).some(t=>t.layer-this.floorLevel(t.face,t.x,t.z)>=MAX_LAYERS);
-      return this.placementTargets().some(t=>level+t.y-this.floorLevel(t.face,t.x,t.z)>=MAX_LAYERS);
+      return this.landingCells().some(t=>t.layer-this.floorLevel(t.face,t.x,t.z)>=MAX_LAYERS);
     }
     changePiece(change,clamp=false) {
       if(this.handoff||this.tutorial||this.paused||this.gameOver||(this.growth||this.celebration)||!this.active)return false;
@@ -2027,7 +2036,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const face=this.topFace(),level=this.landingLevel(),overflow=this.wouldOverflow();
       this.lastThrough=0;
       if(this.tunnels)for(const t of this.restingCells(level)){this.boards[t.face][this.index(t.x,t.z,t.layer)]=this.active.type;if(t.through)this.lastThrough++;}
-      else for(const t of this.placementTargets())this.boards[t.face][this.index(t.x,t.z,level+t.y)]=this.active.type;
+      else for(const t of this.landingCells())this.boards[t.face][this.index(t.x,t.z,t.layer)]=this.active.type;
       this.placed++;this.active=null;this.lastChain=0;
       this.triggeredLines=0;this.chainPoints=0;this.lastAward=0;this.spins=0;
       this.bloomAwarded=false;
@@ -6258,7 +6267,7 @@ window.TrillionCloud=(()=>{
         if(cfg?.chimes){
           const midi=[60,62,64,67,69,72][face]??60;
           music.chipVoice({midi,kind:'bell',duration:1.1,velocity:.16,pan});
-          if(cfg.echo)setTimeout(()=>music.chipVoice({midi:midi+7,kind:'bell',duration:1.1,velocity:.11,pan:-pan}),130); // the twin answers a fifth above
+          if(cfg.harmony)setTimeout(()=>music.chipVoice({midi:midi+7,kind:'bell',duration:1.1,velocity:.11,pan:-pan}),130); // the twin answers a fifth above
         }
         if(game.lastThrough>0){ // something went through a tunnel: a soft falling pair, heard from the far side
           music.chipVoice({midi:55,kind:'bell',duration:.5,velocity:.13,pan:-.5});
@@ -6448,7 +6457,7 @@ window.TrillionCloud=(()=>{
     }
     if(game.echo&&game.active&&!game.active.kind&&!game.turn&&!game.growth&&!game.celebration){
       const landing=game.landingLevel();
-      for(const t of game.echoTargets())wireBox(game.surfacePoint(t.face,t.x,t.z,landing+t.y+.5),CELL*.49,overflow?[1,.35,.35]:[1,.55,.9],m);
+      for(const t of game.echoTargets())wireBox(game.surfacePoint(t.face,t.x,t.z,game.echoLevel()+t.y+.5),CELL*.49,overflow?[1,.35,.35]:[1,.55,.9],m);
     }
     // Soft glow between the falling piece and the surface: eases in as they near, snuffed out at contact.
     // During a `/` turn the piece swings round with the cube, so the glow under it swings too.
@@ -6607,6 +6616,11 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-11-16e',date:'Nov 16, 2026',title:'No more twins',items:[
+      'The echo twin is gone. Your shape lands where you put it and nothing else lands with it.',
+      'Level 15 is now Two Summits: the top and bottom rise in steps while the four sides stay hollow.',
+      'Level 21 keeps its Harmony: every block you place still rings with a fifth above it.'
+    ]},
     {id:'2026-11-16d',date:'Nov 16, 2026',title:'Pick up where you left off',items:[
       'Your game is kept between visits. Come back and the main button reads RESUME with your level; your cube, score and blocks are as you left them. With a player name it follows you to other devices too. Start a new game is right underneath.',
       'Moves and tips now always follow what you see: left is left, even after you have swung the view round. A click no longer nudges the view, so it stops drifting as you play.',
