@@ -1444,6 +1444,13 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     bloom:{name:'Bloom',key:'G',description:size=>`Fills ground-level gaps in a ${size-2}×${size-2} area and adds up to two blocks above existing stacks, capped at three layers. Use it to complete lines and start chains.`},
   };
   const INTRO_SHAPES={SINGLE:[[0,0]],DOUBLE:[[0,0],[1,0]],TRIPLE:[[0,0],[1,0],[2,0]]};
+  // The 24 ways to turn a solid, built from quarter turns about two axes.
+  const ROTATIONS=(()=>{
+    const mul=(a,b)=>a.map((_,i)=>[0,1,2].reduce((t,k)=>t+a[Math.floor(i/3)*3+k]*b[k*3+i%3],0));
+    const X=[1,0,0,0,0,-1,0,1,0],Y=[0,0,1,0,1,0,-1,0,0],seen=new Map([['1,0,0,0,1,0,0,0,1',[1,0,0,0,1,0,0,0,1]]]),queue=[[1,0,0,0,1,0,0,0,1]];
+    while(queue.length){const m=queue.shift();for(const g of [X,Y]){const n=mul(g,m),k=n.join(',');if(!seen.has(k)){seen.set(k,n);queue.push(n);}}}
+    return [...seen.values()];
+  })();
   // Five-block shapes that join from level 16 (the 'new' set): a plus, a cup and a wide corner.
   const NEW_SHAPES={PLUS:[[1,0],[0,1],[1,1],[2,1],[1,2]],CUP:[[0,0],[2,0],[0,1],[1,1],[2,1]],VEE:[[0,0],[0,1],[0,2],[1,2],[2,2]]};
   const COLORS={I:[.22,.82,.9],O:[1,.78,.25],T:[.72,.42,.98],J:[.32,.52,1],L:[1,.56,.24]};
@@ -1707,6 +1714,47 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       this.inventory=Object.fromEntries(Object.keys(POWER_UPS).map(kind=>[kind,0]));this.tutorialSeen={};this.tutorialQueue=[];this.tutorial=null;this.tutorialRefund=null;this.savedPiece=null;this.bloomAwarded=false;this.powerUpsUsed=0;
       this.paused=false;this.gameOver=false;this.lossFace=null;this.resolution=null;this.spawn();
     }
+    // A plain-data copy of a game at rest (nothing mid-animation), and its way back. Used to carry a run between visits.
+    snapshot(){
+      if(!this.progression||this.gameOver||this.growth||this.resolution||this.turn||this.celebration||this.handoff||this.tutorial||!this.active||this.active.kind)return null;
+      const c=this.config,piece=p=>p?{type:p.type,solid:!!p.solid,cells:p.cells.map(v=>[...v]),upright:!!p.upright,flip:!!p.flip,m:p.m?p.m.slice():null,rotation:p.rotation,roll:p.roll||0,x:p.x,z:p.z}:null;
+      return {v:1,level:this.level,startLevel:this.startLevel||1,offset:this.chapterOffset||0,size:this.size,shape:JSON.stringify([c.size,c.faces,c.body||0,c.terrain||0]),
+        morph:this.morphIndex||0,live:this.live.slice(),orientation:this.orientation.slice(),
+        boards:this.boards.map(b=>{const out=[];for(let i=0;i<b.length;i++)if(b[i])out.push([i,b[i]]);return out;}),tiles:this.tiles.map(t=>t.slice()),
+        score:this.score,lines:this.lines,placed:this.placed,cleared:this.clearedBlocks,dispensed:this.totalDispensed||0,chainEvents:this.chainEvents||0,used:this.powerUpsUsed||0,
+        inventory:{...this.inventory},seen:{...this.tutorialSeen},bag:this.bag.slice(),introBag:this.introBag.slice(),introCount:this.introCount,active:piece(this.active),saved:piece(this.savedPiece)};
+    }
+    restore(s){
+      if(!s||s.v!==1||!this.progression||!Number.isInteger(s.level)||s.level<1||s.level>LEVELS.length)return false;
+      const base=LEVELS[s.level-1],keepDispensed=this.totalDispensed;
+      const cfg=base.morph&&base.morph[s.morph]?{...base,...base.morph[s.morph]}:base;
+      const known=t=>!!(INTRO_SHAPES[t]||NEW_SHAPES[t]||SOLIDS[t]||SHAPES[t]);
+      const same=s.shape===JSON.stringify([cfg.size,cfg.faces,cfg.body||0,cfg.terrain||0])&&s.size===cfg.size&&s.active&&known(s.active.type)&&Array.isArray(s.boards)&&s.boards.length===6;
+      this.playerCount=1;this.startLevel=same?(s.startLevel||1):s.level;this.reset();
+      this.awaitingStart=false;this.chapterOffset=Number(s.offset)||0;
+      this.score=Math.max(0,Number(s.score)||0);this.playerScores=[this.score,0];
+      this.lines=s.lines||0;this.placed=s.placed||0;this.clearedBlocks=s.cleared||0;this.chainEvents=s.chainEvents||0;this.powerUpsUsed=s.used||0;
+      this.totalDispensed=Math.max(s.dispensed||0,keepDispensed||0);
+      for(const k of Object.keys(this.inventory))this.inventory[k]=Math.max(0,Math.floor(Number(s.inventory&&s.inventory[k])||0));
+      this.tutorialSeen={...(s.seen||{})};
+      if(!same){
+        // The level has been redesigned since this run was saved: keep the place and the points, start its board clean.
+        this.level=s.level;this.size=base.size;this.boards=FACES.map(()=>Array(this.area).fill(null));this.tiles=FACES.map((_,f)=>Array(this.area).fill(f));
+        this.live=FACES.map((_,f)=>base.faces==='corner'?[0,2,4].includes(f):base.faces==='plane'?f===0:true);this.orientation=identity();
+        this.bag=[];this.introBag=[];this.active=null;this.savedPiece=null;this.spawn();this.totalDispensed=Math.max(s.dispensed||0,keepDispensed||0);
+        return true;
+      }
+      this.level=s.level;this.size=s.size;this.morphIndex=s.morph||0;this.morphConfig=base.morph?cfg:null;
+      this.live=s.live.map(Boolean);this.orientation=s.orientation.map(Number);
+      this.boards=s.boards.map(list=>{const b=Array(this.area).fill(null);for(const [i,t] of list)if(Number.isInteger(i)&&i>=0&&i<this.area*64&&known(t))b[i]=t;return b;});
+      this.tiles=s.tiles.map(t=>t.slice());
+      this.bag=(s.bag||[]).filter(known);this.introBag=(s.introBag||[]).filter(known);this.introCount=s.introCount||0;
+      const piece=p=>p&&known(p.type)?{type:p.type,solid:!!p.solid,cells:p.cells.map(v=>[...v]),upright:!!p.upright,flip:!!p.flip,m:Array.isArray(p.m)&&p.m.length===9?p.m.map(v=>Math.sign(v)|0):null,rotation:p.rotation|0,roll:p.roll|0,x:p.x|0,z:p.z|0,height:0}:null;
+      this.active=piece(s.active);this.savedPiece=piece(s.saved);
+      if(this.terrain)this.fitActive();
+      this.active.height=this.landingLevel()*this.cell+SPAWN_HEIGHT;
+      return true;
+    }
     spawn() {
       if(this.gameOver)return;
       this.growIfReady();
@@ -1761,9 +1809,10 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       if(piece.solid) {
         // Solids are already 3D: F mirrors them top-to-bottom (the tripod's tip points down).
         cells=SOLIDS[piece.type].map(c=>[...c]);
-        if(piece.upright)cells=cells.map(([x,y,z])=>[x,-y,z]);
+        if(piece.m)cells=cells.map(c=>transform(piece.m,c)); // any of the 24 ways a solid can sit
+        else if(piece.upright)cells=cells.map(([x,y,z])=>[x,-y,z]);
       } else {
-        cells=piece.cells.map(([x,z])=>piece.upright?[z,x,0]:[x,0,z]);
+        cells=piece.cells.map(([x,z])=>piece.upright?[z,x,0]:[piece.flip?-x:x,0,z]); // flip: lying face-down
         if(piece.upright)for(let i=0;i<(piece.roll??0);i++)cells=cells.map(([x,y,z])=>[y,-x,z]);
       }
       for(let i=0;i<piece.rotation;i++)cells=cells.map(([x,y,z])=>[-z,y,x]);
@@ -1807,19 +1856,11 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       if(this.tunnels)return this.restingCells(level).some(t=>t.layer-this.floorLevel(t.face,t.x,t.z)>=MAX_LAYERS);
       return this.placementTargets().some(t=>level+t.y-this.floorLevel(t.face,t.x,t.z)>=MAX_LAYERS);
     }
-    // True if any block floats above an empty cell within its own column. No piece may take such a pose.
-    hasOverhang(piece=this.active) {
-      if(piece.type==='T')return false; // The T is exempt: it may stand in any pose.
-      const columns=new Map();
-      for(const [x,y,z] of this.voxels(piece)) {const key=x+','+z;if(!columns.has(key))columns.set(key,[]);columns.get(key).push(y);}
-      return [...columns.values()].some(ys=>ys.sort((a,b)=>a-b).some((y,i)=>y!==i));
-    }
     changePiece(change,clamp=false) {
       if(this.handoff||this.tutorial||this.paused||this.gameOver||(this.growth||this.celebration)||!this.active)return false;
       const base={...this.active,...change};
       const [width,depth]=this.worldDimensions();
       const ok=candidate=>{
-        if(this.hasOverhang(candidate))return false;
         if(!this.worldCells(candidate).every(([x,,z])=>x>=0&&x<width&&z>=0&&z<depth))return false;
         // Do not move a piece sideways through a stack it has already descended below.
         return !(this.landingLevel(candidate)*this.cell>candidate.height+1e-9);
@@ -1854,40 +1895,43 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       }
       return this.changePiece({rotation:next.rotation},true);
     }
-    // Standing up picks the first roll (starting from the current one) that has no overhang.
+    // Pieces may take any pose, including ones that stand on a leg or leave a ledge; blocks left hanging settle at the next clear.
     togglePosture() {
-      if(!this.active||this.active.solid)return false;
+      if(!this.active)return false;
+      if(this.active.solid)return this.tipPiece(1);
       if(this.active.upright)return this.changePiece({upright:false},true);
       for(let k=0;k<4;k++)if(this.changePiece({upright:true,roll:((this.active.roll??0)+k)%4},true))return true;
       return false;
     }
-    // Touch control: tip the piece toward (+1) or away from (-1) the player, so "roll" always follows the side facing you.
-    // The tipped shape is matched against every pose the piece can take, so any orientation is reachable from the spheres.
-    poseExists(p,want,norm) {
-      for(const upright of [true,false])for(let roll=0;roll<(upright?4:1);roll++)for(let rotation=0;rotation<4;rotation++)if(norm(this.voxels({...p,upright,roll,rotation}))===want)return true;
-      return false;
+    // Every pose a piece can take: flat (face-up or face-down) and standing in each roll for flat shapes, all 24 turns for solids.
+    poses(p){
+      const out=[];
+      if(p.solid){for(const m of ROTATIONS)out.push({m,rotation:0,upright:false});return out;}
+      for(let rotation=0;rotation<4;rotation++){
+        for(const flip of [false,true])out.push({upright:false,flip,roll:p.roll??0,rotation});
+        for(let roll=0;roll<4;roll++)out.push({upright:true,flip:false,roll,rotation});
+      }
+      return out;
     }
-    // axis 'z' cartwheels it sideways instead (clockwise for +1, as the player sees it).
+    // Tip the piece toward (+1) or away from (-1) the player; axis 'z' cartwheels it sideways instead (clockwise for +1, as the player sees it).
+    // The turned shape is matched against every pose, so a piece can be rolled all the way round in either direction.
     tipPiece(direction,axis='x') {
       const p=this.active;
       if(!p||p.kind)return false;
-      if(p.solid)return this.togglePosture();
       const norm=cells=>{const m=[0,1,2].map(i=>Math.min(...cells.map(c=>c[i])));return cells.map(c=>c.map((v,i)=>v-m[i]).join(',')).sort().join('|');};
       const turn=cells=>cells.map(([x,y,z])=>axis==='z'?(direction>0?[y,-x,z]:[-y,x,z]):direction>0?[x,-z,y]:[x,z,-y]);
-      // A flat piece can't lie face-down, so a cartwheel skips that quarter and carries on to the next pose it can take.
-      const now=this.voxels(p);let tipped=turn(now),want=norm(tipped);
-      for(let k=1;axis==='z'&&k<3&&!this.poseExists(p,want,norm);k++){tipped=turn(tipped);want=norm(tipped);}
+      const now=this.voxels(p),want=norm(turn(now));
       const size=cells=>[0,1,2].map(i=>Math.max(...cells.map(c=>c[i]))+1);
       const [w0,,d0]=size(now),found=[];
-      for(const upright of [true,false])for(let roll=0;roll<(upright?4:1);roll++)for(let rotation=0;rotation<4;rotation++){
-        const cand={...p,upright,roll,rotation},cells=this.voxels(cand);
+      for(const pose of this.poses(p)){
+        const cells=this.voxels({...p,...pose});
         if(norm(cells)!==want)continue;
         const [w1,,d1]=size(cells);
-        found.push({upright,roll,rotation,x:p.x+Math.round((w0-w1)/2),z:p.z+Math.round((d0-d1)/2),cost:Math.abs(rotation-p.rotation)+Math.abs(roll-(p.roll??0))});
+        found.push({...pose,x:p.x+Math.round((w0-w1)/2),z:p.z+Math.round((d0-d1)/2),cost:p.solid?0:Math.abs(pose.rotation-p.rotation)+Math.abs(pose.roll-(p.roll??0))+(pose.flip!==!!p.flip?.5:0)});
       }
       found.sort((a,b)=>a.cost-b.cost);
       this.lastTurn={axis,d:direction};
-      for(const c of found)if(this.changePiece({upright:c.upright,roll:c.roll,rotation:c.rotation,x:c.x,z:c.z},true))return true;
+      for(const {cost,...c} of found)if(this.changePiece(c,true))return true;
       return false;
     }
     rollPiece() {
@@ -2336,6 +2380,24 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       deer:["I stand still and the whole forest arrives.","I heard you coming. Not your footsteps. Your attention.","Am I still drawn when you look away? Is yesterday?","You can’t startle what isn’t defending anything.","Thank you for the food. Thank you more for the noticing."],
       rabbit:["I’m late, I’m late… for what? Oh. Nothing. It’s now again.","I hop because the ground keeps turning up underneath me. Reliable, that ground.","They gave me two ears and one moment. I use all three.","If this is all made of numbers, the clover is still delicious.","You feed me, I delight you. Which of us is the pet?"]
     };
+    // Fifteen ways a hungry animal asks for food. Never a complaint: an invitation.
+    const HUNGRY_LINES=[
+      "Is it snack o’clock? My clock only has one hour on it, and it’s this one.",
+      "I’d love a bite, whenever you’re passing.",
+      "My tummy made a small sound. It might have been a wave. It might not.",
+      "No hurry. But if food happened, I would happen to be right here.",
+      "I’m resting. One snack would turn resting into wandering.",
+      "Hunger is only the body saying hello. Hello! It says hello a lot.",
+      "I dreamed of seeds. Then I woke up, and it was still now, and still no seeds.",
+      "If you have a portion to spare, I know a very good place to keep it.",
+      "They say I’m made of light. Light gets peckish too, it turns out.",
+      "Feed me and I’ll say something wise after. Probably.",
+      "An empty belly is a bowl, waiting. I am waiting very nicely.",
+      "I’m not asking. I’m just standing near the idea of food, hopefully.",
+      "One portion, and I’m off exploring for three whole days.",
+      "The garden looked delicious today. Only mentioning it.",
+      "Feed me and we both get something. I get lunch. You get to watch."
+    ];
     const TOGETHER_LINES=["We made this. Or it made us meet.","Neither of us knew how. Both of us did it.","It wasn’t here, then it was. Like everything.","Two of us, one idea. Whose was it?","We didn’t plan it. We just kept going."];
     const BY_ID=Object.fromEntries(ITEMS.map(i=>[i.id,i]));
     const MILESTONES=ITEMS.filter(i=>i.milestone).map(i=>i.at);
@@ -4181,7 +4243,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         const before=food,result=careFor(t,'care',day(),food);food=result.food;T('aloha_care',{id:t.id});
         // a fed animal has something to say; greeting one that is already full gets a thought too
         if(ANIMALS.has(t.id)&&(food<before||t.fedUntil>day())&&ANIMAL_LINES[t.id]){speak(t,nextLine(t.id,ANIMAL_LINES[t.id]));say(food<before?'Fed. It has something to say.':'',4);}
-        else say(result.message,6);
+        else{if(ANIMALS.has(t.id)&&!(t.fedUntil>day()))speak(t,nextLine('hungry',HUNGRY_LINES),7);say(result.message,6);}
         save();updateCare();rebuild();
       }
       // ---- Coin Shop ----
@@ -4298,6 +4360,15 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
       let speech=null;const lineAt=new Map();
       function nextLine(key,list){const i=lineAt.has(key)?(lineAt.get(key)+1)%list.length:Math.floor(Math.random()*list.length);lineAt.set(key,i);return list[i];}
       function speak(t,text,secs=9){speech={t,until:time+secs};bubble.textContent=text;bubble.hidden=false;}
+      // Now and then a hungry animal in view asks for food, in one of fifteen ways. It never interrupts another speaker or a placement.
+      let askAt=0;
+      function hungryAsk(){
+        if(!askAt){askAt=time+5;return;}
+        if(time<askAt||speech||hold)return;
+        const list=careTargets().filter(a=>ANIMALS.has(a.t.id)&&!(a.t.fedUntil>day())&&facing(a.f));
+        askAt=time+(list.length?24+Math.random()*16:6);
+        if(list.length)speak(list[Math.floor(Math.random()*list.length)].t,nextLine('hungry',HUNGRY_LINES),7);
+      }
       function placeBubble(){
         if(!speech)return;
         if(time>speech.until){speech=null;bubble.hidden=true;return;}
@@ -4852,7 +4923,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         gl.bufferData(gl.ARRAY_BUFFER,tris.view(),gl.DYNAMIC_DRAW);setAttribs();
         gl.drawArrays(gl.TRIANGLES,0,tris.n/9);
         if(lines.n){gl.bufferData(gl.ARRAY_BUFFER,lines.view(),gl.DYNAMIC_DRAW);setAttribs();gl.drawArrays(gl.LINES,0,lines.n/9);}
-        placeBubble();
+        hungryAsk();placeBubble();
       }
       // Trackpad play (desktop, new controls): while an item is being placed, a two-finger swipe slides it,
       // a click turns it and a right-click turns it back, the same as the falling block in the main game.
@@ -4897,12 +4968,17 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         if(!shelf.hidden)openShelf(false);
         if(e.pointerType!=='touch')return;
         fingers.set(e.pointerId,[e.clientX,e.clientY]);
-        if(fingers.size===2){const [a,b]=[...fingers.values()];pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1]),done:false};drag=null;planet.classList.remove('dragging');}
+        if(fingers.size===2){const [a,b]=[...fingers.values()];pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1]),a:Math.atan2(b[1]-a[1],b[0]-a[0]),done:false,turned:false};drag=null;planet.classList.remove('dragging');}
       });
       planet.addEventListener('pointermove',e=>{
         if(!fingers.has(e.pointerId))return;
         fingers.set(e.pointerId,[e.clientX,e.clientY]);
         if(!pinch||pinch.done||fingers.size!==2)return;
+        if(hold){ // two fingers twisting turn the item being placed: a quarter turn for about a third of a turn of the fingers
+          const [p,q]=[...fingers.values()];let da=Math.atan2(q[1]-p[1],q[0]-p[0])-pinch.a;da=Math.atan2(Math.sin(da),Math.cos(da));
+          if(Math.abs(da)>.6){const way=da>0?1:-1;rotate(way);pinch.a+=way*Math.PI/2;pinch.turned=true;rebuild();}
+          if(pinch.turned)return; // a twist never also zooms
+        }
         const [a,b]=[...fingers.values()],r=Math.hypot(a[0]-b[0],a[1]-b[1])/Math.max(pinch.d,1);
         if(r>1.22||r<.82){pinch.done=true;const rc=planet.getBoundingClientRect();zoomGesture(r>1?1:-1,(a[0]+b[0])/2-rc.left,(a[1]+b[1])/2-rc.top);}
       });
@@ -4948,7 +5024,7 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         debug:()=>({totalShapes,day:day(),food,ocean:ocean.map(t=>({...t})),careTargets:careTargets().filter(a=>facing(a.f)).map(a=>({id:a.t.id,box:careScreen(a)})),inv:{...inv},islands:islands.map(s=>({f:s.f,x:s.x,z:s.z,w:s.w,d:s.d,area:areaOf(s),items:s.items.map(t=>({...t})),rows:maskRows(s)})),hold:hold&&{id:hold.id,f:hold.f,x:hold.x,z:hold.z,w:hold.w,d:hold.d,h:hold.h,near:hold.near,r:hold.r},zoomK,zoomIsland,zoomTarget,hint:hint.textContent,valid:holdValid(hold),top:FACE_NAMES[topFace()],tipping:!!tip,merging:!!mergeFx})
       };
     }
-    return {create,ITEMS,MILESTONES,COLLECTIBLES,GIFT_LADDER,PRESENCE,SAYINGS,ANIMAL_LINES,icon:voxelIcon,model,sanitize,dimsPx,careState,careFor,dayOf,oceanStep};
+    return {create,ITEMS,MILESTONES,COLLECTIBLES,GIFT_LADDER,PRESENCE,SAYINGS,ANIMAL_LINES,HUNGRY_LINES,icon:voxelIcon,model,sanitize,dimsPx,careState,careFor,dayOf,oceanStep};
   })();
   </script>
 <script>
@@ -5011,7 +5087,7 @@ window.TrillionCloud=(()=>{
     if(!r.ok)throw new Error('http '+r.status);
     return r.json();
   }
-  const sig=p=>{const a=p&&p.aloha?{...p.aloha}:null;if(a)delete a.savedAt;return JSON.stringify({a,b:p&&p.best});};
+  const sig=p=>{const a=p&&p.aloha?{...p.aloha}:null;if(a)delete a.savedAt;return JSON.stringify({a,b:p&&p.best,r:p&&p.run?p.run.t:0});};
   async function push(keepalive){
     clearTimeout(timer);timer=0;
     if(!acct||!hooks)return true;
@@ -5059,7 +5135,7 @@ window.TrillionCloud=(()=>{
     ev('account_signout');
     // Stop the game re-saving its in-memory islands on the way out (it saves on pagehide), then wipe.
     window.TRILLION_WIPING=true;
-    try{['trillion-aloha-v1','trillion-aloha-v1-at','trillion.highScore.v1',LS].forEach(k=>localStorage.removeItem(k));}catch(e){}
+    try{['trillion-aloha-v1','trillion-aloha-v1-at','trillion.highScore.v1','trillion-run-v1',LS].forEach(k=>localStorage.removeItem(k));}catch(e){}
     clearTimeout(timer);timer=0;acct=null;lastSent='';status='';notify();
     try{location.reload();}catch(e){}
     return true;
@@ -5161,7 +5237,7 @@ window.TrillionCloud=(()=>{
     };upd();subs.add(upd);
     b.addEventListener('click',open);parent.insertBefore(b,before||null);return b;
   }
-  return {attach,changed,open,addOpener,subscribe:f=>subs.add(f),get user(){return acct&&acct.u;},_test:{rpc}};
+  return {attach,changed,flush:()=>{if(timer)push(true);},open,addOpener,subscribe:f=>subs.add(f),get user(){return acct&&acct.u;},_test:{rpc}};
 })();
 </script>
 <script>
@@ -5373,8 +5449,8 @@ window.TrillionCloud=(()=>{
   const aloha=TrillionAloha.create(alohaRoot);
   if(window.TrillionCloud){
     TrillionCloud.attach({
-      get:()=>({aloha:aloha.exportData(),best:highScore.best,savedAt:Date.now()}),
-      apply:d=>{if(d.aloha)aloha.importData(d.aloha);if(Number(d.best)>0)highScore.record(Number(d.best));updateHighScore();},
+      get:()=>({aloha:aloha.exportData(),best:highScore.best,run:readRun(),savedAt:Date.now()}),
+      apply:d=>{if(d.aloha)aloha.importData(d.aloha);if(Number(d.best)>0)highScore.record(Number(d.best));updateHighScore();adoptRun(d.run);},
       localTime:()=>{try{return Number(localStorage.getItem('trillion-aloha-v1-at'))||0;}catch(e){return 0;}}
     });
     const panel=document.querySelector('#title-screen .start-panel');
@@ -5618,21 +5694,65 @@ window.TrillionCloud=(()=>{
       window.addEventListener('keydown',function k(e){if(e.key==='Enter'||e.key===' '||e.key==='Escape'){e.preventDefault();window.removeEventListener('keydown',k,true);dismiss();}},true);
     });
   }
+  // ---- The run in progress is kept between visits (and travels with a player account), so coming back picks up where you left off. ----
+  const RUN_KEY='trillion-run-v1';
+  let runMark='',runCloudAt=0;
+  function readRun(){try{const r=JSON.parse(localStorage.getItem(RUN_KEY)||'null');return r&&r.g&&r.g.v===1?r:null;}catch(e){return null;}}
+  function dropRun(){try{localStorage.removeItem(RUN_KEY);}catch(e){}runMark='';if(window.TrillionCloud)TrillionCloud.changed();}
+  function keepRun(now){
+    if(!started||game.playerCount!==1||window.TRILLION_WIPING)return;
+    if(game.gameOver){if(runMark!=='over'){dropRun();runMark='over';}return;}
+    const mark=game.level+':'+game.placed+':'+game.score+':'+(game.morphIndex||0)+':'+(game.active?game.active.type:'');
+    if(mark===runMark&&!now)return;
+    const g=game.snapshot();if(!g)return; // mid-animation: try again on a later frame
+    try{localStorage.setItem(RUN_KEY,JSON.stringify({t:Date.now(),g}));}catch(e){return;}
+    const levelled=runMark.split(':')[0]!==String(game.level);runMark=mark;
+    if(window.TrillionCloud&&(now||levelled||Date.now()-runCloudAt>20000)){runCloudAt=Date.now();TrillionCloud.changed();}
+  }
+  // A run arriving from the cloud is taken only when it is newer than this device's, and never over a game being played.
+  function adoptRun(run){
+    if(!run||!run.g||run.g.v!==1||started)return;
+    const mine=readRun();if(mine&&mine.t>=run.t)return;
+    try{localStorage.setItem(RUN_KEY,JSON.stringify(run));}catch(e){}
+    refreshTitle();
+  }
+  function refreshTitle(){
+    const run=started?null:readRun(),startBtn=document.querySelector('#start-game'),other=document.querySelector('#continue-game');
+    startBtn.style.whiteSpace=run?'nowrap':'';startBtn.style.letterSpacing=run?'.04em':'';
+    if(run){startBtn.innerHTML='RESUME LEVEL '+run.g.level+' <span aria-hidden="true">▶</span>';other.textContent='Start a new game';other.hidden=false;}
+    else{startBtn.innerHTML='START GAME <span aria-hidden="true">▶</span>';other.textContent='Continue current game';other.hidden=!started||game.gameOver;}
+    const hint=document.querySelector('#title-screen .keyboard-hint');if(hint)hint.textContent=run?'PRESS ENTER TO CONTINUE':'PRESS ENTER TO START';
+  }
+  function resumeRun(){
+    const run=readRun();
+    let ok=false;try{ok=!!run&&game.restore(run.g);}catch(e){ok=false;}
+    if(!ok){try{localStorage.removeItem(RUN_KEY);}catch(e){}return false;}
+    alohaCoin=Math.floor(game.score/10);lastAlohaScore=game.score;lastAlohaDispensed=game.totalDispensed||0;
+    chimePlaced=lastPlaced=game.placed;chimeLines=game.lines;finaleLines=0;statLevel=game.level;statOver=false;
+    runMark='';startGame(false);
+    if(window.TrillionStats)TrillionStats.track('run_resumed',{level:game.level,score:game.score});
+    return true;
+  }
+  // The main button: carry on a kept run if there is one, otherwise a new game.
+  function startOrResume(){if(!started&&readRun()&&resumeRun())return;startGame();}
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){keepRun(true);if(window.TrillionCloud)TrillionCloud.flush();}});
+  window.addEventListener('pagehide',()=>{keepRun(true);if(window.TrillionCloud)TrillionCloud.flush();});
+  refreshTitle();
   const _origStartGame=startGame;
   startGame=async function(fresh=true){
     hideFortune();
     if(fresh)await showAlohaIntro(); // TEMP: show intro every new game (was: only if !alohaIntroSeen)
     _origStartGame(fresh);
   };
-  document.querySelector('#start-game').addEventListener('click',()=>startGame());
-  document.querySelector('#continue-game').addEventListener('click',()=>startGame(false));
+  document.querySelector('#start-game').addEventListener('click',()=>startOrResume());
+  document.querySelector('#continue-game').addEventListener('click',()=>{if(started&&!game.gameOver)startGame(false);else startGame();});
   function showTitle() {
     selectedChapter=1;
     if(gameOverDialog.open)gameOverDialog.close();
     onTitle=true;endDrag();setPaused(true);updateHighScore();guide.end('title');
     titleScreen.hidden=false;document.body.classList.add('at-title');
     if(Date.now()<fortuneExpiry)fortuneCookie.hidden=false;
-    document.querySelector('#continue-game').hidden=!started||game.gameOver;
+    refreshTitle();
     document.querySelector('#start-game').focus();
     gameScreen.inert=true;gameScreen.setAttribute('aria-hidden','true');
   }
@@ -5649,6 +5769,16 @@ window.TrillionCloud=(()=>{
     targetYaw=clamp(targetYaw-dx*.006,defaultView.yaw-.95,defaultView.yaw+.95);
   }
   function resetView() {targetPitch=defaultView.pitch;targetYaw=defaultView.yaw;}
+  // Moves and tips are always given as the player sees them (left, right, away, toward). When the view has been swung far
+  // enough round that another side of the cube faces left, the same gesture is steered along that side instead.
+  let viewQuarter=0;
+  function relStep(dx,dz){
+    const a=viewYaw/(Math.PI/2);if(Math.abs(a-viewQuarter)>.56)viewQuarter=Math.round(a);
+    const q=((viewQuarter%4)+4)%4,c=[1,0,-1,0][q],n=[0,1,0,-1][q];
+    return [dx*c-dz*n,dx*n+dz*c];
+  }
+  function moveRel(dx,dz){const [x,z]=relStep(dx,dz);return game.move(x,z);}
+  function tipRel(tx,tz){const [x,z]=relStep(tx,tz);if(x)game.rotateCube('z',-x);else if(z)game.rotateCube('x',z);}
   function endDrag() {
     if(drag&&canvas.hasPointerCapture(drag.id))canvas.releasePointerCapture(drag.id);
     drag=null;canvas.classList.remove('dragging');
@@ -5662,6 +5792,8 @@ window.TrillionCloud=(()=>{
   canvas.addEventListener('pointermove',event=>{
     if(!drag||event.pointerId!==drag.id)return;
     if(Math.hypot(event.clientX-drag.sx,event.clientY-drag.sy)>5)drag.moved=true;
+    // The view only starts to move once the pointer has really travelled: a click that wobbles a pixel or two must not creep the camera round.
+    if(!drag.moved){if(Math.hypot(event.clientX-drag.sx,event.clientY-drag.sy)>5){drag.moved=true;drag.x=event.clientX;drag.y=event.clientY;}return;}
     adjustView(event.clientX-drag.x,event.clientY-drag.y);
     drag.x=event.clientX;drag.y=event.clientY;
   });
@@ -5710,8 +5842,8 @@ window.TrillionCloud=(()=>{
     if(swipe.done||swipe.coast||!canPlay()){swipe.ax=swipe.ay=0;return;}
     swipe.ax=clamp(swipe.ax+dx,-T,T);swipe.ay=clamp(swipe.ay+dy,-T,T);
     // With macOS natural scrolling the block follows the fingers: the scroll delta runs opposite to them.
-    if(Math.abs(swipe.ax)>=T&&Math.abs(swipe.ax)>=Math.abs(swipe.ay)){game.move(swipe.ax>0?-1:1,0);swipe.ax=swipe.ay=0;swipe.done=true;}
-    else if(Math.abs(swipe.ay)>=T){game.move(0,swipe.ay>0?-1:1);swipe.ax=swipe.ay=0;swipe.done=true;}
+    if(Math.abs(swipe.ax)>=T&&Math.abs(swipe.ax)>=Math.abs(swipe.ay)){moveRel(swipe.ax>0?-1:1,0);swipe.ax=swipe.ay=0;swipe.done=true;}
+    else if(Math.abs(swipe.ay)>=T){moveRel(0,swipe.ay>0?-1:1);swipe.ax=swipe.ay=0;swipe.done=true;}
   }
   for(const name of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(name,event=>{
     if(drag?.id===event.pointerId)endDrag();
@@ -5731,7 +5863,7 @@ window.TrillionCloud=(()=>{
   window.addEventListener('keydown',event=>{
     if (event.ctrlKey||event.metaKey||event.altKey) return;
     if(onTitle) {
-      if(event.key==='Enter'&&!event.repeat&&!event.target.closest('button')) {event.preventDefault();startGame();}
+      if(event.key==='Enter'&&!event.repeat&&!event.target.closest('button')) {event.preventDefault();startOrResume();}
       return;
     }
     if(game.handoff){event.preventDefault();if(event.key==='Enter'&&!event.repeat)readyPlayer();return;}
@@ -5748,14 +5880,14 @@ window.TrillionCloud=(()=>{
     event.preventDefault();
     if(event.repeat && !['w','a','s','d'].includes(key)) return;
     if(key==='p') setPaused(!game.paused);
-    if(key==='w')game.move(0,-1); if(key==='s')game.move(0,1);
-    if(key==='a')game.move(-1,0); if(key==='d')game.move(1,0);
+    if(key==='w')moveRel(0,-1); if(key==='s')moveRel(0,1);
+    if(key==='a')moveRel(-1,0); if(key==='d')moveRel(1,0);
     if(key==='f')game.togglePosture();
     if(key==='r')game.rollPiece();
     if(key==='b')game.usePowerUp('bomb');if(key==='g')game.usePowerUp('bloom');
     if(key==='q')game.rotatePiece(-1); if(key==='e')game.rotatePiece(1);
-    if(key==='ArrowUp')game.rotateCube('x',-1); if(key==='ArrowDown')game.rotateCube('x',1);
-    if(key==='ArrowLeft')game.rotateCube('z',1); if(key==='ArrowRight')game.rotateCube('z',-1);
+    if(key==='ArrowUp')tipRel(0,-1); if(key==='ArrowDown')tipRel(0,1);
+    if(key==='ArrowLeft')tipRel(-1,0); if(key==='ArrowRight')tipRel(1,0);
     if(key==='/')game.rotateCube('y',-1);
     if(key===' '&&game.paused){setPaused(false);return;} // back from another tab: the first Space resumes, the next one drops
     if(key===' '&&!game.paused){if(game.awaitingStart)game.beginPlay();game.softDrop=true;} // the very first press starts play and drops in one go
@@ -5865,7 +5997,7 @@ window.TrillionCloud=(()=>{
             return;
           }
           if(!inGame())return;
-          game.move(dir==='left'?-1:dir==='right'?1:0,dir==='up'?-1:dir==='down'?1:0);
+          moveRel(dir==='left'?-1:dir==='right'?1:0,dir==='up'?-1:dir==='down'?1:0);
         },
         hold(on){trace('P hold',on);holdDrop(on);}
       });
@@ -5890,8 +6022,8 @@ window.TrillionCloud=(()=>{
           trace('R',dir);
           if(alohaOpen){press({left:'ArrowLeft',right:'ArrowRight',up:'ArrowUp',down:'ArrowDown'}[dir]);return;}
           if(!inGame())return;
-          if(dir==='left')game.rotateCube('z',1);else if(dir==='right')game.rotateCube('z',-1);
-          else if(dir==='up')game.rotateCube('x',-1);else game.rotateCube('x',1);
+          if(dir==='left')tipRel(-1,0);else if(dir==='right')tipRel(1,0);
+          else if(dir==='up')tipRel(0,-1);else tipRel(0,1);
         }
       });
       ringGesture(ringR,d=>{
@@ -5930,7 +6062,7 @@ window.TrillionCloud=(()=>{
         if(!inGame()&&!alohaOpen)return;
         trace('L',alohaOpen?'aloha':sliding()?'slide':'turn',dir);
         if(alohaOpen){press((mode==='turn'&&(dir==='left'||dir==='right'))?(dir==='left'?'q':'e'):{left:'a',right:'d',up:'w',down:'s'}[dir]);return;}
-        if(sliding()){game.move(dir==='left'?-1:dir==='right'?1:0,dir==='up'?-1:dir==='down'?1:0);return;}
+        if(sliding()){moveRel(dir==='left'?-1:dir==='right'?1:0,dir==='up'?-1:dir==='down'?1:0);return;}
         if(dir==='left')game.rotatePiece(-1);else if(dir==='right')game.rotatePiece(1);
         else game.tipPiece(dir==='down'?1:-1);
       },
@@ -5948,8 +6080,8 @@ window.TrillionCloud=(()=>{
         trace('R',dir);
         if(alohaOpen){press({left:'ArrowLeft',right:'ArrowRight',up:'ArrowUp',down:'ArrowDown'}[dir]);return;}
         if(!inGame())return;
-        if(dir==='left')game.rotateCube('z',1);else if(dir==='right')game.rotateCube('z',-1);
-        else if(dir==='up')game.rotateCube('x',-1);else game.rotateCube('x',1);
+        if(dir==='left')tipRel(-1,0);else if(dir==='right')tipRel(1,0);
+        else if(dir==='up')tipRel(0,-1);else tipRel(0,1);
       },
       tap(){trace('R tap');if(alohaOpen)press('/');else if(inGame())game.rotateCube('y',-1);}
     });
@@ -6074,7 +6206,7 @@ window.TrillionCloud=(()=>{
   function render(time) {
     const dt=previous===undefined?0:Math.min((time-previous)/1000,.05); previous=time;
     if(onTitle){requestAnimationFrame(render);return;}
-    game.tick(dt);guide.update();updateHighScore();
+    game.tick(dt);guide.update();updateHighScore();keepRun(false);
     // Aloha Items are earned silently as the score passes 10, 30, 60, 100 and 150 in a run.
     if(game.score<lastAlohaScore){alohaCoin=0;}
     lastAlohaScore=game.score;
@@ -6418,7 +6550,7 @@ window.TrillionCloud=(()=>{
     countLabel.textContent=count+' blocks · '+levels+' / '+MAX_LAYERS+' layers';
     pieceLabel.textContent=kind==='bomb'?'B':kind==='bloom'?'G':(game.active?.type==='SINGLE'?'1':game.active?.type==='DOUBLE'?'2':game.active?.type==='TRIPLE'?'3':game.active?.type==='SIX'?'6':game.active?.type==='PLUS'?'+':game.active?.type==='CUP'?'U':game.active?.type==='VEE'?'V':game.active?.type==='CUBE'?'8':game.active?.type==='CORNER'?'C':game.active?.type)??'—';
     pieceLabel.style.color=game.active?`rgb(${(kind?powerColor:COLORS[game.active.type]).map(c=>Math.round(c*255)).join(',')})`:'#91a0b8';
-    document.querySelector('#posture').textContent=game.gameOver?'FINISHED':kind?kind.toUpperCase():game.active?(game.active.type==='CUBE'?'SOLID':game.active.type==='CORNER'?'TIP UP':game.active.upright?'UPRIGHT':'FLAT'):r?.phase==='power'?'ACTIVATED':r?.phase==='twist'?'TWISTING':r?.phase==='fall'?'SETTLING':'CLEARING';
+    document.querySelector('#posture').textContent=game.gameOver?'FINISHED':kind?kind.toUpperCase():game.active?(game.active.type==='CUBE'?'SOLID':game.active.type==='CORNER'?'TRIPOD':game.active.upright?'UPRIGHT':'FLAT'):r?.phase==='power'?'ACTIVATED':r?.phase==='twist'?'TWISTING':r?.phase==='fall'?'SETTLING':'CLEARING';
     const state=game.gameOver?'Stack limit reached':game.paused?'Paused · P to resume':game.awaitingStart?'Try the controls · your first block will wait':game.celebration?`Level ${game.celebration.level} unlocked!`:game.growth?({fold:'Folding the cube…',shrink:'Shrinking to the plane…',unfold:'Unfolding new sides…',terrain:game.growth.burst?'Coming apart… and back together':'Sculpting the next world…'}[game.growth.kind]||`Unfolding ${game.growth.from}×${game.growth.from} → ${SIZE}×${SIZE}…`):game.turn?'Turning cube…':overflow?'Too high! Move the piece or tip to another face.':r?
       (r.phase==='power'?(r.kind==='bomb'?'Bomb detonating…':'Bloom growing…'):r.phase==='clear'?`${r.lines} ${r.lines===1?'line':'lines'} clearing · Chain ${r.chain}`:r.phase==='twist'?`Split twist ${r.twistIndex+1} / ${r.twists.length} · +${game.lastAward} points`:'Blocks settling across all faces…'):
       kind?`${kind==='bomb'?'Bomb armed · 4×4×5 blast':`Bloom armed · ${SIZE-2}×${SIZE-2} · grows up to 3 layers`} · ${C2D?'swipe to aim':'WASD to aim'}`:
@@ -6475,6 +6607,13 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-11-16d',date:'Nov 16, 2026',title:'Pick up where you left off',items:[
+      'Your game is kept between visits. Come back and the main button reads RESUME with your level; your cube, score and blocks are as you left them. With a player name it follows you to other devices too. Start a new game is right underneath.',
+      'Moves and tips now always follow what you see: left is left, even after you have swung the view round. A click no longer nudges the view, so it stops drifting as you play.',
+      'Aloha on phones: twist two fingers to turn the item you are placing.',
+      'Shapes turn freely now: tip or cartwheel any shape all the way round, in either direction. A shape may stand on a leg or leave a ledge; anything left hanging settles at the next clear.',
+      'Hungry animals speak up. Now and then one asks for food, in one of fifteen ways.'
+    ]},
     {id:'2026-11-16c',date:'Nov 16, 2026',title:'The stepped cubes spin again',items:[
       'Fixed from level 14 on: when you clear a line, the cube itself turns again, not just the blocks on it.',
       'Fixed from level 11 on: spinning the cube carries the waiting block round with it, so it stays over the same spot.'
