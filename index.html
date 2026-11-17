@@ -1386,6 +1386,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
   const SIZE=6, AREA=SIZE*SIZE, CELL=2/SIZE, TURN_DURATION=.5, SOFT_DROP_MULTIPLIER=10;
   const CLEAR_DURATION=.35, TWIST_DURATION=.8, SETTLE_DURATION=.45;
   const MAX_LAYERS=8;
+  const CHAIN_LINE_CAP=50,DROP_CAP=100,SPIN_CAP=4; // a chained line is worth 20, 30, 40, then 50 at most; one drop pays 100 at most
   // Ten levels. `faces`: 'all' = full cube, 'plane' = one face, 'corner' = three faces meeting at a corner.
   // `pieces`: 'intro' = single/double/triple, 'classic' = I T J L O, 'big' = classic + six-block, cube, tripod.
   const LEVELS=[
@@ -1405,18 +1406,21 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     {level:14,score:800,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[-1,-1,-1,-1,-1,-1],caption:'SIX SANCTUARIES • TWO STEPS WITHIN'},
     {level:15,score:1000,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[-1,-1,-1,-1,-1,-1],echo:true,caption:'ECHO WORLD • EVERY BLOCK HAS A TWIN'},
     // Chapter 6, Tunnels: marked cells are openings. What falls into one comes out on the opposite face.
-    {level:16,score:1200,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],tunnels:[0,1],celebration:6,caption:'TUNNELS • DROP IN, COME OUT BELOW'},
-    {level:17,score:1400,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],tunnels:[0,1,2,3,4,5],caption:'SIX DOORS • EVERY SIDE LEADS THROUGH'},
-    {level:18,score:1600,size:6,faces:'all',pieces:'intro',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],tunnels:[0,1,2,3,4,5],caption:'SMALL STONES • AN EASY BREATH'},
-    // Chapter 7, Chimes: every face has a note. Blocks play it, lines play a chord.
-    {level:19,score:1800,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],chimes:true,celebration:6,caption:'CHIMES • EVERY FACE HAS A NOTE'},
-    {level:20,score:2050,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],chimes:true,echo:true,caption:'HARMONY • THE TWIN SINGS A FIFTH ABOVE'},
-    {level:21,score:2300,size:6,faces:'all',pieces:'intro',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],chimes:true,caption:'ONE NOTE AT A TIME'},
-    // Chapter 8, Night: the cube goes dark and what you place glows.
+    // 16-18: new shapes, then new cube shapes (every side stepped up, or peaks and hollows by turns).
+    {level:16,score:1200,size:6,faces:'all',pieces:'new',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],celebration:6,caption:'NEW SHAPES • PLUS, CUP AND CORNER'},
+    {level:17,score:1400,size:6,faces:'all',pieces:'new',manualDrop:true,body:6,terrain:[1,1,1,1,1,1],caption:'STAR • EVERY SIDE RISES'},
+    {level:18,score:1600,size:6,faces:'all',pieces:'intro',manualDrop:true,body:6,terrain:[1,-1,1,-1,1,-1],caption:'PEAKS AND HOLLOWS • AN EASY BREATH'},
+    // 19: Shapeshifter. After every drop that clears a line the cube comes apart and settles into the next shape in `morph`;
+    // the blocks ride along and drape over it. Only the stepping changes (never the body), so stacks keep their height.
+    {level:19,score:1800,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],celebration:6,caption:'SHAPESHIFTER • EVERY CLEAR REMAKES THE WORLD',
+      morph:[{terrain:[0,0,0,0,0,0]},{terrain:[1,1,1,1,1,1]},{terrain:[1,1,-1,-1,-1,-1]},{terrain:[-1,-1,-1,-1,-1,-1]},{terrain:[-1,-1,1,1,1,1]},{terrain:[1,-1,1,-1,1,-1]}]},
+    // 20-21: chimes.
+    {level:20,score:2050,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],chimes:true,celebration:6,caption:'CHIMES • EVERY FACE HAS A NOTE'},
+    {level:21,score:2300,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],chimes:true,echo:true,caption:'HARMONY • THE TWIN SINGS A FIFTH ABOVE'},
+    // 22-24: night, then dawn.
     {level:22,score:2500,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],night:'dark',celebration:6,caption:'NIGHT • WHAT YOU PLACE GLOWS'},
-    {level:23,score:2750,size:6,faces:'all',pieces:'big',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],night:'dark',tunnels:[0,1],chimes:true,caption:'NIGHT DOORS • LISTEN FOR THE OTHER SIDE'},
+    {level:23,score:2750,size:6,faces:'all',pieces:'new',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],night:'dark',chimes:true,caption:'NIGHT SONG • LISTEN IN THE DARK'},
     {level:24,score:3000,size:6,faces:'all',pieces:'classic',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],night:'dawn',chimes:true,caption:'DAWN • THE LIGHT COMES BACK'},
-    // The finale has no target. Lines cleared here become land in Aloha.
     {level:25,score:3300,size:6,faces:'all',pieces:'classic',manualDrop:true,body:6,terrain:[0,0,0,0,0,0],night:'dawn',chimes:true,finale:true,celebration:8,caption:'ALOHA • NOWHERE LEFT TO GET TO'},
   ];
   const SPAWN_HEIGHT=3, FALL_SPEED=.17;
@@ -1440,9 +1444,12 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     bloom:{name:'Bloom',key:'G',description:size=>`Fills ground-level gaps in a ${size-2}×${size-2} area and adds up to two blocks above existing stacks, capped at three layers. Use it to complete lines and start chains.`},
   };
   const INTRO_SHAPES={SINGLE:[[0,0]],DOUBLE:[[0,0],[1,0]],TRIPLE:[[0,0],[1,0],[2,0]]};
+  // Five-block shapes that join from level 16 (the 'new' set): a plus, a cup and a wide corner.
+  const NEW_SHAPES={PLUS:[[1,0],[0,1],[1,1],[2,1],[1,2]],CUP:[[0,0],[2,0],[0,1],[1,1],[2,1]],VEE:[[0,0],[0,1],[0,2],[1,2],[2,2]]};
   const COLORS={I:[.22,.82,.9],O:[1,.78,.25],T:[.72,.42,.98],J:[.32,.52,1],L:[1,.56,.24]};
   COLORS.SIX=[1,.6,.8];COLORS.CUBE=[.9,.95,1];COLORS.CORNER=[.85,.25,.4];
   COLORS.SINGLE=[1,.78,.25];COLORS.DOUBLE=[.22,.82,.9];COLORS.TRIPLE=[.72,.42,.98];
+  COLORS.PLUS=[.35,.9,.62];COLORS.CUP=[.98,.5,.72];COLORS.VEE=[.55,.7,1];
   COLORS.BOMB=[1,.22,.25];COLORS.BLOOM=[.4,.95,.3];
   const FACES=[
     {name:'Top',n:[0,1,0],u:[1,0,0],v:[0,0,1]},
@@ -1490,12 +1497,12 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     get area(){return this.size*this.size;}
     get cell(){return 2/this.size;}
     index(x,z,layer=0){return index(x,z,layer,this.size);}
-    get terrain(){return this.progression?LEVELS[this.level-1]?.terrain:null;}
-    get echo(){return this.progression&&!!LEVELS[this.level-1]?.echo;}
-    get config(){return this.progression?LEVELS[this.level-1]:null;}
+    get terrain(){return this.config?.terrain??null;}
+    get echo(){return !!this.config?.echo;}
+    get config(){return this.progression?(this.morphConfig&&this.morphConfig.level===this.level?this.morphConfig:LEVELS[this.level-1]):null;}
     // Tunnels: the four middle cells of a tunnel face are an opening while nothing stands in them.
     // A block that falls into an opening comes out on the same four cells of the opposite face.
-    get tunnels(){return this.progression?LEVELS[this.level-1]?.tunnels||null:null;}
+    get tunnels(){return this.config?.tunnels||null;}
     isTunnel(face,x,z){
       const t=this.tunnels;if(!t||!t.includes(face))return false;
       const [w,d]=this.faceDimensions(face);
@@ -1519,16 +1526,16 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       return out;
     }
     get terrainBias(){return this.terrain?2:0;}
-    faceDimensions(face,config=LEVELS[this.level-1]) {
+    faceDimensions(face,config=this.config) {
       return config?.terrain&&face>=2?[this.size,config.body]:[this.size,this.size];
     }
     validCell(face,x,z){const [w,d]=this.faceDimensions(face);return Number.isInteger(x)&&Number.isInteger(z)&&x>=0&&z>=0&&x<w&&z<d;}
-    floorLevel(face,x,z,config=LEVELS[this.level-1]) {
+    floorLevel(face,x,z,config=this.config) {
       if(!this.progression||!config?.terrain)return 0;
       return 2+config.terrain[face]*Math.min(x,z,this.size-1-x,this.size-1-z);
     }
-    faceRadius(face,config=LEVELS[this.level-1]) {return this.progression&&config?.terrain&&face<2?config.body*this.cell/2:1;}
-    surfacePoint(face,x,z,layer=0,config=LEVELS[this.level-1]) {
+    faceRadius(face,config=this.config) {return this.progression&&config?.terrain&&face<2?config.body*this.cell/2:1;}
+    surfacePoint(face,x,z,layer=0,config=this.config) {
       const f=FACES[face],[w,d]=this.faceDimensions(face,config),bias=this.progression&&config?.terrain?2:0;
       return f.n.map((n,i)=>n*(this.faceRadius(face,config)+(layer-bias)*this.cell)+f.u[i]*(x+.5-w/2)*this.cell+f.v[i]*(z+.5-d/2)*this.cell);
     }
@@ -1560,20 +1567,41 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       }
     }
     beginTerrain(previous,next){
-      const old=this.boards,boards=FACES.map(()=>Array(this.area).fill(null));
+      const old=this.boards,boards=FACES.map(()=>Array(this.area).fill(null)),moves=[];
       for(let face=0;face<6;face++){
         const [ow,od]=this.faceDimensions(face,previous),[nw,nd]=this.faceDimensions(face,next);
+        // When a side gets thinner, several columns land on one. The merged column keeps the height of its tallest
+        // source (blocks beyond that are let go), so a squeeze never builds towers the player did not stack.
+        const limit=new Map(),held=new Map();
         for(let z=0;z<od;z++)for(let x=0;x<ow;x++){
-          const nx=Math.min(nw-1,Math.floor((x+.5)*nw/ow)),nz=Math.min(nd-1,Math.floor((z+.5)*nd/od));
+          const nx=Math.min(nw-1,Math.floor((x+.5)*nw/ow)),nz=Math.min(nd-1,Math.floor((z+.5)*nd/od)),k=nx+':'+nz;
+          let n=0;for(let layer=0;layer<Math.ceil(old[face].length/this.area);layer++)if(old[face][this.index(x,z,layer)])n++;
+          limit.set(k,Math.max(limit.get(k)||0,n));
+        }
+        for(let z=0;z<od;z++)for(let x=0;x<ow;x++){
+          const nx=Math.min(nw-1,Math.floor((x+.5)*nw/ow)),nz=Math.min(nd-1,Math.floor((z+.5)*nd/od)),k=nx+':'+nz;
           let to=this.floorLevel(face,nx,nz,next);
           while(boards[face][this.index(nx,nz,to)])to++;
           for(let layer=0;layer<Math.ceil(old[face].length/this.area);layer++){
-            const block=old[face][this.index(x,z,layer)];if(block)boards[face][this.index(nx,nz,to++)]=block;
+            const block=old[face][this.index(x,z,layer)];if(!block)continue;
+            if((held.get(k)||0)>=limit.get(k))break;
+            held.set(k,(held.get(k)||0)+1);
+            moves.push({face,x,z,layer,nx,nz,to,type:block});boards[face][this.index(nx,nz,to++)]=block;
           }
         }
       }
       this.boards=boards;
-      this.growth={kind:'terrain',previous,next,elapsed:0,duration:2.8};
+      this.growth={kind:'terrain',previous,next,moves,elapsed:0,duration:2.8};
+    }
+    // Shapeshifter levels: move on to the next shape in the level's list. The blocks are carried across by beginTerrain.
+    morphNext(){
+      const base=LEVELS[this.level-1],list=base?.morph;if(!list||list.length<2)return false;
+      const previous=this.config;
+      this.morphIndex=((this.morphIndex||0)+1)%list.length;
+      this.morphConfig={...base,...list[this.morphIndex]};
+      this.beginTerrain(previous,this.morphConfig);
+      this.growth.burst=true;this.growth.duration=2.4;this.morphs=(this.morphs||0)+1;
+      return true;
     }
     terrainDestination(twist,face,x,z){
       const [w,d]=this.faceDimensions(face);
@@ -1601,7 +1629,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       return twist.plan={boards,tiles,moves};
     }
     applyTerrainTwist(twist){const p=this.planTerrainTwist(twist);this.boards=p.boards;this.tiles=p.tiles;}
-    shape(type){if(INTRO_SHAPES[type])return INTRO_SHAPES[type];if(SOLIDS[type])return SOLIDS[type];return type==='I'&&this.size===3?SHAPES.I.slice(0,3):SHAPES[type];}
+    shape(type){if(INTRO_SHAPES[type])return INTRO_SHAPES[type];if(NEW_SHAPES[type])return NEW_SHAPES[type];if(SOLIDS[type])return SOLIDS[type];return type==='I'&&this.size===3?SHAPES.I.slice(0,3):SHAPES[type];}
     get progressionScore(){return this.score+(this.chapterOffset||0);}
     get manualDrop(){return this.progression&&!!LEVELS[this.level-1].manualDrop;}
     get fullCube(){return this.live.every(Boolean);}
@@ -1616,8 +1644,8 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       if(!this.progression)return;
       const next=LEVELS[this.level];
       if(!next||this.progressionScore<next.score)return;
-      const prev=LEVELS[this.level-1];
-      this.level=next.level;this.bag=[];this.introBag=[];this.softDrop=false;this.turnQueue=[];
+      const prev=this.config;
+      this.level=next.level;this.morphConfig=null;this.morphIndex=0;this.bag=[];this.introBag=[];this.softDrop=false;this.turnQueue=[];
       if(this.celebrations)this.celebration={level:next.level,size:next.size,elapsed:0,duration:next.celebration??CELEBRATION_DURATION,caption:next.caption};
       if(next.terrain)this.beginTerrain(prev,next);
       else if(next.faces===prev.faces&&next.size>this.size)this.growBoards(next.size);
@@ -1670,7 +1698,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const entry=this.progression&&Number.isInteger(this.startLevel)&&this.startLevel>=1&&this.startLevel<=LEVELS.length?this.startLevel:1;
       const config=LEVELS[entry-1];this.chapterOffset=entry>1?config.score:0;
       this.size=entry>1?config.size:this.startSize;this.growth=null;this.celebration=null;this.awaitingStart=this.waitForStart;
-      this.level=entry;this.terrainRoot=0;this.live=FACES.map((_,f)=>config.faces==='corner'?[0,2,4].includes(f):config.faces==='plane'?f===0:true);
+      this.level=entry;this.morphConfig=null;this.morphIndex=0;this.terrainRoot=0;this.live=FACES.map((_,f)=>config.faces==='corner'?[0,2,4].includes(f):config.faces==='plane'?f===0:true);
       this.orientation=identity();this.turn=null;this.turnQueue=[];this.softDrop=false;
       this.boards=FACES.map(()=>Array(this.area).fill(null));
       this.tiles=FACES.map((_,face)=>Array(this.area).fill(face));
@@ -1704,7 +1732,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       }else {
       if(!this.bag.length) {
         // The six-block, cube and tripod only join the pool in the 'big' sets.
-        this.bag=set==='big'?[...Object.keys(SHAPES),...Object.keys(SOLIDS)]:Object.keys(SHAPES).filter(k=>k!=='SIX');
+        this.bag=set==='big'?[...Object.keys(SHAPES),...Object.keys(SOLIDS)]:set==='new'?[...Object.keys(NEW_SHAPES),'I','O','T','L','J','CORNER']:Object.keys(SHAPES).filter(k=>k!=='SIX');
         for(let i=this.bag.length-1;i>0;i--) {const j=Math.floor(this.random()*(i+1));[this.bag[i],this.bag[j]]=[this.bag[j],this.bag[i]];}
       }
       type=this.bag.pop();
@@ -1949,7 +1977,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       if(this.handoff||this.tutorial||this.awaitingStart||this.paused||this.gameOver||(this.growth||this.celebration)||this.turn||this.resolution||!this.canLand())return false;
       if(this.playerCount===2)this.turnMoves++;
       if(this.active.kind) {
-        this.lastChain=0;this.triggeredLines=0;this.chainPoints=0;this.lastAward=0;this.bloomAwarded=false;
+        this.lastChain=0;this.triggeredLines=0;this.chainPoints=0;this.lastAward=0;this.bloomAwarded=false;this.spins=0;
         this.activatePowerUp();return true;
       }
       const face=this.topFace(),level=this.landingLevel(),overflow=this.wouldOverflow();
@@ -1957,7 +1985,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       if(this.tunnels)for(const t of this.restingCells(level)){this.boards[t.face][this.index(t.x,t.z,t.layer)]=this.active.type;if(t.through)this.lastThrough++;}
       else for(const t of this.placementTargets())this.boards[t.face][this.index(t.x,t.z,level+t.y)]=this.active.type;
       this.placed++;this.active=null;this.lastChain=0;
-      this.triggeredLines=0;this.chainPoints=0;this.lastAward=0;
+      this.triggeredLines=0;this.chainPoints=0;this.lastAward=0;this.spins=0;
       this.bloomAwarded=false;
       if(overflow) {
         this.gameOver=true;this.lossFace=face;this.softDrop=false;this.turnQueue=[];
@@ -1969,6 +1997,7 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
       const board=this.boards[face],cells=new Set(),patterns=[];
       const [width,depth]=this.faceDimensions(face);
       for(let layer=0;layer<Math.ceil(board.length/this.area);layer++)for(const alongX of [true,false]) {
+        if((alongX?width:depth)<this.size)continue; // the short edge of a thin side is not a line
         for(let row=0;row<(alongX?depth:width);row++) {
           const ids=Array.from({length:alongX?width:depth},(_,col)=>this.index(alongX?col:row,alongX?row:col,layer));
           if(ids.every(i=>board[i])) {patterns.push({face,layer,row,alongX});ids.forEach(i=>cells.add(i));}
@@ -1997,7 +2026,13 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     beginClear(face,chain) {
       const faces=face===null?this.activeFaces():[face];
       const groups=faces.map(face=>({face,...this.findLines(face)})).filter(g=>g.lines);
-      if(!groups.length) {this.resolution=null;this.spawn();return;}
+      if(!groups.length) {
+        this.resolution=null;
+        // A drop that cleared something reshapes a Shapeshifter level (unless that drop also finished the level).
+        const up=LEVELS[this.level];
+        if(chain>1&&this.config?.morph&&!(up&&this.progressionScore>=up.score))this.morphNext();
+        this.spawn();return;
+      }
       const twists=groups.flatMap(g=>g.patterns.map(line=>this.describeTwist(line)));
       // Stable spatial order, captured before any twist changes the layout.
       twists.sort((a,b)=>a.face-b.face||a.layer-b.layer||(a.kind==='row'?0:1)-(b.kind==='row'?0:1)||a.row-b.row);
@@ -2006,7 +2041,11 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
     awardClear(lines,chain) {
       const previousMilestone=Math.floor(this.score/100);
       let points=0;
-      for(let i=0;i<lines;i++)points+=chain===1?10:10*(++this.triggeredLines+1);
+      for(let i=0;i<lines;i++)points+=chain===1?10:Math.min(CHAIN_LINE_CAP,10*(++this.triggeredLines+1));
+      // One drop never carries the score past the next level: every level gets played.
+      const up=this.progression?LEVELS[this.level]:null;
+      points=Math.max(0,Math.min(points,DROP_CAP-this.chainPoints));
+      if(up)points=Math.max(0,Math.min(points,up.score-this.progressionScore));
       this.lastAward=points;this.chainPoints+=points;this.score+=points;this.playerScores[this.currentPlayer]+=points;
       this.grantPowerUp('bomb',Math.floor(this.score/100)-previousMilestone);
       // The first Bloom arrives with the player's second chain, so a first chain isn't too much at once.
@@ -2048,7 +2087,9 @@ const api={Celebration,flight,DURATION,BUGS_PER_SIDE,levelName};if(typeof module
         this.lines+=r.lines;this.clearedBlocks+=r.groups.reduce((sum,g)=>sum+g.cells.length,0);this.lastChain=r.chain;
         this.awardClear(r.lines,r.chain);
         r.elapsed=0;
-        if(this.fullCube)r.phase='twist';
+        // Only the first few lines of a drop spin the cube; any beyond that simply clear and settle.
+        if(this.fullCube){r.twists=r.twists.slice(0,Math.max(0,SPIN_CAP-(this.spins||0)));this.spins=(this.spins||0)+r.twists.length;}
+        if(this.fullCube&&r.twists.length)r.phase='twist';
         else {
           // A plane or corner has nothing to twist into: lines clear and blocks settle in place.
           r.phase='fall';r.moves=this.activeFaces().flatMap(face=>this.settle(face));
@@ -4149,8 +4190,8 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
         {size:6,cost:20,label:'Island 3 · Levels 7–9'},
         {size:7,cost:30,label:'Island 4 · Levels 10–12'},
         {size:8,cost:40,label:'Island 5 · Levels 13–15'},
-        {size:10,cost:50,label:'Island 6 · Levels 16–18 · Tunnels'},
-        {size:11,cost:60,label:'Island 7 · Levels 19–21 · Chimes'},
+        {size:10,cost:50,label:'Island 6 · Levels 16–18 · New Shapes'},
+        {size:11,cost:60,label:'Island 7 · Levels 19–21 · Shapeshifter'},
         {size:12,cost:70,label:'Island 8 · Levels 22–24 · Night'}];
       // Entitlements survive island placement, merging, and all existing save formats.
       function chapterCount(){
@@ -5998,6 +6039,8 @@ window.TrillionCloud=(()=>{
       for(let layer=bottom;layer<top;layer++)wireBox(game.surfacePoint(area.face,x,z,layer+.5),CELL*.49,color,m);
     }
   }
+  // Shapeshifter: every tile and block drifts straight out from the middle, hangs apart, then gathers into the new shape.
+  function burstScale(growth){const t=Math.max(0,Math.min(1,growth.elapsed/growth.duration));return 1+.55*Math.sin(Math.PI*t)**1.5;}
   function drawTerrainTile(face,x,z,color,m,growth){
     const f=FACES[face],floor=game.floorLevel(face,x,z),[w,d]=game.faceDimensions(face);
     let t=1,oldFloor=floor;
@@ -6009,6 +6052,7 @@ window.TrillionCloud=(()=>{
     if(growth?.kind==='terrain'){
       const previous=game.surfacePoint(face,x,z,oldFloor,growth.previous);
       for(let i=0;i<3;i++)base[i]=previous[i]+(base[i]-previous[i])*t;
+      if(growth.burst){const k=burstScale(growth);for(let i=0;i<3;i++)base[i]*=k;}
     }
     const p=(u,v,h=0)=>base.map((b,i)=>b+f.u[i]*u+f.v[i]*v+f.n[i]*h);
     const half=CELL/2;
@@ -6187,6 +6231,7 @@ window.TrillionCloud=(()=>{
         }
       }
       growthWarp=null;
+      if(growth?.kind==='terrain'&&growth.burst&&growth.moves)continue; // drawn in flight below
       const board=game.boards[f];
       for(let i=0;i<board.length;i++) {
         const type=board[i];if(!type||game.terrain&&twist)continue;
@@ -6200,6 +6245,14 @@ window.TrillionCloud=(()=>{
       }
     }
     growthWarp=null;
+    if(growth?.kind==='terrain'&&growth.burst&&growth.moves){
+      const t=smooth(growth.elapsed/growth.duration),k=burstScale(growth);
+      for(const b of growth.moves){
+        const a=game.surfacePoint(b.face,b.x,b.z,b.layer+.5,growth.previous),c=game.surfacePoint(b.face,b.nx,b.nz,b.to+.5);
+        extent=Math.max(extent,k*(1+(Math.max(b.layer,b.to)+1)*CELL));
+        box(a.map((v,i)=>(v+(c[i]-v)*t)*k),CELL*.465,glow(COLORS[b.type]),m);
+      }
+    }
     if(r?.phase==='fall') {
       const t=Math.min(1,r.elapsed/SETTLE_DURATION);
       for(const b of r.moves) {
@@ -6346,10 +6399,10 @@ window.TrillionCloud=(()=>{
     const count=game.boards[top].filter(Boolean).length;
     const levels=game.boards[top].reduce((max,v,i)=>v?Math.max(max,Math.floor(i/AREA)+1-game.floorLevel(top,i%SIZE,Math.floor(i/SIZE)%SIZE)):max,0);
     countLabel.textContent=count+' blocks · '+levels+' / '+MAX_LAYERS+' layers';
-    pieceLabel.textContent=kind==='bomb'?'B':kind==='bloom'?'G':(game.active?.type==='SINGLE'?'1':game.active?.type==='DOUBLE'?'2':game.active?.type==='TRIPLE'?'3':game.active?.type==='SIX'?'6':game.active?.type==='CUBE'?'8':game.active?.type==='CORNER'?'C':game.active?.type)??'—';
+    pieceLabel.textContent=kind==='bomb'?'B':kind==='bloom'?'G':(game.active?.type==='SINGLE'?'1':game.active?.type==='DOUBLE'?'2':game.active?.type==='TRIPLE'?'3':game.active?.type==='SIX'?'6':game.active?.type==='PLUS'?'+':game.active?.type==='CUP'?'U':game.active?.type==='VEE'?'V':game.active?.type==='CUBE'?'8':game.active?.type==='CORNER'?'C':game.active?.type)??'—';
     pieceLabel.style.color=game.active?`rgb(${(kind?powerColor:COLORS[game.active.type]).map(c=>Math.round(c*255)).join(',')})`:'#91a0b8';
     document.querySelector('#posture').textContent=game.gameOver?'FINISHED':kind?kind.toUpperCase():game.active?(game.active.type==='CUBE'?'SOLID':game.active.type==='CORNER'?'TIP UP':game.active.upright?'UPRIGHT':'FLAT'):r?.phase==='power'?'ACTIVATED':r?.phase==='twist'?'TWISTING':r?.phase==='fall'?'SETTLING':'CLEARING';
-    const state=game.gameOver?'Stack limit reached':game.paused?'Paused · P to resume':game.awaitingStart?'Try the controls · your first block will wait':game.celebration?`Level ${game.celebration.level} unlocked!`:game.growth?({fold:'Folding the cube…',shrink:'Shrinking to the plane…',unfold:'Unfolding new sides…',terrain:'Sculpting the next world…'}[game.growth.kind]||`Unfolding ${game.growth.from}×${game.growth.from} → ${SIZE}×${SIZE}…`):game.turn?'Turning cube…':overflow?'Too high! Move the piece or tip to another face.':r?
+    const state=game.gameOver?'Stack limit reached':game.paused?'Paused · P to resume':game.awaitingStart?'Try the controls · your first block will wait':game.celebration?`Level ${game.celebration.level} unlocked!`:game.growth?({fold:'Folding the cube…',shrink:'Shrinking to the plane…',unfold:'Unfolding new sides…',terrain:game.growth.burst?'Coming apart… and back together':'Sculpting the next world…'}[game.growth.kind]||`Unfolding ${game.growth.from}×${game.growth.from} → ${SIZE}×${SIZE}…`):game.turn?'Turning cube…':overflow?'Too high! Move the piece or tip to another face.':r?
       (r.phase==='power'?(r.kind==='bomb'?'Bomb detonating…':'Bloom growing…'):r.phase==='clear'?`${r.lines} ${r.lines===1?'line':'lines'} clearing · Chain ${r.chain}`:r.phase==='twist'?`Split twist ${r.twistIndex+1} / ${r.twists.length} · +${game.lastAward} points`:'Blocks settling across all faces…'):
       kind?`${kind==='bomb'?'Bomb armed · 4×4×5 blast':`Bloom armed · ${SIZE-2}×${SIZE-2} · grows up to 3 layers`} · ${C2D?'swipe to aim':'WASD to aim'}`:
       game.softDrop?'Fast fall · release Space to slow down':game.active.height-game.landingLevel()*CELL<.35?'Landing…':game.manualDrop?(game.echo?'Pink outline = twin · Hold Space to drop':game.terrain?'Stepped terrain · Hold Space to drop':'Hold Space to drop'):'Drifting toward the surface';
@@ -6405,6 +6458,14 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-11-16b',date:'Nov 16, 2026',title:'Fairer chains, new shapes, Shapeshifter',items:[
+      'Chains are capped: a chained line is worth 20, 30, 40, then 50 at most, one drop pays 100 at most, and no drop can carry you past the next level. Every level gets played.',
+      'Fixed on levels 11 to 13: two or three blocks across the thin edge of the slab no longer count as a line. Only full rows clear.',
+      'The cube spins at most four times for one drop. Any lines beyond that simply clear and settle.',
+      'Tunnels are gone. Levels 16 to 18 now bring three new five-block shapes (a plus, a cup and a wide corner) and two new cube shapes: the Star, and Peaks and Hollows.',
+      'Level 19, Shapeshifter: every time you clear a line the cube drifts apart and gathers into a different shape, with your blocks draped over it.',
+      'Chimes are now levels 20 and 21. Level 23 is Night Song.'
+    ]},
     {id:'2026-11-16a',date:'Nov 16, 2026',title:'Space bar after a break',items:[
       'Fixed: after leaving the game for another tab and coming back, Space could pause the game instead of dropping the block. Space now resumes a paused game, and then drops as usual.'
     ]},
