@@ -695,6 +695,8 @@ body.controls2d #guide-hint{bottom:214px}
 #aloha .aloha-card p{margin:0;font:italic 400 16px/1.55 var(--soft-font);color:#f3f0e2}
 #aloha .aloha-speech{position:absolute;z-index:7;transform:translate(-50%,-100%);max-width:min(270px,70vw);padding:10px 14px;border-radius:16px;background:#fbf8eef2;color:#22303a;font:500 14px/1.45 var(--soft-font);box-shadow:0 8px 22px #0007;pointer-events:none;transition:opacity .3s;text-align:center}
 #aloha .aloha-speech[hidden]{display:none}
+#aloha .aloha-said{margin:10px 0 12px;padding:10px 14px;border-radius:14px;background:#fbf8eef2;color:#22303a!important;font:500 14px/1.45 var(--soft-font)!important}
+#aloha .aloha-said[hidden]{display:none}
 #aloha .aloha-speech::after{content:'';position:absolute;left:50%;bottom:-8px;margin-left:-8px;border:8px solid transparent;border-top-color:#fbf8eef2;border-bottom:0}
 body.touch-ui #aloha .aloha-card{top:calc(max(10px,env(safe-area-inset-top)) + 96px)}
 /* on a computer the card sits to the right, clear of the island and of whatever an animal is saying */
@@ -4226,7 +4228,9 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
       moveButton.addEventListener('click',()=>{if(selectedCare)pickUp(selectedCare);});
       const buyButton=document.createElement('button');buyButton.className='aloha-file-btn';
       buyButton.addEventListener('click',()=>buyFood());
-      carePanel.append(careTitle,careClock,careFood,buyButton,careInfo,careButton,moveButton);
+      // On phones the open drawer covers the island, so what an animal says is shown here inside the drawer instead of in a bubble over it.
+      const careSaid=document.createElement('p');careSaid.className='aloha-said';careSaid.hidden=true;
+      carePanel.append(careTitle,careClock,careFood,buyButton,careInfo,careSaid,careButton,moveButton);
       function buyFood(){
         if(coins<FOOD_PRICE){say(`Animal food costs ${FOOD_PRICE} coins. Earn a coin for every 10 points.`,4);return;}
         coins-=FOOD_PRICE;food++;T('aloha_buy_food');save();updateCoins(false);updateCare();say('Bought 1 animal food.',3);
@@ -4374,13 +4378,17 @@ ${locked?'<g transform="translate(51 42)"><rect x="0" y="6" width="18" height="1
       function hungryAsk(){
         if(!askAt){askAt=time+5;return;}
         if(time<askAt||speech||hold)return;
+        if(document.body.classList.contains('touch-ui')&&sidebar.classList.contains('open')){askAt=time+4;return;} // nobody pipes up while the drawer covers the island
         const list=careTargets().filter(a=>ANIMALS.has(a.t.id)&&!(a.t.fedUntil>day())&&facing(a.f));
         askAt=time+(list.length?24+Math.random()*16:6);
         if(list.length)speak(list[Math.floor(Math.random()*list.length)].t,nextLine('hungry',HUNGRY_LINES),7);
       }
       function placeBubble(){
-        if(!speech)return;
-        if(time>speech.until){speech=null;bubble.hidden=true;return;}
+        const covered=document.body.classList.contains('touch-ui')&&sidebar.classList.contains('open');
+        if(!speech||time>speech.until){speech=null;bubble.hidden=true;careSaid.hidden=true;return;}
+        // drawer open on a phone: the line moves into the drawer (only for the animal it is showing), and no bubble floats over the shop
+        if(covered){bubble.style.opacity='0';const mine=speech.t===selectedCare;careSaid.hidden=!mine;if(mine&&careSaid.textContent!==bubble.textContent)careSaid.textContent=bubble.textContent;return;}
+        careSaid.hidden=true;
         const a=careTargets().find(c=>c.t===speech.t);
         if(!a||!facing(a.f)){bubble.style.opacity='0';return;}
         const b=careScreen(a),x=Math.max(120,Math.min(root.clientWidth-120,(b.x0+b.x1)/2));
@@ -5078,7 +5086,7 @@ window.TrillionStats=(()=>{
 })();
 </script>
 <script>
-// Player accounts: a name plus a password the player picks, saved through locked-down database functions (no email). Older accounts' recovery codes still work as passwords.
+// Player accounts: just a name. Typing a name picks up that player's cloud save (or starts one), through locked-down database functions. No password, no email.
 window.TrillionCloud=(()=>{
   'use strict';
   const API='https://hmtrwwbaellwuuqmdeyn.supabase.co',
@@ -5087,7 +5095,7 @@ window.TrillionCloud=(()=>{
   let acct=null,hooks=null,timer=0,lastSent='',status='',dlg=null,busy=false;
   const subs=new Set();
   const ev=(n,p)=>{try{window.TrillionStats&&TrillionStats.track(n,p);}catch(e){}};
-  try{acct=JSON.parse(localStorage.getItem(LS)||'null');if(!acct||!acct.u||!acct.c)acct=null;}catch(e){acct=null;}
+  try{acct=JSON.parse(localStorage.getItem(LS)||'null');if(!acct||!acct.u)acct=null;}catch(e){acct=null;}
   const label=()=>acct?'☁ '+acct.u:'☁ PLAYER ACCOUNT';
   function notify(){subs.forEach(f=>{try{f(label(),status);}catch(e){}});if(dlg)render();}
   async function rpc(fn,args,keepalive){
@@ -5104,7 +5112,7 @@ window.TrillionCloud=(()=>{
     if(s===lastSent)return true;
     status='Saving…';notify();
     try{
-      const r=await rpc('write_save',{p_username:acct.u,p_code:acct.c,p_save:p},keepalive);
+      const r=await rpc('save_as',{p_username:acct.u,p_save:p},keepalive);
       if(r&&r.ok){lastSent=s;status='Saved to the cloud';notify();return true;}else status=(r&&r.error)||'Could not save';
     }catch(e){status='Offline — saved on this device only';}
     notify();return false;
@@ -5114,7 +5122,7 @@ window.TrillionCloud=(()=>{
     if(!acct||!hooks)return false;
     status='Checking cloud save…';notify();
     try{
-      const r=await rpc('load_save',{p_username:acct.u,p_code:acct.c});
+      const r=await rpc('play_as',{p_username:acct.u});
       if(!r||!r.ok){status=(r&&r.error)||'Could not load';notify();return false;}
       const cloud=r.save;
       if(cloud&&(force||(Number(cloud.savedAt)||0)>hooks.localTime())){hooks.apply(cloud);lastSent=sig(hooks.get());status='Loaded your cloud save';}
@@ -5122,20 +5130,15 @@ window.TrillionCloud=(()=>{
     }catch(e){status='Offline — saved on this device only';}
     notify();return true;
   }
-  function remember(u,c){acct={u,c};try{localStorage.setItem(LS,JSON.stringify(acct));}catch(e){}}
-  async function createPlayer(name,pw){
-    const r=await rpc('create_player_pw',{p_username:name,p_password:pw});
+  function remember(u){acct={u};try{localStorage.setItem(LS,JSON.stringify(acct));}catch(e){}}
+  // One step: a new name starts a cloud save from this device's progress; a name already in use picks up that save.
+  async function playAs(name){
+    const r=await rpc('play_as',{p_username:name});
     if(!r||!r.ok)return r||{ok:false,error:'Could not reach the server.'};
-    remember(r.username,pw);lastSent='';await push(false);notify();ev('account_created');return r;
-  }
-  async function signIn(name,code){
-    const tries=[code];const legacy=code.trim().toUpperCase();if(legacy!==code)tries.push(legacy);
-    let r=null,used=code;
-    for(const t of tries){r=await rpc('load_save',{p_username:name,p_code:t});used=t;if(r&&r.ok)break;}
-    if(!r||!r.ok)return r?{ok:false,error:'Name or password is wrong.'}:{ok:false,error:'Could not reach the server.'};
-    remember(name.trim(),used);
-    if(r.save){hooks.apply(r.save);lastSent=sig(hooks.get());status='Loaded your cloud save';}else{lastSent='';await push(false);}
-    notify();ev('account_signin',{had_save:!!r.save});return r;
+    remember(r.username);
+    if(r.existed&&r.save){hooks.apply(r.save);lastSent=sig(hooks.get());status='Loaded your cloud save';}
+    else{lastSent='';await push(false);}
+    notify();ev(r.existed?'account_signin':'account_created',{had_save:!!r.save});return r;
   }
   // Signing out clears this device's islands, high score and account so the next player starts fresh.
   // Progress is pushed to the cloud first; if that fails we refuse (unless forced) so nothing is lost.
@@ -5154,7 +5157,7 @@ window.TrillionCloud=(()=>{
   window.addEventListener('pagehide',()=>{if(timer)push(true);});
 
   // ---- dialog ----
-  let mode='',msg='',justMade='',vName='',vCode='';
+  let mode='',msg='',justMade='',vName='';
   const css=document.createElement('style');
   css.textContent=`@keyframes acct-pulse{0%,100%{box-shadow:0 4px 0 #8a5a14,0 0 0 0 #ffd36a88;}50%{box-shadow:0 4px 0 #8a5a14,0 0 0 9px #ffd36a00;}}
 .acct-open.cta{display:block;width:100%;box-sizing:border-box;margin:12px 0 0;padding:14px 10px;border:3px solid #6b4310;background:linear-gradient(#ffd36a,#f0a93a);color:#3a2204;font:bold 14px 'Courier New',monospace;letter-spacing:1.5px;line-height:1.25;box-shadow:0 4px 0 #8a5a14;animation:acct-pulse 1.8s ease-in-out infinite;cursor:pointer;border-radius:0;white-space:pre-line;}
@@ -5187,9 +5190,8 @@ window.TrillionCloud=(()=>{
     const btn=(t,f,cls)=>{const x=el('button',{type:'button',class:cls||'',text:t});x.addEventListener('click',f);return x;};
     const run=async(f)=>{if(busy)return;busy=true;b.querySelectorAll('button').forEach(x=>x.disabled=true);try{await f();}catch(e){msg='Could not reach the server. Check your connection.';}busy=false;render();};
     if(justMade){
-      b.append(el('h2',{text:'WELCOME, '+acct.u.toUpperCase()}),
-        el('p',{text:'Your progress now saves to the cloud automatically. To play on another device, sign in with your name and password.'}),
-        el('p',{class:'dim',text:'There is no email on file, so remember your password.'}));
+      b.append(el('h2',{text:(justMade==='back'?'WELCOME BACK, ':'WELCOME, ')+acct.u.toUpperCase()}),
+        el('p',{text:justMade==='back'?'Your saved game is loaded. Progress keeps saving to the cloud automatically.':'Your progress now saves to the cloud automatically. To play on another device, just type the same name there.'}));
       b.append(el('div',{class:'row'},btn('LET’S PLAY',close,'main')));return;
     }
     if(acct){
@@ -5201,29 +5203,20 @@ window.TrillionCloud=(()=>{
           run(async()=>{const forced=mode==='outfail';const ok=await signOut(forced);if(ok){close();}else{mode='outfail';msg='';}});
         }),
         btn('CLOSE',close));
-      if(mode==='out')b.append(el('p',{class:'err',text:'Sign out of this device? Your progress is saved to the cloud first, then the islands on this device are cleared. You will need your name and password to sign back in. Press SIGN OUT again to confirm.'}));
+      if(mode==='out')b.append(el('p',{class:'err',text:'Sign out of this device? Your progress is saved to the cloud first, then the islands on this device are cleared. Type your name again to pick it back up. Press SIGN OUT again to confirm.'}));
       if(mode==='outfail')b.append(el('p',{class:'err',text:'Could not save to the cloud right now. If you sign out anyway, progress since your last save will be lost. Check your connection and try again, or press SIGN OUT ANYWAY.'}));
       b.append(row);return;
     }
     const name=el('input',{type:'text',maxlength:'20',autocomplete:'off',spellcheck:'false',placeholder:'3-20 letters or numbers'});
-    const code=el('input',{type:'password',autocomplete:'off',spellcheck:'false',placeholder:'your password'});
-    name.value=vName;code.value=vCode;name.addEventListener('input',()=>{vName=name.value;});code.addEventListener('input',()=>{vCode=code.value;});
-    const showPw=btn('SHOW',()=>{const h=code.type==='password';code.type=h?'text':'password';showPw.textContent=h?'HIDE':'SHOW';});
-    if(mode==='in'){
-      b.append(el('h2',{text:'SIGN IN'}),el('p',{text:'Enter your name and password. This replaces the progress on this device with your cloud save.'}),say(msg,'err'),
-        el('label',{text:'PLAYER NAME'}),name,el('label',{text:'PASSWORD'}),code,
-        el('div',{class:'row'},btn('SIGN IN',()=>run(async()=>{
-          if(name.value.trim().length<3||!code.value){msg='Enter both your name and your password.';return;}
-          const r=await signIn(name.value,code.value);msg=r.ok?'':r.error;if(r.ok){mode='';vCode='';}
-        }),'main'),showPw,btn('BACK',()=>{mode='';msg='';render();})));
-    }else{
-      b.append(el('h2',{text:'PLAYER ACCOUNT'}),el('p',{text:'Pick a name and a password and your progress is saved in the cloud, so you can play from any device. Any password you like, 4 characters or more. No email needed.'}),
-        say(msg,'err'),el('label',{text:'CHOOSE A PLAYER NAME'}),name,el('label',{text:'CHOOSE A PASSWORD'}),code,
-        el('div',{class:'row'},btn('CREATE PLAYER',()=>run(async()=>{
-          if(code.value.length<4){msg='Pick a password with at least 4 characters.';return;}
-          const r=await createPlayer(name.value,code.value);msg=r.ok?'':r.error;if(r.ok){justMade=true;vCode='';}
-        }),'main'),showPw,btn('I HAVE AN ACCOUNT',()=>{mode='in';msg='';render();}),btn('CLOSE',close)));
-    }
+    name.value=vName;name.addEventListener('input',()=>{vName=name.value;});
+    const go=()=>run(async()=>{
+      if(name.value.trim().length<3){msg='Pick a name with at least 3 letters or numbers.';return;}
+      const r=await playAs(name.value);msg=r.ok?'':r.error;if(r.ok)justMade=r.existed?'back':'new';
+    });
+    name.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go();}});
+    b.append(el('h2',{text:'PLAYER NAME'}),el('p',{text:'Type a name and your progress saves to the cloud. Coming back, or on another device? Type the same name and you pick up where you left off.'}),
+      say(msg,'err'),el('label',{text:'YOUR NAME'}),name,
+      el('div',{class:'row'},btn('PLAY',go,'main'),btn('CLOSE',close)));
     setTimeout(()=>{const f=b.querySelector('input');if(f&&document.activeElement!==f)f.focus();},0);
   }
   function open(){
@@ -6616,6 +6609,12 @@ window.TrillionCloud=(()=>{
   'use strict';
   const SEEN_KEY='trillion-log-seen-v1';
   const UPDATE_LOG=[
+    {id:'2026-11-17a',date:'Nov 17, 2026',title:'Just a name',items:[
+      'Saving your game needs only a name now, no password. Type a name and your progress saves to the cloud; type the same name on another device to pick up where you left off.'
+    ]},
+    {id:'2026-11-16f',date:'Nov 16, 2026',title:'Speech stays out of the shop',items:[
+      'Fixed on phones: an animal’s speech bubble no longer floats over the shop drawer. While the drawer is open, what the animal says appears inside it, under the animal’s name.'
+    ]},
     {id:'2026-11-16e',date:'Nov 16, 2026',title:'No more twins',items:[
       'The echo twin is gone. Your shape lands where you put it and nothing else lands with it.',
       'Level 15 is now Two Summits: the top and bottom rise in steps while the four sides stay hollow.',
